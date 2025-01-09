@@ -1,0 +1,162 @@
+#include "World.h"
+
+#include "Renderer/OpenGL.h"
+
+#include "AssetLoader.h"
+#include "AssetManager.h"
+#include "MeshModel.h"
+#include "Defaults/Models.h"
+
+#include "Input/MouseInput.h"
+#include "Input/KeyboardInput.h"
+
+#include "Components/PlayerMovement.h"
+#include "Components/Camera.h"
+#include "Components/StaticMeshRenderer.h"
+#include "Components/RigidBody.h"
+#include "Components/PointLight.h"
+#include "Components/DirectionalLight.h"
+#include "Components/Transform.h"
+
+#include "PlayerSystem.h"
+#include "RenderSystem.h"
+
+#include "Engine.h"
+
+void framebuffer_size_callback(GLFWwindow* window, int width, int height);
+void HandleInput(GLFWwindow* window);
+
+bool Engine::CreateWindow() {
+	glfwInit();
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+
+	window = glfwCreateWindow(800, 600, "LearnOpenGL", nullptr, nullptr);
+	if (window == nullptr)
+	{
+		std::cout << "Could not create game window." << std::endl;
+		glfwTerminate();
+		return false;
+	}
+
+	glfwMakeContextCurrent(window);
+	glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
+	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+
+	if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
+		std::cout << "Failed to initialize glad." << std::endl;
+		glfwTerminate();
+		return false;
+	}
+
+	return true;
+}
+
+void Engine::Init() {
+	if (!CreateWindow()) {
+		std::cout << "Failed to create game window. Exiting..." << std::endl;
+		glfwTerminate();
+		return;
+	}
+
+	if (!MouseInput::Get().Initialize(window) || !KeyboardInput::Get().Initialize(window)) {
+		std::cout << "Failed to initialize player input. Exiting..." << std::endl;
+		glfwTerminate();
+		return;
+	}
+
+	if (!OpenGL::Get().Initialize()) {
+		std::cout << "Failed to initialize renderer. Exiting..." << std::endl;
+		glfwTerminate();
+		return;
+	}
+
+	float dt = 0.0f;
+	float lastFrame = 0.0f;
+
+	World& world = World::Get();
+
+	if (!world.Initialize()) {
+		std::cout << "Failed to initialize world. Exiting..." << std::endl;
+		glfwTerminate();
+		return;
+	}
+
+	// load assets
+	MeshModel* backpackModel = AssetLoader::Get().LoadMeshModelFromFile("Assets/Meshes/SurvivalGuitarBackpack/backpack.obj");
+
+	// register components
+	world.RegisterComponent<Transform>();
+	world.RegisterComponent<Camera>();
+	world.RegisterComponent<PlayerMovement>();
+	world.RegisterComponent<RigidBody>();
+	world.RegisterComponent<StaticMeshRenderer>();
+	world.RegisterComponent<PointLight>();
+	world.RegisterComponent<DirectionalLight>();
+
+
+	// register systems
+	PlayerSystem* playerSystem = world.RegisterSystem<PlayerSystem>();
+	Signature playerRequiredSignature = world.MakeSignature<Transform, Camera, PlayerMovement>();
+	world.SetSystemRequiredSignature<PlayerSystem>(playerRequiredSignature);
+
+	RenderSystem* renderSystem = world.RegisterSystem<RenderSystem>();
+	renderSystem->SetRenderApi(&OpenGL::Get());
+
+	Signature renderRequiredSignature = world.MakeSignature<Transform>();
+	Signature renderOptionalSignature = world.MakeSignature<StaticMeshRenderer, DirectionalLight, PointLight>();
+	world.SetSystemRequiredSignature<RenderSystem>(renderRequiredSignature);
+	world.SetSystemOptionalSignature<RenderSystem>(renderOptionalSignature);
+
+	// create entities
+	Entity player = world.CreateEntity();
+	world.AddComponent(player, Transform{ glm::vec3(0.0f, 3.0f, 0.0f) });
+	world.AddComponent(player, Camera{});
+	world.AddComponent(player, PlayerMovement{});
+	Camera& playerCamera = world.GetComponent<Camera>(player);
+	renderSystem->SetActiveCamera(&playerCamera);
+	
+	Entity backpack = world.CreateEntity();
+	world.AddComponent(backpack, Transform{});
+	world.AddComponent(backpack, StaticMeshRenderer{ backpackModel->meshes });
+
+	Entity sun = world.CreateEntity();
+	world.AddComponent(sun, Transform{});
+	world.AddComponent(sun, DirectionalLight{});
+
+	uint32_t nFrames = 0;
+	while (!glfwWindowShouldClose(window)) {
+		const auto currentFrame = static_cast<float>(glfwGetTime());
+		dt = currentFrame - lastFrame;
+		lastFrame = currentFrame;
+
+		playerSystem->Update(dt);
+		renderSystem->Update(dt);
+
+		// process player input
+		HandleInput(window);
+		glfwPollEvents();
+
+		glfwSwapBuffers(window);
+	}
+
+	glfwTerminate();
+}
+
+void Engine::Update(float dt) {
+	
+}
+
+void HandleInput(GLFWwindow* window) {
+	KeyboardInput::Get().HandleInput();
+	MouseInput::Get().HandleInput();
+
+	if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
+		glfwSetWindowShouldClose(window, true);
+	}
+}
+
+void framebuffer_size_callback(GLFWwindow* window, int width, int height) {
+	glViewport(0, 0, width, height);
+}
