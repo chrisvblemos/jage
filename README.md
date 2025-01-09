@@ -5,10 +5,7 @@ Made using C++20 and OpenGL 4.60.
  
 ## Features
 
-- Components, static meshes, point lights, directional lights, textures, materials;
-- Deferred rendering;
-- Easy to load new assets (3d models, shaders, etc);
-- Easily add components to entities;
+You compile the code and suddenly and you can move around a beautiful 3D rendered backpack.
 
 # TODO
 
