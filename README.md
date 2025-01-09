@@ -1,7 +1,6 @@
 # JAGE
 
-(J)ust (A)nother (G)ame (E)ngine. It is what it is! Highly unoptimize, written by an imbecile. This exists because I want to learn about 3D graphics. I'm following an ECS approach to developing it.
-
+(J)ust (A)nother (G)ame (E)ngine. Highly unoptimized, written by an imbecile. This exists because I want to learn about 3D graphics. Sort of [ECS](https://en.wikipedia.org/wiki/Entity_component_system) at play here.
 Made using C++20 and OpenGL 4.60.
  
 ## Features
@@ -19,14 +18,14 @@ Made using C++20 and OpenGL 4.60.
 - Particles;
 - Audio; 
 - Physics;
-
-## To optimize
-
-- Draw calls are dumb, one per static mesh instance, no buffer memory management yete - write [MDI](https://ktstephano.github.io/rendering/opengl/mdi);
-- Make better use of uniform BOs;
 - Vulkan? Ray tracing? Sure.
 - I want to see an ocean, maybe implement this in the future
 - Try to implement something crazy that has been developed in the recent years and fail.
+
+## To optimize
+
+- Draw calls are dumb, one per static mesh instance, no buffer memory management yet - write [MDI](https://ktstephano.github.io/rendering/opengl/mdi);
+- Make better use of uniform BOs;
 
 ## Resources
 
