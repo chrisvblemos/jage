@@ -134,19 +134,21 @@ void Engine::Init() {
 	backpackTransform.scale = glm::vec3(0.1f); // scale down backpack size
 
 	int nCubes = 100;
+	std::vector<Transform*> cubeTransforms;
 	for (unsigned int i = 0; i < nCubes; i++) {
 		Entity cube = world.CreateEntity();
 		world.AddComponent(cube, Transform{Utils::RandomPointInSphere(15.0f), Utils::RandomQuaternion(), glm::vec3(Utils::RandomFloat())});
 		world.AddComponent(cube, StaticMeshRenderer{ DefaultCube->meshes });
+		cubeTransforms.push_back(&world.GetComponent<Transform>(cube));
 	}
 
-	int nPointLights = 10;
+	int nPointLights = 32;
 	for (unsigned int i = 0; i < nPointLights; i++) {
 		Entity pointLight = world.CreateEntity();
 		glm::vec3 randomPos = Utils::RandomPointInSphere(8.0f);
 		glm::vec3 randomColor = glm::vec3(Utils::RandomFloat(), Utils::RandomFloat(), Utils::RandomFloat());
 		float randomIntensity = Utils::RandomFloat();
-		float randomRadius = 0.01f * Utils::RandomFloat();
+		float randomRadius = 10.0f * Utils::RandomFloat();
 		world.AddComponent(pointLight, Transform{ randomPos });
 		world.AddComponent(pointLight, PointLight{ randomPos, randomColor, randomIntensity, randomRadius });
 	}
@@ -163,6 +165,11 @@ void Engine::Init() {
 		const auto currentFrame = static_cast<float>(glfwGetTime());
 		dt = currentFrame - lastFrame;
 		lastFrame = currentFrame;
+
+		for (Transform* cubeTransform : cubeTransforms) {
+			// rotate cubes around origin
+			cubeTransform->rotation = glm::angleAxis(0.2f * dt, glm::vec3(0.0f, 1.0f, 0.0f)) * cubeTransform->rotation;
+		}
 
 		playerSystem->Update(dt);
 		renderSystem->Update(dt);

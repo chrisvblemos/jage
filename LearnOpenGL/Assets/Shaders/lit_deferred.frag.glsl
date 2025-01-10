@@ -53,7 +53,8 @@ void main() {
             float pointLightIntensity = pointLight.colorAndIntensity.w;
             
             vec3 pointLightDir = normalize(pointLightPos - FragPos);
-		    vec3 diffuse = max(dot(Normal, pointLightDir), 0.0) * Albedo * pointLightColor * pointLightIntensity;
+            float attenuatedIntensity = pointLightIntensity / pow(length(pointLightPos - FragPos), 2);
+		    vec3 diffuse = max(dot(Normal, pointLightDir), 0.0) * Albedo * pointLightColor * attenuatedIntensity;
 		    result += diffuse;
 	    }
     }
