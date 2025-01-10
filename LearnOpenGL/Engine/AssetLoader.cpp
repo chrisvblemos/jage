@@ -84,19 +84,22 @@ StaticMesh* AssetLoader::ProcessMesh(aiMesh* mesh, const aiScene* scene, const s
 	newMesh->vertices = vertices;
 	newMesh->indices = indices;
 
+	Material* material = AssetManager::Get().CreateAsset<Material>();
+
+	// copy material data from file
 	if (mesh->mMaterialIndex >= 0) {
 		aiMaterial* aiMat = scene->mMaterials[mesh->mMaterialIndex];
 		std::vector<Texture*> diffuseTextures = LoadTexturesFromMaterial(aiMat, aiTextureType_DIFFUSE, path);
 		std::vector<Texture*> specularTextures = LoadTexturesFromMaterial(aiMat, aiTextureType_SPECULAR, path);
 
 		// create material assigned to this mesh
-		Material* material = AssetManager::Get().CreateAsset<Material>();
 		if (!diffuseTextures.empty())
 			material->diffuseTexture = diffuseTextures[0];
 		if (!specularTextures.empty())
 			material->specularTexture = specularTextures[0];
-		newMesh->material = material;
 	}
+
+	newMesh->material = material;
 
 	return newMesh;
 }

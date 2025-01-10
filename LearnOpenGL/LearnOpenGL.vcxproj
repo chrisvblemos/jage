@@ -186,6 +186,7 @@
     <ClInclude Include="Engine\Renderer\Shaders.h" />
   </ItemGroup>
   <ItemGroup>
+    <None Include=".gitignore" />
     <None Include="Assets\Shaders\gbuffer.frag.glsl" />
     <None Include="Assets\Shaders\lit_deferred.frag.glsl" />
     <None Include="Assets\Shaders\static_geometry.vert.glsl" />

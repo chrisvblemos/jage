@@ -176,5 +176,6 @@
     <None Include="Assets\Shaders\blit.vert.glsl" />
     <None Include="Assets\Shaders\gbuffer.frag.glsl" />
     <None Include="Assets\Shaders\lit_deferred.frag.glsl" />
+    <None Include=".gitignore" />
   </ItemGroup>
 </Project>

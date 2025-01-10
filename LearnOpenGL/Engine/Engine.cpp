@@ -83,9 +83,13 @@ void Engine::Init() {
 		return;
 	}
 
+	// load default assets
+	MeshModel* DefaultPlane = AssetLoader::Get().LoadMeshModelFromFile("Assets/Meshes/default_plane.obj");
+	MeshModel* DefaultCube = AssetLoader::Get().LoadMeshModelFromFile("Assets/Meshes/default_cube.obj");
+
 	// load assets
 	MeshModel* backpackModel = AssetLoader::Get().LoadMeshModelFromFile("Assets/Meshes/SurvivalGuitarBackpack/backpack.obj");
-
+	
 	// register components
 	world.RegisterComponent<Transform>();
 	world.RegisterComponent<Camera>();
@@ -94,7 +98,6 @@ void Engine::Init() {
 	world.RegisterComponent<StaticMeshRenderer>();
 	world.RegisterComponent<PointLight>();
 	world.RegisterComponent<DirectionalLight>();
-
 
 	// register systems
 	PlayerSystem* playerSystem = world.RegisterSystem<PlayerSystem>();
@@ -115,15 +118,45 @@ void Engine::Init() {
 	world.AddComponent(player, Camera{});
 	world.AddComponent(player, PlayerMovement{});
 	Camera& playerCamera = world.GetComponent<Camera>(player);
+	playerCamera.mFOV = 60.0f;
 	renderSystem->SetActiveCamera(&playerCamera);
+
+	// white ground
+	Entity ground = world.CreateEntity();
+	world.AddComponent(ground, Transform{glm::vec3(0.0f, -0.5f, 0.0f), QUAT_NO_ROTATION, glm::vec3(1000.0f, 1.0f, 1000.0f)});
+	world.AddComponent(ground, StaticMeshRenderer{ DefaultPlane->meshes });
 	
+	// the backpack
 	Entity backpack = world.CreateEntity();
 	world.AddComponent(backpack, Transform{});
 	world.AddComponent(backpack, StaticMeshRenderer{ backpackModel->meshes });
+	Transform& backpackTransform = world.GetComponent<Transform>(backpack);
+	backpackTransform.scale = glm::vec3(0.1f); // scale down backpack size
 
+	int nCubes = 100;
+	for (unsigned int i = 0; i < nCubes; i++) {
+		Entity cube = world.CreateEntity();
+		world.AddComponent(cube, Transform{Utils::RandomPointInSphere(15.0f), Utils::RandomQuaternion(), glm::vec3(Utils::RandomFloat())});
+		world.AddComponent(cube, StaticMeshRenderer{ DefaultCube->meshes });
+	}
+
+	int nPointLights = 10;
+	for (unsigned int i = 0; i < nPointLights; i++) {
+		Entity pointLight = world.CreateEntity();
+		glm::vec3 randomPos = Utils::RandomPointInSphere(8.0f);
+		glm::vec3 randomColor = glm::vec3(Utils::RandomFloat(), Utils::RandomFloat(), Utils::RandomFloat());
+		float randomIntensity = Utils::RandomFloat();
+		float randomRadius = 0.01f * Utils::RandomFloat();
+		world.AddComponent(pointLight, Transform{ randomPos });
+		world.AddComponent(pointLight, PointLight{ randomPos, randomColor, randomIntensity, randomRadius });
+	}
+
+	// the sun
 	Entity sun = world.CreateEntity();
 	world.AddComponent(sun, Transform{});
 	world.AddComponent(sun, DirectionalLight{});
+	DirectionalLight& sunDirLight = world.GetComponent<DirectionalLight>(sun);
+	sunDirLight.intensity = 0.1f;
 
 	uint32_t nFrames = 0;
 	while (!glfwWindowShouldClose(window)) {

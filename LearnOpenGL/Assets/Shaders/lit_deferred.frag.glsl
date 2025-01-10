@@ -2,8 +2,6 @@
 
 const int MAX_POINT_LIGHTS = 32;
 const float SHININESS = 32.0;
-const vec3 DEFAULT_MATERIAL_DIFFUSE_COLOR = vec3(0.6, 0.8, 0.6);
-const vec3 DEFAULT_MATERIAL_SPECULAR_COLOR = vec3(0.5, 0.5, 0.5);
 
 struct PointLight {
     vec4 positionAndRadius;

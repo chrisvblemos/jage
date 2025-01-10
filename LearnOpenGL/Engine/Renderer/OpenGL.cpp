@@ -322,18 +322,21 @@ void OpenGL::StepGeometryPass(StaticMesh* staticMesh, Transform& transform) {
 	SetShaderMat4(&shader, "invModelT", modelInvMatrixT);
 
 	if (Material* material = staticMesh->material) {
+		SetShaderVec3(&shader, "uBaseColor", material->mBaseColor);
+		SetShaderBool(&shader, "uHasDiffuseTexture", material->HasDiffuseTexture());
 		if (Texture* diffuseTexture = material->diffuseTexture) {
-			SetShaderBool(&shader, "hasDiffuseTexture", true);
 			glActiveTexture(GL_TEXTURE0);
 			glBindTexture(GL_TEXTURE_2D, loadedTexturesTable[diffuseTexture->assetId]);
-			SetShaderInt(&shader, "diffuseTexture", 0);
+			SetShaderInt(&shader, "uDiffuseTexture", 0);
 		}
 
+		SetShaderFloat(&shader, "uBaseSpecular", material->mBaseSpecular);
+		SetShaderBool(&shader, "uHasSpecularTexture", material->HasSpecularTexture());
+		
 		if (Texture* specularTexture = material->specularTexture) {
-			SetShaderBool(&shader, "hasSpecularTexture", true);
 			glActiveTexture(GL_TEXTURE1);
 			glBindTexture(GL_TEXTURE_2D, loadedTexturesTable[specularTexture->assetId]);
-			SetShaderInt(&shader, "specularTexture", 1);
+			SetShaderInt(&shader, "uSpecularTexture", 1);
 		}
 	}
 

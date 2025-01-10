@@ -1,28 +1,16 @@
 # JAGE
 
-(J)ust (A)nother (G)ame (E)ngine. Highly unoptimized, written by an imbecile. This exists because I want to learn about 3D graphics. Sort of [ECS](https://en.wikipedia.org/wiki/Entity_component_system) at play here.
-Made using C++20 and OpenGL 4.60.
+![](cool.png)
+
+(J)ust (A)nother (G)ame (E)ngine. Highly unoptimized, written by an imbecile. This exists because I want to learn about 3D graphics.
  
 ## Features
 
-You compile the code and suddenly and you can move around a beautiful 3D rendered backpack.
+You compile the code and suddenly and you can move around a beautiful 3D rendered backpack. Check `Engine.cpp` for how things are created and manipulated, should be very straight forward.
 
-# TODO
+# End Goals
 
-- PBR rendering;
-- Skeletal meshes;
-- Run animations;
-- Particles;
-- Audio; 
-- Physics;
-- Vulkan? Ray tracing? Sure.
-- I want to see an ocean, maybe implement this in the future
-- Try to implement something crazy that has been developed in the recent years and fail.
-
-## To optimize
-
-- Draw calls are dumb, one per static mesh instance, no buffer memory management yet - write [MDI](https://ktstephano.github.io/rendering/opengl/mdi);
-- Make better use of uniform BOs;
+- FPS game, move around, shoot things;
 
 ## Resources
 
