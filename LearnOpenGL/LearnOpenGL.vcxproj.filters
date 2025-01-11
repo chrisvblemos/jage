@@ -177,5 +177,7 @@
     <None Include="Assets\Shaders\gbuffer.frag.glsl" />
     <None Include="Assets\Shaders\lit_deferred.frag.glsl" />
     <None Include=".gitignore" />
+    <None Include="Assets\Shaders\null.frag.glsl" />
+    <None Include="Assets\Shaders\shadow_map_geometry.vert.glsl" />
   </ItemGroup>
 </Project>

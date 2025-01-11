@@ -29,8 +29,7 @@ void RenderSystem::Update(float dt) {
 
 	mRenderApi->UploadCameraUniforms(mActiveCamera);
 
-	// geometry pass
-	mRenderApi->StartGeometryPass();
+	// buffer mesh data
 	for (const Entity& entity : mEntities) {
 		Transform& transform = World::Get().GetComponent<Transform>(entity);
 
@@ -39,10 +38,9 @@ void RenderSystem::Update(float dt) {
 		if ((entitySignature & staticMeshSignature) == staticMeshSignature) {
 			StaticMeshRenderer& staticMeshRenderer = World::Get().GetComponent<StaticMeshRenderer>(entity);
 
-			// step geometry pass for each mesh
-			// i.e. draw each mesh to gbuffer
+ 			// load static mesh into gpu buffer
 			for (StaticMesh* sm : staticMeshRenderer.meshes) {
-				mRenderApi->StepGeometryPass(sm, transform);
+				mRenderApi->BufferStaticMesh(entity, sm, &transform);
 			}
 		}
 
@@ -57,9 +55,10 @@ void RenderSystem::Update(float dt) {
 			mRenderApi->RegisterPointLight(&light);
 		}
 	}
-	mRenderApi->FinishGeometryPass();
 
-	// light pass
+	// execute render passes
+	mRenderApi->GeometryPass();
+	mRenderApi->ShadowMapPass();
 	mRenderApi->LightPass();
-	//mRenderApi->DebugGbuffer(0);
+	//mRenderApi->DebugGbuffer(3);
 }

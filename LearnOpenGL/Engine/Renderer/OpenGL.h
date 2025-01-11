@@ -6,6 +6,7 @@
 #include <unordered_set>
 #include <bitset>
 #include <memory>
+#include "../EntityManager.h"
 #include "../GameAsset.h"
 
 #define OPENGL_MAX_POINT_LIGHTS 32
@@ -16,7 +17,6 @@ struct Texture;
 struct Shader;
 struct Material;
 struct StaticMesh;
-
 struct Camera;
 struct Transform;
 struct DirectionalLight;
@@ -62,6 +62,8 @@ class OpenGL {
 private:
 	uint32_t SCR_WIDTH = 800;
 	uint32_t SCR_HEIGHT = 600;
+	uint32_t SHADOW_MAP_WIDTH = 4096;
+	uint32_t SHADOW_MAP_HEIGHT = 4096;
 
 	OpenGL() = default;
 
@@ -75,16 +77,25 @@ private:
 	uint32_t screenFramebufferTextureId = 0;
 
 	uint32_t gBuffer;
-	uint32_t gPosition, gNormal, gAlbedoSpec;
+	uint32_t gPosition, gNormal, gAlbedoSpec, gShadowMap;
 	uint32_t gDepth;
+
+	uint32_t shadowMapFrameBufferObject;
+	uint32_t shadowMapTextureId;
 
 	// cpu data
 	DirectionalLight* dirLight;
 	std::vector<PointLight*> pointLights;
 
+	std::unordered_map<uint32_t, StaticMesh*> meshVertexArrayObjToStaticMeshMap;
+	std::unordered_map<uint32_t, Transform*> instanceIdToTransformMap;
+	std::unordered_map<uint32_t, std::vector<Entity>> meshVertexArrayObjToInstanceIdMap;
+
 	std::unordered_map<ASSET_ID, uint32_t> loadedTexturesTable{}; // currently gpu loaded textures // loadedTextures[assetId] = id;
 
 	void InitGBuffer();
+	void InitShadowMap();
+
 	void InitCameraUniformBufferObject();
 	void InitLightsUniformBufferObject();
 
@@ -98,6 +109,8 @@ private:
 	void SetShaderMat4(Shader* shader, const std::string& name, const glm::mat4& value);
 	void SetShaderVec3(Shader* shader, const std::string& name, const glm::vec3& value);
 	void SetShaderVec2(Shader* shader, const std::string& name, const glm::vec2& value);
+
+	glm::mat4 CalculateModelMatrix(const glm::vec3& position, const glm::quat& rotation, const glm::vec3& scale);
 
 public:
 	// prevents copying
@@ -128,11 +141,11 @@ public:
 
 	// Buffering
 	void BufferTexture(Texture* texture);
+	void BufferStaticMesh(Entity instanceId, StaticMesh* staticMesh, Transform* transform);
 	
 	// Passes
-	void StartGeometryPass();
-	void StepGeometryPass(StaticMesh* staticMesh, Transform& transform);
-	void FinishGeometryPass();
+	void GeometryPass();
+	void ShadowMapPass();
 	void LightPass();
 
 	void DebugGbuffer(uint32_t layer = 0);

@@ -127,11 +127,11 @@ void Engine::Init() {
 	world.AddComponent(ground, StaticMeshRenderer{ DefaultPlane->meshes });
 	
 	// the backpack
-	Entity backpack = world.CreateEntity();
-	world.AddComponent(backpack, Transform{});
-	world.AddComponent(backpack, StaticMeshRenderer{ backpackModel->meshes });
-	Transform& backpackTransform = world.GetComponent<Transform>(backpack);
-	backpackTransform.scale = glm::vec3(0.1f); // scale down backpack size
+	//Entity backpack = world.CreateEntity();
+	//world.AddComponent(backpack, Transform{});
+	//world.AddComponent(backpack, StaticMeshRenderer{ backpackModel->meshes });
+	//Transform& backpackTransform = world.GetComponent<Transform>(backpack);
+	//backpackTransform.scale = glm::vec3(0.1f); // scale down backpack size
 
 	int nCubes = 100;
 	std::vector<Transform*> cubeTransforms;
@@ -142,23 +142,23 @@ void Engine::Init() {
 		cubeTransforms.push_back(&world.GetComponent<Transform>(cube));
 	}
 
-	int nPointLights = 32;
-	for (unsigned int i = 0; i < nPointLights; i++) {
-		Entity pointLight = world.CreateEntity();
-		glm::vec3 randomPos = Utils::RandomPointInSphere(8.0f);
-		glm::vec3 randomColor = glm::vec3(Utils::RandomFloat(), Utils::RandomFloat(), Utils::RandomFloat());
-		float randomIntensity = Utils::RandomFloat();
-		float randomRadius = 10.0f * Utils::RandomFloat();
-		world.AddComponent(pointLight, Transform{ randomPos });
-		world.AddComponent(pointLight, PointLight{ randomPos, randomColor, randomIntensity, randomRadius });
-	}
+	//int nPointLights = 32;
+	//for (unsigned int i = 0; i < nPointLights; i++) {
+	//	Entity pointLight = world.CreateEntity();
+	//	glm::vec3 randomPos = Utils::RandomPointInSphere(8.0f);
+	//	glm::vec3 randomColor = glm::vec3(Utils::RandomFloat(), Utils::RandomFloat(), Utils::RandomFloat());
+	//	float randomIntensity = Utils::RandomFloat();
+	//	float randomRadius = 10.0f * Utils::RandomFloat();
+	//	world.AddComponent(pointLight, Transform{ randomPos });
+	//	world.AddComponent(pointLight, PointLight{ randomPos, randomColor, randomIntensity, randomRadius });
+	//}
 
 	// the sun
 	Entity sun = world.CreateEntity();
 	world.AddComponent(sun, Transform{});
 	world.AddComponent(sun, DirectionalLight{});
 	DirectionalLight& sunDirLight = world.GetComponent<DirectionalLight>(sun);
-	sunDirLight.intensity = 0.1f;
+	sunDirLight.intensity = 0.7f;
 
 	uint32_t nFrames = 0;
 	while (!glfwWindowShouldClose(window)) {
@@ -166,9 +166,9 @@ void Engine::Init() {
 		dt = currentFrame - lastFrame;
 		lastFrame = currentFrame;
 
+		// rotate cubes around origin
 		for (Transform* cubeTransform : cubeTransforms) {
-			// rotate cubes around origin
-			cubeTransform->rotation = glm::angleAxis(0.2f * dt, glm::vec3(0.0f, 1.0f, 0.0f)) * cubeTransform->rotation;
+			cubeTransform->rotation = glm::angleAxis(0.05f * dt, glm::vec3(0.0f, 1.0f, 0.0f)) * cubeTransform->rotation;
 		}
 
 		playerSystem->Update(dt);

@@ -10,5 +10,6 @@ private:
 public:
 	void SetActiveCamera(Camera* camera);
 	void SetRenderApi(OpenGL* r);
+	void InitializeWorld();
 	void Update(float dt);
 };

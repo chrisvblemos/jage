@@ -6,6 +6,7 @@
 #define PI glm::pi<float>()
 #define VEC3_UNIT glm::vec3(1.0f)
 #define VEC3_ORIGIN glm::vec3(0.0f)
+#define VEC3_UP glm::vec3(0.0f, 1.0f, 0.0f)
 #define QUAT_NO_ROTATION glm::quat(glm::vec3(0.0, 0.0f, 0.0f))
 #define QUAT_DOWN glm::quat(glm::vec3(PI / 2.0f, 0.0f, 0.0f))
 
