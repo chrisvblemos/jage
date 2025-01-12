@@ -235,15 +235,15 @@ void OpenGL::UploadLightUniforms() {
 	dirLight = nullptr;
 }
 
-void OpenGL::UploadCameraUniforms(const Camera* camera) {
-	if (camera == nullptr) {
+void OpenGL::UploadCameraUniforms() {
+	if (currentActiveCamera == nullptr) {
 		return;
 	}
 
 	CameraUniformBlock cameraUniformBlockData = {};
-	cameraUniformBlockData.mPosition = glm::vec4(camera->position, 1.0f);
-	cameraUniformBlockData.mProjMat = camera->GetProjectionMatrix();
-	cameraUniformBlockData.mViewMat = camera->GetViewMatrix();
+	cameraUniformBlockData.mPosition = glm::vec4(currentActiveCamera->position, 1.0f);
+	cameraUniformBlockData.mProjMat = currentActiveCamera->GetProjectionMatrix();
+	cameraUniformBlockData.mViewMat = currentActiveCamera->GetViewMatrix();
 
 	glBindBuffer(GL_UNIFORM_BUFFER, cameraUniformBufferObject);
 	glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(CameraUniformBlock), &cameraUniformBlockData);
@@ -263,7 +263,7 @@ void OpenGL::ShadowMapPass() {
 
 	Shader& shader = Shaders::ShadowMap;
 	UseShader(&shader);
-	SetShaderMat4(&shader, "uLightSpaceMatrix", dirLight->GetLightSpaceTMatrix());
+	SetShaderMat4(&shader, "uLightSpaceMatrix", dirLight->GetLightSpaceTMatrix(currentActiveCamera->position));
 
 	// we have to draw the scene from the directional
 	// light's perspective
@@ -327,8 +327,8 @@ void OpenGL::LightPass() {
 	SetShaderInt(&shader, "uShadowMap", 3);
 
 	if (dirLight != nullptr) {
-		glm::mat4 lightSpaceMatrix = dirLight->GetLightSpaceTMatrix();
-		SetShaderMat4(&shader, "uLightSpaceMatrix", dirLight->GetLightSpaceTMatrix());
+		glm::mat4 lightSpaceMatrix = dirLight->GetLightSpaceTMatrix(currentActiveCamera->position);
+		SetShaderMat4(&shader, "uLightSpaceMatrix", lightSpaceMatrix);
 	}
 
 	UploadLightUniforms();
@@ -426,6 +426,8 @@ glm::mat4 OpenGL::CalculateModelMatrix(const glm::vec3& position, const glm::qua
 }
 
 void OpenGL::GeometryPass() {
+	UploadCameraUniforms();
+
 	glBindFramebuffer(GL_FRAMEBUFFER, gBuffer);
 	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);

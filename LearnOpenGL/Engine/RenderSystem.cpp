@@ -17,6 +17,7 @@ void RenderSystem::SetRenderApi(OpenGL* renderApi) {
 void RenderSystem::SetActiveCamera(Camera* camera) {
 	assert(camera != nullptr && "RenderSystem: Failed to set active camera.");
 	mActiveCamera = camera;
+	mRenderApi->RegisterCamera(camera);
 }
 
 void RenderSystem::Update(float dt) {
@@ -26,8 +27,6 @@ void RenderSystem::Update(float dt) {
 	Signature staticMeshSignature = World::Get().MakeSignature<StaticMeshRenderer>();
 	Signature directionalLightSignature = World::Get().MakeSignature<DirectionalLight>();
 	Signature pointLightSignature = World::Get().MakeSignature<PointLight>();
-
-	mRenderApi->UploadCameraUniforms(mActiveCamera);
 
 	// buffer mesh data
 	for (const Entity& entity : mEntities) {

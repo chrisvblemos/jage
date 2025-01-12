@@ -86,6 +86,7 @@ private:
 	// cpu data
 	DirectionalLight* dirLight;
 	std::vector<PointLight*> pointLights;
+	Camera* currentActiveCamera;
 
 	std::unordered_map<uint32_t, StaticMesh*> meshVertexArrayObjToStaticMeshMap;
 	std::unordered_map<uint32_t, Transform*> instanceIdToTransformMap;
@@ -135,9 +136,15 @@ public:
 		dirLight = light;
 	};
 
+	void RegisterCamera(Camera* camera) {
+		if (camera != nullptr) {
+			currentActiveCamera = camera;
+		}
+	}
+
 	// Uniform buffer objects
 	void UploadLightUniforms();
-	void UploadCameraUniforms(const Camera* camera);
+	void UploadCameraUniforms();
 
 	// Buffering
 	void BufferTexture(Texture* texture);

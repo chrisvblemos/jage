@@ -3,6 +3,25 @@
 const int MAX_POINT_LIGHTS = 32;
 const float SHININESS = 32.0;
 
+const vec2 POISSON_DISK_16[16] = vec2[](
+        vec2(0.45185273, 0.26027307),
+        vec2(0.65157867, 0.06379210),
+        vec2(0.34067438, 0.88627897),
+        vec2(0.24379788, 0.70906218),
+        vec2(0.77983632, 0.11903441),
+        vec2(0.07128592, 0.46912458),
+        vec2(0.73672142, 0.85098227),
+        vec2(0.84263736, 0.56780259),
+        vec2(0.95098022, 0.65227214),
+        vec2(0.93549333, 0.33306261),
+        vec2(0.75305322, 0.75939346),
+        vec2(0.59904599, 0.57617012),
+        vec2(0.14080315, 0.69091085),
+        vec2(0.74251429, 0.53334101),
+        vec2(0.63054442, 0.89339291),
+        vec2(0.61337256, 0.74964296)
+);
+
 struct PointLight {
     vec4 positionAndRadius;
 	vec4 colorAndIntensity;
@@ -26,6 +45,7 @@ layout(std140, binding = 1) uniform CameraBlock {
 
 vec3 CalcLight(vec3 lightColor, float lightIntensity, vec3 lightDir, vec3 viewDir, vec3 normal, float specular);
 float CalcShadowMapVal(vec3 fragPos, float bias);
+float RandomPoissonIndex(vec4 seed4);
 
 in vec2 TexCoords;
 
@@ -86,11 +106,6 @@ void main() {
 
     vec3 result = lightingResult * Albedo;// apply resulting light map to object surface
     FragColor = vec4(result, 1.0);
-
-//    vec4 fragPosLightSpace = uLightSpaceMatrix * vec4(FragPos, 1.0);
-//    vec3 projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;
-//    projCoords = projCoords * 0.5 + 0.5;
-//    FragColor = vec4(vec3(projCoords.z), 1.0);
 }
 
 vec3 CalcLight(vec3 lightColor, float lightIntensity, vec3 lightDir, vec3 viewDir, vec3 normal, float specular) {
@@ -108,6 +123,11 @@ vec3 CalcLight(vec3 lightColor, float lightIntensity, vec3 lightDir, vec3 viewDi
     return diffuse + spec;;
 };
 
+float RandomPoissonIndex(vec4 seed4) {
+    float dot_product = dot(seed4, vec4(12.9898,78.233,45.164,94.673));
+    return fract(sin(dot_product) * 43758.5453);
+}
+
 float CalcShadowMapVal(vec3 fragPos, float bias) {
     vec4 fragPosLightSpace = uLightSpaceMatrix * vec4(fragPos, 1.0);
     vec3 projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;
@@ -119,12 +139,25 @@ float CalcShadowMapVal(vec3 fragPos, float bias) {
     float currentDepth = projCoords.z;
     vec2 texelSize = 1.0 / textureSize(uShadowMap, 0);
     float shadow = 0.0;
+
     for(int x = -1; x <= 1; ++x) {
         for(int y = -1; y < 1; ++y) {
-            float pcfDepth = texture(uShadowMap, projCoords.xy + vec2(x, y) * texelSize).r;
-            shadow += currentDepth - bias > pcfDepth? 1.0 : 0.0;
+            
+            //float pcfDepth = texture(uShadowMap, projCoords.xy + vec2(x, y) * texelSize).r;
+
+            // poisson sampling
+            float nSampledShadow = 0.0;
+            for (int i = 0; i < 16; i++) {
+                int index = int(16.0 * RandomPoissonIndex(vec4(fragPos * 1000.0, i))) % 16;
+                float poissonDepth = texture(uShadowMap, projCoords.xy + vec2(x, y) * texelSize + POISSON_DISK_16[index]/1600.0).r;
+                nSampledShadow += currentDepth - bias > poissonDepth? 1.0 : 0.0;
+            }
+
+            shadow += nSampledShadow / 16.0;
+            //shadow += currentDepth - bias > pcfDepth? 1.0 / 9.0 : 0.0;
         }
     }
+    
     shadow /= 9.0; // take the average from the 9 sampled points around it
 
     return shadow;
