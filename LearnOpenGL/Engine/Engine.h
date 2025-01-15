@@ -1,10 +1,6 @@
 #pragma once
 
-#include <glad/glad.h>
-#include <glfw/glfw3.h>
-#include <vector>
-#include <unordered_map>
-#include <memory>
+#include <Engine/Core.h>
 
 class Engine {
 private:

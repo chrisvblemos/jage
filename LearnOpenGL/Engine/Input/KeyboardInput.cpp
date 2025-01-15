@@ -1,6 +1,4 @@
-#include <iostream>
 #include "KeyboardInput.h"
-
 
 bool KeyboardInput::Initialize(GLFWwindow* window) {
 	if (window) {

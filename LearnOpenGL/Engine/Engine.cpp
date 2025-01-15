@@ -1,26 +1,21 @@
-#include "World.h"
-
-#include "Renderer/OpenGL.h"
-
-#include "AssetLoader.h"
-#include "AssetManager.h"
-#include "MeshModel.h"
-#include "Defaults/Models.h"
-
-#include "Input/MouseInput.h"
-#include "Input/KeyboardInput.h"
-
-#include "Components/PlayerMovement.h"
-#include "Components/Camera.h"
-#include "Components/StaticMeshRenderer.h"
-#include "Components/RigidBody.h"
-#include "Components/PointLight.h"
-#include "Components/DirectionalLight.h"
-#include "Components/Transform.h"
-
-#include "PlayerSystem.h"
-#include "RenderSystem.h"
-
+#include <Engine/World/World.h>
+#include <Engine/Defaults/Models.h>
+#include <Engine/Renderer/OpenGL.h>
+#include <Engine/Assets/AssetLoader.h>
+#include <Engine/Assets/AssetManager.h>
+#include <Engine/Input/MouseInput.h>
+#include <Engine/Input/KeyboardInput.h>
+#include <Engine/ECS/Components/PlayerMovement.h>
+#include <Engine/ECS/Components/Camera.h>
+#include <Engine/ECS/Components/StaticMeshRenderer.h>
+#include <Engine/ECS/Components/RigidBody.h>
+#include <Engine/ECS/Components/PointLight.h>
+#include <Engine/ECS/Components/DirectionalLight.h>
+#include <Engine/ECS/Components/Transform.h>
+#include <Engine/ECS/Systems/PhysicsSystem.h>
+#include <Engine/ECS/Systems/RenderSystem.h>
+#include <Engine/ECS/Systems/PlayerSystem.h>
+#include <Engine/Assets/Types/MeshModel.h>
 #include "Engine.h"
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
@@ -28,8 +23,8 @@ void HandleInput(GLFWwindow* window);
 
 bool Engine::CreateWindow() {
 	glfwInit();
-	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
 	window = glfwCreateWindow(800, 600, "LearnOpenGL", nullptr, nullptr);
@@ -86,8 +81,6 @@ void Engine::Init() {
 	// load default assets
 	MeshModel* DefaultPlane = AssetLoader::Get().LoadMeshModelFromFile("Assets/Meshes/default_plane.obj");
 	MeshModel* DefaultCube = AssetLoader::Get().LoadMeshModelFromFile("Assets/Meshes/default_cube.obj");
-
-	// load assets
 	MeshModel* backpackModel = AssetLoader::Get().LoadMeshModelFromFile("Assets/Meshes/SurvivalGuitarBackpack/backpack.obj");
 	
 	// register components
@@ -133,9 +126,9 @@ void Engine::Init() {
 	//Transform& backpackTransform = world.GetComponent<Transform>(backpack);
 	//backpackTransform.scale = glm::vec3(0.1f); // scale down backpack size
 
-	int nCubes = 100;
+	uint32_t nCubes = 100;
 	std::vector<Transform*> cubeTransforms;
-	for (unsigned int i = 0; i < nCubes; i++) {
+	for (uint32_t i = 0; i < nCubes; i++) {
 		Entity cube = world.CreateEntity();
 		world.AddComponent(cube, Transform{Utils::RandomPointInSphere(15.0f), Utils::RandomQuaternion(), glm::vec3(Utils::RandomFloat())});
 		world.AddComponent(cube, StaticMeshRenderer{ DefaultCube->meshes });

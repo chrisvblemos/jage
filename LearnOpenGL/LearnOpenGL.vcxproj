@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|Win32">
@@ -71,7 +71,7 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <IncludePath>C:\Users\Lemos\source\external\OpenGL\Include;$(IncludePath)</IncludePath>
+    <IncludePath>$(ProjectDir)\;C:\Users\Lemos\source\external\OpenGL\Include;$(IncludePath)</IncludePath>
     <LibraryPath>C:\Users\Lemos\source\external\OpenGL\Libs;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
@@ -116,6 +116,22 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalDependencies>fmt.lib;assimp-vc143-mt.lib;glfw3.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
+    <PostBuildEvent>
+      <Command>
+      </Command>
+    </PostBuildEvent>
+    <PreBuildEvent>
+      <Command>rem Create main Assets folder
+if not exist "$(TargetDir)Assets" mkdir "$(TargetDir)Assets"
+
+rem Create Shaders folder and copy shader files
+if not exist "$(TargetDir)Assets\Shaders" mkdir "$(TargetDir)Assets\Shaders"
+xcopy /E /I "$(ProjectDir)Assets\Shaders\*" "$(TargetDir)Assets\Shaders\"
+
+rem Create Meshes folder and copy mesh files
+if not exist "$(TargetDir)Assets\Meshes" mkdir "$(TargetDir)Assets\Meshes"
+xcopy /E /I "$(ProjectDir)Assets\Meshes\*" "$(TargetDir)Assets\Meshes\"</Command>
+    </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
@@ -134,67 +150,146 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="Engine\ComponentManager.cpp" />
-    <ClCompile Include="Engine\AssetLoader.cpp" />
-    <ClCompile Include="Engine\AssetManager.cpp" />
-    <ClCompile Include="Engine\Components\Transform.h" />
-    <ClCompile Include="Engine\World.cpp" />
+    <ClCompile Include="Engine\Assets\Types\MeshModel.h" />
+    <ClCompile Include="Engine\ECS\ComponentManager.cpp" />
+    <ClCompile Include="Engine\Assets\AssetLoader.cpp" />
+    <ClCompile Include="Engine\ECS\Components\Transform.h" />
+    <ClCompile Include="Engine\World\World.cpp" />
     <ClCompile Include="Engine\Defaults\Models.h" />
     <ClCompile Include="Engine\Engine.cpp" />
     <ClCompile Include="Engine\Input\KeyboardInput.cpp" />
-    <ClCompile Include="Engine\PhysicsSystem.cpp" />
-    <ClCompile Include="Engine\PhysicsSystem.h" />
-    <ClCompile Include="Engine\PlayerSystem.cpp" />
-    <ClCompile Include="Engine\RenderSystem.cpp" />
-    <ClCompile Include="Engine\SystemManager.cpp" />
+    <ClCompile Include="Engine\ECS\Systems\PhysicsSystem.cpp" />
+    <ClCompile Include="Engine\ECS\Systems\PhysicsSystem.h" />
+    <ClCompile Include="Engine\ECS\Systems\PlayerSystem.cpp" />
+    <ClCompile Include="Engine\ECS\Systems\RenderSystem.cpp" />
+    <ClCompile Include="Engine\ECS\SystemManager.cpp" />
     <ClCompile Include="Engine\Utils.h" />
     <ClCompile Include="glad.c" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Engine\Input\MouseInput.cpp" />
     <ClCompile Include="Engine\Renderer\OpenGL.cpp" />
-    <ClCompile Include="Engine\Shader.cpp" />
     <ClCompile Include="stb_image.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Engine\AssetLoader.h" />
-    <ClInclude Include="Engine\AssetManager.h" />
-    <ClInclude Include="Engine\ComponentArray.h" />
-    <ClInclude Include="Engine\ComponentManager.h" />
-    <ClInclude Include="Engine\Components\Camera.h" />
-    <ClInclude Include="Engine\Components\DirectionalLight.h" />
-    <ClInclude Include="Engine\Components\RigidBody.h" />
-    <ClInclude Include="Engine\Components\StaticMeshRenderer.h" />
-    <ClInclude Include="Engine\Components\PlayerMovement.h" />
-    <ClInclude Include="Engine\Components\PointLight.h" />
-    <ClInclude Include="Engine\World.h" />
+    <ClInclude Include="Engine\Assets\AssetLoader.h" />
+    <ClInclude Include="Engine\Assets\AssetManager.h" />
+    <ClInclude Include="Engine\Assets\Types\GameAsset.h" />
+    <ClInclude Include="Engine\Assets\Types\Material.h" />
+    <ClInclude Include="Engine\Assets\Types\StaticMesh.h" />
+    <ClInclude Include="Engine\Assets\Types\Texture.h" />
+    <ClInclude Include="Engine\ECS\ComponentArray.h" />
+    <ClInclude Include="Engine\ECS\ComponentManager.h" />
+    <ClInclude Include="Engine\ECS\Components\Camera.h" />
+    <ClInclude Include="Engine\ECS\Components\DirectionalLight.h" />
+    <ClInclude Include="Engine\ECS\Components\RigidBody.h" />
+    <ClInclude Include="Engine\ECS\Components\StaticMeshRenderer.h" />
+    <ClInclude Include="Engine\ECS\Components\PlayerMovement.h" />
+    <ClInclude Include="Engine\ECS\Components\PointLight.h" />
+    <ClInclude Include="Engine\Core.h" />
+    <ClInclude Include="Engine\ECS\Systems\System.h" />
+    <ClInclude Include="Engine\Renderer\Types\DrawIndirectBuffer.h" />
+    <ClInclude Include="Engine\Renderer\Types\ElementArrayBuffer.h" />
+    <ClInclude Include="Engine\Renderer\Types\FrameBuffer.h" />
+    <ClInclude Include="Engine\Renderer\Types\ShaderStorageBuffer.h" />
+    <ClInclude Include="Engine\Renderer\Types\Texture2D.h" />
+    <ClInclude Include="Engine\Renderer\Types\TextureCubemapArray.h" />
+    <ClInclude Include="Engine\Renderer\Types\Types.h" />
+    <ClInclude Include="Engine\Renderer\Types\UniformBuffer.h" />
+    <ClInclude Include="Engine\Renderer\Types\VertexArrayBuffer.h" />
+    <ClInclude Include="Engine\Renderer\Types\VertexBuffer.h" />
+    <ClInclude Include="Engine\World\World.h" />
     <ClInclude Include="Engine\Engine.h" />
-    <ClInclude Include="Engine\EntityManager.h" />
-    <ClInclude Include="Engine\GameAsset.h" />
-    <ClInclude Include="Engine\IComponentArray.h" />
+    <ClInclude Include="Engine\ECS\EntityManager.h" />
+    <ClInclude Include="Engine\ECS\IComponentArray.h" />
     <ClInclude Include="Engine\Input\KeyboardInput.h" />
-    <ClInclude Include="Engine\MeshModel.h" />
-    <ClInclude Include="Engine\PlayerSystem.h" />
-    <ClInclude Include="Engine\RenderSystem.h" />
-    <ClInclude Include="Engine\System.h" />
-    <ClInclude Include="Engine\SystemManager.h" />
+    <ClInclude Include="Engine\ECS\Systems\PlayerSystem.h" />
+    <ClInclude Include="Engine\ECS\Systems\RenderSystem.h" />
+    <ClInclude Include="Engine\ECS\SystemManager.h" />
     <ClInclude Include="Engine\Input\MouseInput.h" />
-    <ClInclude Include="Engine\StaticMesh.h" />
-    <ClInclude Include="Engine\Material.h" />
     <ClInclude Include="Engine\Renderer\OpenGL.h" />
-    <ClInclude Include="Engine\Texture.h" />
-    <ClInclude Include="Engine\Shader.h" />
-    <ClInclude Include="Engine\Renderer\Shaders.h" />
+    <ClInclude Include="Engine\Renderer\Types\Shader.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include=".gitignore" />
+    <None Include="Assets\Meshes\AbandonedCottage\cottage.mtl">
+      <FileType>Document</FileType>
+    </None>
+    <None Include="Assets\Meshes\default_cube.mtl">
+      <FileType>Document</FileType>
+    </None>
+    <None Include="Assets\Meshes\default_plane.mtl">
+      <FileType>Document</FileType>
+    </None>
+    <None Include="Assets\Meshes\SurvivalGuitarBackpack\backpack.mtl">
+      <FileType>Document</FileType>
+    </None>
+    <None Include="Assets\Shaders\gbuffer.frag">
+      <FileType>Document</FileType>
+    </None>
     <None Include="Assets\Shaders\gbuffer.frag.glsl" />
+    <None Include="Assets\Shaders\gbuffer.vert">
+      <FileType>Document</FileType>
+    </None>
+    <None Include="Assets\Shaders\lighting.frag">
+      <FileType>Document</FileType>
+    </None>
+    <None Include="Assets\Shaders\lighting.vert">
+      <FileType>Document</FileType>
+    </None>
     <None Include="Assets\Shaders\lit_deferred.frag.glsl" />
     <None Include="Assets\Shaders\null.frag.glsl" />
+    <None Include="Assets\Shaders\point_shadow_map.frag">
+      <FileType>Document</FileType>
+    </None>
+    <None Include="Assets\Shaders\point_shadow_map.geom">
+      <FileType>Document</FileType>
+    </None>
+    <None Include="Assets\Shaders\point_shadow_map.vert">
+      <FileType>Document</FileType>
+    </None>
+    <None Include="Assets\Shaders\screen.frag">
+      <FileType>Document</FileType>
+    </None>
+    <None Include="Assets\Shaders\screen.vert">
+      <FileType>Document</FileType>
+    </None>
+    <None Include="Assets\Shaders\shadow_map.frag">
+      <FileType>Document</FileType>
+    </None>
+    <None Include="Assets\Shaders\shadow_map.vert">
+      <FileType>Document</FileType>
+    </None>
     <None Include="Assets\Shaders\shadow_map_geometry.vert.glsl" />
     <None Include="Assets\Shaders\static_geometry.vert.glsl" />
     <None Include="Assets\Shaders\blit.frag.glsl" />
     <None Include="Assets\Shaders\blit.vert.glsl" />
     <None Include="Assets\Shaders\unlit_deferred.frag.glsl" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Assets\Meshes\AbandonedCottage\cottage.obj">
+      <FileType>Document</FileType>
+    </None>
+    <None Include="Assets\Meshes\default_cube.obj">
+      <FileType>Document</FileType>
+    </None>
+    <None Include="Assets\Meshes\default_plane.obj">
+      <FileType>Document</FileType>
+    </None>
+    <None Include="Assets\Meshes\SurvivalGuitarBackpack\backpack.obj">
+      <FileType>Document</FileType>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Assets\Meshes\AbandonedCottage\diffuse.png" />
+    <None Include="Assets\Meshes\AbandonedCottage\normal.png" />
+    <None Include="Assets\Meshes\SurvivalGuitarBackpack\ao.jpg" />
+    <None Include="Assets\Meshes\SurvivalGuitarBackpack\diffuse.jpg" />
+    <None Include="Assets\Meshes\SurvivalGuitarBackpack\normal.png" />
+    <None Include="Assets\Meshes\SurvivalGuitarBackpack\roughness.jpg" />
+    <None Include="Assets\Meshes\SurvivalGuitarBackpack\specular.jpg" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Assets\Meshes\SurvivalGuitarBackpack\source_attribution.txt" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

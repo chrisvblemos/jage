@@ -1,5 +1,3 @@
-#include <glfw/glfw3.h>
-#include <iostream>
 #include "MouseInput.h"
 
 bool MouseInput::Initialize(GLFWwindow* window) {

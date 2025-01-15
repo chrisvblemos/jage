@@ -36,57 +36,48 @@
     <ClCompile Include="Engine\Renderer\OpenGL.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Engine\Shader.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="Engine\Defaults\Models.h">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Engine\Components\Transform.h">
+    <ClCompile Include="Engine\ECS\Components\Transform.h">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Engine\Input\KeyboardInput.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Engine\AssetManager.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="Engine\Utils.h">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Engine\AssetLoader.cpp">
+    <ClCompile Include="Engine\Assets\AssetLoader.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Engine\PhysicsSystem.h">
+    <ClCompile Include="Engine\ECS\Systems\PhysicsSystem.h">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Engine\ComponentManager.cpp">
+    <ClCompile Include="Engine\ECS\ComponentManager.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Engine\World.cpp">
+    <ClCompile Include="Engine\World\World.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Engine\PhysicsSystem.cpp">
+    <ClCompile Include="Engine\ECS\Systems\PhysicsSystem.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Engine\PlayerSystem.cpp">
+    <ClCompile Include="Engine\ECS\Systems\PlayerSystem.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Engine\RenderSystem.cpp">
+    <ClCompile Include="Engine\ECS\Systems\RenderSystem.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Engine\SystemManager.cpp">
+    <ClCompile Include="Engine\ECS\SystemManager.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Assets\Types\MeshModel.h">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Engine\Shader.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="Engine\Input\MouseInput.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Engine\StaticMesh.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Engine\Engine.h">
@@ -95,73 +86,106 @@
     <ClInclude Include="Engine\Renderer\OpenGL.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Engine\Material.h">
+    <ClInclude Include="Engine\ECS\Components\StaticMeshRenderer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Engine\Texture.h">
+    <ClInclude Include="Engine\ECS\Components\Camera.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Engine\Components\StaticMeshRenderer.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Engine\Components\Camera.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Engine\GameAsset.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Engine\Renderer\Shaders.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Engine\Components\PlayerMovement.h">
+    <ClInclude Include="Engine\ECS\Components\PlayerMovement.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Engine\Input\KeyboardInput.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Engine\Components\DirectionalLight.h">
+    <ClInclude Include="Engine\ECS\Components\DirectionalLight.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Engine\Components\PointLight.h">
+    <ClInclude Include="Engine\ECS\Components\PointLight.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Engine\AssetManager.h">
+    <ClInclude Include="Engine\Assets\AssetManager.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Engine\AssetLoader.h">
+    <ClInclude Include="Engine\Assets\AssetLoader.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Engine\MeshModel.h">
+    <ClInclude Include="Engine\ECS\EntityManager.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Engine\EntityManager.h">
+    <ClInclude Include="Engine\ECS\IComponentArray.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Engine\IComponentArray.h">
+    <ClInclude Include="Engine\ECS\ComponentArray.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Engine\ComponentArray.h">
+    <ClInclude Include="Engine\ECS\ComponentManager.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Engine\ComponentManager.h">
+    <ClInclude Include="Engine\ECS\SystemManager.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Engine\System.h">
+    <ClInclude Include="Engine\World\World.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Engine\SystemManager.h">
+    <ClInclude Include="Engine\ECS\Components\RigidBody.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Engine\World.h">
+    <ClInclude Include="Engine\ECS\Systems\PlayerSystem.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Engine\Components\RigidBody.h">
+    <ClInclude Include="Engine\ECS\Systems\RenderSystem.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Engine\PlayerSystem.h">
+    <ClInclude Include="Engine\Renderer\Types\Shader.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Engine\RenderSystem.h">
+    <ClInclude Include="Engine\Core.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Renderer\Types\ElementArrayBuffer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Renderer\Types\VertexArrayBuffer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Renderer\Types\VertexBuffer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Renderer\Types\UniformBuffer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Renderer\Types\ShaderStorageBuffer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Renderer\Types\FrameBuffer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Renderer\Types\DrawIndirectBuffer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Renderer\Types\Texture2D.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Renderer\Types\TextureCubemapArray.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Renderer\Types\Types.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Assets\Types\GameAsset.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Assets\Types\Texture.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Assets\Types\Material.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Assets\Types\StaticMesh.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\ECS\Systems\System.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
@@ -179,5 +203,46 @@
     <None Include=".gitignore" />
     <None Include="Assets\Shaders\null.frag.glsl" />
     <None Include="Assets\Shaders\shadow_map_geometry.vert.glsl" />
+    <None Include="Assets\Meshes\AbandonedCottage\cottage.mtl" />
+    <None Include="Assets\Meshes\AbandonedCottage\cottage.obj" />
+    <None Include="Assets\Meshes\AbandonedCottage\diffuse.png">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="Assets\Meshes\AbandonedCottage\normal.png">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="Assets\Meshes\SurvivalGuitarBackpack\ao.jpg">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="Assets\Meshes\SurvivalGuitarBackpack\backpack.mtl" />
+    <None Include="Assets\Meshes\SurvivalGuitarBackpack\backpack.obj" />
+    <None Include="Assets\Meshes\SurvivalGuitarBackpack\diffuse.jpg">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="Assets\Meshes\SurvivalGuitarBackpack\normal.png">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="Assets\Meshes\SurvivalGuitarBackpack\roughness.jpg">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="Assets\Meshes\SurvivalGuitarBackpack\source_attribution.txt" />
+    <None Include="Assets\Meshes\SurvivalGuitarBackpack\specular.jpg">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="Assets\Meshes\default_cube.mtl" />
+    <None Include="Assets\Meshes\default_cube.obj" />
+    <None Include="Assets\Meshes\default_plane.mtl" />
+    <None Include="Assets\Meshes\default_plane.obj" />
+    <None Include="Assets\Shaders\gbuffer.frag" />
+    <None Include="Assets\Shaders\gbuffer.vert" />
+    <None Include="Assets\Shaders\lighting.frag" />
+    <None Include="Assets\Shaders\lighting.vert" />
+    <None Include="Assets\Shaders\point_shadow_map.frag" />
+    <None Include="Assets\Shaders\point_shadow_map.geom" />
+    <None Include="Assets\Shaders\point_shadow_map.vert" />
+    <None Include="Assets\Shaders\screen.frag" />
+    <None Include="Assets\Shaders\screen.vert" />
+    <None Include="Assets\Shaders\shadow_map.frag" />
+    <None Include="Assets\Shaders\shadow_map.vert" />
   </ItemGroup>
 </Project>

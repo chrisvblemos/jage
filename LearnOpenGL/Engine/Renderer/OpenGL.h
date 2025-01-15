@@ -1,49 +1,89 @@
 #pragma once
 
-#include <glm/glm.hpp>
-#include <vector>
-#include <unordered_map>
-#include <unordered_set>
-#include <bitset>
-#include <memory>
-#include "../EntityManager.h"
-#include "../GameAsset.h"
-
-#define OPENGL_MAX_POINT_LIGHTS 32
-#define LIGHTS_UNIFORM_BUFFER_INDEX 0
-#define CAMERA_UNIFORM_BUFFER_INDEX 1
+#include <Engine/Renderer/Types/Types.h>
+#include <Engine/Core.h>
 
 struct Texture;
-struct Shader;
+struct Transform;
 struct Material;
 struct StaticMesh;
 struct Camera;
-struct Transform;
 struct DirectionalLight;
 struct PointLight;
 
-struct PointLightUniformData {
-	glm::vec4 mPositionAndRadius{ 0.0f };
-	glm::vec4 mColorAndIntensity{ 1.0f };
+// UBOs
+#define LIGHTS_UNIFORM_BUFFER_INDEX 0
+#define CAMERA_UNIFORM_BUFFER_INDEX 1
+
+// SSBOs
+#define SSBO_MESH_INSTANCE_DATA 0
+#define SSBO_MATERIAL_INSTANCE_DATA 1
+#define SSBO_POINT_LIGHT_DATA_ARRAY 2
+
+// SHADERS
+#define SHADER_LIGHTING 0
+#define SHADER_SCREEN 1
+#define SHADER_GBUFFER 2
+#define SHADER_SHADOW_MAP 3
+#define SHADER_POINT_SHADOW_MAP 4
+
+// MESHES
+#define MAX_MESH_INSTANCES 10000
+#define MAX_MATERIAL_INSTANCES 50000
+#define MAX_POINT_LIGHTS 32
+
+struct MaterialData {
+	glm::vec4 baseColor;
+	glm::vec4 specularColor;
+	float shininess;
+	float roughness;
+	uint32_t textureIndices[3];
+	float padding[2];
 };
 
-struct DirectionalLightUniformData {
-	glm::vec4 mDirection{ 0.0f };
-	glm::vec4 mColorAndIntensity{ 1.0f };
+struct MeshData {
+	uint32_t firstIndex;		// location in the EBO
+	uint32_t indexCount;		// number of indices
+	uint32_t baseVertex;		// location in the VBO
+	uint32_t drawCommandId;		// index in draw command buffer
 };
 
-
-struct LightsUniformBlock {
-	DirectionalLightUniformData mDirectionalLight;
-	PointLightUniformData mPointLights[OPENGL_MAX_POINT_LIGHTS];
-	glm::vec4 mAmbientLightColorAndIntensity{ 1.0f };
-	uint32_t mPointLightsCount;
+struct MeshInstanceData {
+	glm::mat4 model;
+	glm::mat4 inverseModel;
+	uint32_t id;
+	uint32_t materialIndex;
 };
 
-struct CameraUniformBlock {
-	glm::vec4 mPosition{ 0.0f };
-	glm::mat4 mViewMat{ 1.0f };
-	glm::mat4 mProjMat{ 1.0f };
+struct SceneLightData {
+	bool mHasDirectionalLight;
+    glm::vec3 mDirectionalLightDirection;
+    glm::vec3 mDirectionalLightColor;
+    float mDirectionalLightIntensity;
+    glm::mat4 mDirectionalLightMatrix;
+    int mPointLightsCount;
+    glm::vec3 mAmbientLightColor;
+    float mAmbientLightIntensity;
+};
+
+struct PointLightData {
+	glm::vec3 mPosition;
+	float mRadius;
+	glm::vec3 mColor;
+	float mIntensity;
+	float shadowFarPlane;
+	int shadowCubeMapIndex;
+	float padding;
+};
+
+struct PointLightsDataArray {
+	PointLightData mPointLights[MAX_POINT_LIGHTS];
+};
+
+struct CameraData {
+	glm::vec4 mPosition;
+	glm::mat4 mProjection{ 1.0f };
+	glm::mat4 mView{ 1.0f };
 };
 
 // screen quad
@@ -60,56 +100,61 @@ const float quadVertices[] = {
 
 class OpenGL {
 private:
-	uint32_t SCR_WIDTH = 800;
-	uint32_t SCR_HEIGHT = 600;
-	uint32_t SHADOW_MAP_WIDTH = 4096;
-	uint32_t SHADOW_MAP_HEIGHT = 4096;
-
 	OpenGL() = default;
 
-	uint32_t lightsUniformBufferObject = 0;
-	uint32_t cameraUniformBufferObject = 0;
+	uint32_t SCR_WIDTH = 800;
+	uint32_t SCR_HEIGHT = 600;
 
-	uint32_t screenFrameBufferObject= 0;
-	uint32_t screenRenderBufferObject = 0;
-	uint32_t screenQuadVertexArrayObject = 0;
-	uint32_t screenQuadVertexBufferObject = 0;
-	uint32_t screenFramebufferTextureId = 0;
+	uint32_t SHADOW_MAP_RESOLUTION = 512;
 
-	uint32_t gBuffer;
-	uint32_t gPosition, gNormal, gAlbedoSpec, gShadowMap;
-	uint32_t gDepth;
+	std::unordered_map<uint32_t, Shader> mCompiledShaders;
 
-	uint32_t shadowMapFrameBufferObject;
-	uint32_t shadowMapTextureId;
+	UniformBuffer sceneLightDataUBO;
+	UniformBuffer cameraDataUBO;
 
-	// cpu data
-	DirectionalLight* dirLight;
-	std::vector<PointLight*> pointLights;
+	std::unordered_map<uint32_t, MeshData> meshAssetToDataMap;
+	std::vector<MeshInstanceData> meshInstanceDataArray;
+	std::vector<DrawIndirectElementCommand> meshDrawCommandArray;
+
+	std::vector<MaterialData> materialDataArray;
+
+	DrawIndirectBuffer meshDIB;
+	VertexArrayBuffer meshVAO;
+	VertexBuffer meshVBO;
+	ElementArrayBuffer meshEBO;
+	ShaderStorageBuffer meshSSBO;
+	ShaderStorageBuffer materialSSBO;
+
+	FrameBuffer screenFBO;
+	uint32_t screenRBO = 0;
+	VertexArrayBuffer screenQuadVAO;
+	VertexBuffer screenQuadVBO;
+	Texture2D screenTextureID;
+
+	FrameBuffer gBuffer;
+	Texture2D gPosition, gNormal, gAlbedoSpec, gShadowMap, gDepth;
+
+	FrameBuffer shadowMapFBO;
+	Texture2D directionalLightShadowMap;
+
+	FrameBuffer pointShadowFBO;
+	ShaderStorageBuffer pointLightDataArraySSBO;
+	TextureCubeMapArray pointShadowCubemapArray;
+
+	// CPU data
+	DirectionalLight* directionalLight;
 	Camera* currentActiveCamera;
-
-	std::unordered_map<uint32_t, StaticMesh*> meshVertexArrayObjToStaticMeshMap;
-	std::unordered_map<uint32_t, Transform*> instanceIdToTransformMap;
-	std::unordered_map<uint32_t, std::vector<Entity>> meshVertexArrayObjToInstanceIdMap;
-
-	std::unordered_map<ASSET_ID, uint32_t> loadedTexturesTable{}; // currently gpu loaded textures // loadedTextures[assetId] = id;
+	std::vector<uint32_t> pointShadowCubemaps;
+	std::vector<PointLight*> pointLights;
+	std::unordered_map<uint32_t, StaticMesh*> VAOToMeshMap;
+	std::unordered_map<uint32_t, Transform*> meshInstanceToTransformMap;
+	std::unordered_map<uint32_t, std::vector<Entity>> VAOToInstanceIdMap;
+	std::unordered_map<AssetId, uint32_t> assetToTextureIDMap{}; // loadedTextures[assetId] = gl_id;
 
 	void InitGBuffer();
 	void InitShadowMap();
 
-	void InitCameraUniformBufferObject();
-	void InitLightsUniformBufferObject();
-
 	void BufferScreenQuad();
-
-	void CompileShader(Shader& shader);
-	void UseShader(Shader* shader);
-	void SetShaderBool(Shader* shader, const std::string& name, const bool value);
-	void SetShaderInt(Shader* shader, const std::string& name, const int value);
-	void SetShaderFloat(Shader* shader, const std::string& name, const float value);
-	void SetShaderMat4(Shader* shader, const std::string& name, const glm::mat4& value);
-	void SetShaderVec3(Shader* shader, const std::string& name, const glm::vec3& value);
-	void SetShaderVec2(Shader* shader, const std::string& name, const glm::vec2& value);
 
 	glm::mat4 CalculateModelMatrix(const glm::vec3& position, const glm::quat& rotation, const glm::vec3& scale);
 
@@ -133,7 +178,7 @@ public:
 	};
 
 	void RegisterDirectionalLight(DirectionalLight* light) {
-		dirLight = light;
+		directionalLight = light;
 	};
 
 	void RegisterCamera(Camera* camera) {
@@ -143,8 +188,8 @@ public:
 	}
 
 	// Uniform buffer objects
-	void UploadLightUniforms();
-	void UploadCameraUniforms();
+	void UploadSceneLightData();
+	void UploadCameraData();
 
 	// Buffering
 	void BufferTexture(Texture* texture);
@@ -153,7 +198,8 @@ public:
 	// Passes
 	void GeometryPass();
 	void ShadowMapPass();
-	void LightPass();
+	void PointShadowMapPass();
+	void LightingPass();
 
 	void DebugGbuffer(uint32_t layer = 0);
 };

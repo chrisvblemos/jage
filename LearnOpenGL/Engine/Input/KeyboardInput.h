@@ -1,8 +1,6 @@
 #pragma once
 
-#include <glfw/glfw3.h>
-#include <glm/glm.hpp>
-#include <unordered_map>
+#include <Engine/Core.h>
 
 #define KEY_W GLFW_KEY_W;
 #define KEY_S GLFW_KEY_S;
