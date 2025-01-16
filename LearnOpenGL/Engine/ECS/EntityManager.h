@@ -1,7 +1,7 @@
 
 #pragma once
 
-#include <Engine/Core.h>
+#include <Core/Core.h>
 
 class EntityManager {
 public:

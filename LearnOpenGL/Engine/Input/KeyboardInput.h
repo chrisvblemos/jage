@@ -1,6 +1,6 @@
 #pragma once
 
-#include <Engine/Core.h>
+#include <Core/Core.h>
 
 #define KEY_W GLFW_KEY_W;
 #define KEY_S GLFW_KEY_S;

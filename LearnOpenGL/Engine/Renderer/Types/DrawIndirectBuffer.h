@@ -1,8 +1,8 @@
 #pragma once
 
-#include <Engine/Core.h>
+#include <Core/Core.h>
 
-// 1. we build a vao for the meshes (it's fixed once a mesh is loaded)
+// 1. we build a VAO for the meshes (it's fixed once a mesh is loaded)
 // aPosition: {baseIndex = 0, stride = 3}, aNormal: {baseIndex = 1, stride = 3}, aTexCoord: {baseIndex = 2, stride = 3}, 
 
 // 2. we build a meshes data VBO in the following way:
@@ -23,29 +23,33 @@ struct DrawIndirectElementCommand {
 struct DrawIndirectBuffer{
 	std::string name;
 	GLuint id = 0;
-	const void* data = nullptr;
-	GLsizei size = 0;
 
 	void Generate(const std::string& name) {
+		glGenBuffers(1, &id);
 		this->name = name;
-		glCreateBuffers(1, &id);
+	}
+
+	void Allocate(const GLsizei size) {
+		glBufferData(GL_DRAW_INDIRECT_BUFFER, size, nullptr, GL_DYNAMIC_DRAW);
 	}
 
 	void BufferData(const GLsizei size, const void* data) {
-		glNamedBufferStorage(id, size, data, GL_DYNAMIC_STORAGE_BIT);
-		this->size = size;
-		this->data = data;
+		glBufferData(GL_DRAW_INDIRECT_BUFFER, size, data, GL_DYNAMIC_DRAW);
 	}
 
 	void Bind() const {
 		glBindBuffer(GL_DRAW_INDIRECT_BUFFER, id);
 	}
 
+	void BufferSubData(const GLuint offset, const GLsizei size, const void* data) {
+		glBufferSubData(GL_DRAW_INDIRECT_BUFFER, offset, size, data);
+	}
+
 	void Unbind() const {
 		glBindBuffer(GL_DRAW_INDIRECT_BUFFER, 0);
 	}
 
-	void Draw() const {
+	void Draw(const GLuint size) const {
 		glMultiDrawElementsIndirect(
 			GL_TRIANGLES,
 			GL_UNSIGNED_INT,

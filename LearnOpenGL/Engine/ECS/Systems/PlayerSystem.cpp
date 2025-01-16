@@ -1,10 +1,10 @@
-#include <Engine/Input/KeyboardInput.h>
-#include <Engine/Input/MouseInput.h>
-#include <Engine/ECS/Components/PlayerMovement.h>
-#include <Engine/ECS/Components/Camera.h>
-#include <Engine/ECS/Components/Transform.h>
-#include <Engine/World/World.h>
-#include <Engine/Utils.h>
+#include <Input/KeyboardInput.h>
+#include <Input/MouseInput.h>
+#include <ECS/Components/PlayerMovement.h>
+#include <ECS/Components/Camera.h>
+#include <ECS/Components/Transform.h>
+#include <World/World.h>
+#include <Utils.h>
 
 #include "PlayerSystem.h"
 

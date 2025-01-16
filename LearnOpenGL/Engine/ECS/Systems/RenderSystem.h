@@ -1,7 +1,7 @@
 #pragma once
 
-#include <Engine/Renderer/OpenGL.h>
-#include <Engine/ECS/Components/Camera.h>
+#include <Renderer/OpenGL.h>
+#include <ECS/Components/Camera.h>
 #include "System.h"
 
 class RenderSystem : public System {

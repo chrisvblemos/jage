@@ -1,6 +1,6 @@
 #pragma once
 
-#include <Engine/Core.h>
+#include <Core/Core.h>
 
 struct PlayerMovement {
 	glm::vec3 velocity{ 0.0f };

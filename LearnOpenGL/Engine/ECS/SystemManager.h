@@ -2,7 +2,7 @@
 
 /* Manages all systems in the game. */
 
-#include <Engine/Core.h>
+#include <Core/Core.h>
 #include "Systems/System.h"
 
 class SystemManager {

@@ -1,6 +1,6 @@
 #pragma once
 
-#include <Engine/Core.h>
+#include <Core/Core.h>
 
 struct PointLight {
 	glm::vec3 position{ 0.0f };

@@ -1,6 +1,6 @@
 #pragma once
 
-#include <Engine/Core.h>
+#include <Core/Core.h>
 
 struct FrameBuffer {
 	FrameBuffer() = default;
@@ -109,7 +109,6 @@ struct FrameBuffer {
 		for (int i = 0; i < colorAttachments.size(); i++) {
 			attachments.push_back(GL_COLOR_ATTACHMENT0 + i);
 		}
-
 		glDrawBuffers(static_cast<GLsizei>(colorAttachments.size()), attachments.data());
 	}
 

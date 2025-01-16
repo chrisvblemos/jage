@@ -1,12 +1,12 @@
-#include <Engine/Renderer/OpenGL.h>
-#include <Engine/ECS/Components/Camera.h>
-#include <Engine/ECS/Components/StaticMeshRenderer.h>
-#include <Engine/ECS/Components/Transform.h>
-#include <Engine/ECS/Components/DirectionalLight.h>
-#include <Engine/ECS/Components/PointLight.h>
-#include <Engine/Core.h>
-#include <Engine/World/World.h>
-#include <Engine/Assets/AssetManager.h>
+#include <Renderer/OpenGL.h>
+#include <ECS/Components/Camera.h>
+#include <ECS/Components/StaticMeshRenderer.h>
+#include <ECS/Components/Transform.h>
+#include <ECS/Components/DirectionalLight.h>
+#include <ECS/Components/PointLight.h>
+#include <Core/Core.h>
+#include <World/World.h>
+#include <Core/AssetManager.h>
 #include "RenderSystem.h"
 
 void RenderSystem::SetRenderApi(OpenGL* renderApi) {
@@ -58,7 +58,7 @@ void RenderSystem::Update(float dt) {
 
 	// execute render passes
 	mRenderApi->GeometryPass();
-	mRenderApi->ShadowMapPass();
-	mRenderApi->LightingPass();
-	//mRenderApi->DebugGbuffer(3);
+	//mRenderApi->ShadowMapPass();
+	//mRenderApi->LightingPass();
+	mRenderApi->DebugGbuffer(0);
 }

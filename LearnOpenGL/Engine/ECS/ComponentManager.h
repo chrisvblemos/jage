@@ -1,6 +1,6 @@
 #pragma once
 
-#include <Engine/Core.h>
+#include <Core/Core.h>
 #include "ComponentArray.h"
 
 class ComponentManager {

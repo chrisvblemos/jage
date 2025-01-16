@@ -1,17 +1,14 @@
 #pragma once
 
-#include <Engine/Core.h>
+#include <Core/Core.h>
 
 struct ElementArrayBuffer {
 	GLuint id;
 	std::string name;
-	std::vector<GLuint> indices;
-	GLsizei size = 0;
 
 	void Generate(const std::string& name) {
-		this->indices = indices;
-		this->name = name;
 		glGenBuffers(1, &id);
+		this->name = name;
 	}
 
 	void Bind() {
@@ -29,20 +26,18 @@ struct ElementArrayBuffer {
 			nullptr,
 			GL_STATIC_DRAW
 		);
-
-		this->size = 0;
 	}
 
-	void BufferData(const std::vector<GLuint>& indices) {
-		GLsizei size = static_cast<GLsizei>(indices.size() * sizeof(GLuint));
+	void BufferSubData(const GLuint offset, const GLsizei size, const void* data) {
+		glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, offset, size, data);
+	}
+
+	void BufferData(const GLsizei size, const void* data) {
 		glBufferData(
 			GL_ELEMENT_ARRAY_BUFFER,
 			size,
-			indices.data(),
+			data,
 			GL_STATIC_DRAW
 		);
-
-		this->size = size;
-		this->indices = indices;
 	}
 };

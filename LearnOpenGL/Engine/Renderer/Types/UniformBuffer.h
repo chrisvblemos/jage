@@ -1,6 +1,6 @@
 #pragma once
 
-#include <Engine/Core.h>
+#include <Core/Core.h>
 
 struct UniformBuffer {
 	UniformBuffer() = default;
@@ -8,15 +8,15 @@ struct UniformBuffer {
 	std::string name;
 	GLuint id;
 	GLuint binding = 0;
-	GLsizei size = 0;
-	const void* data = nullptr;
 
 	void Generate(const std::string& name, GLuint binding, GLsizei size) {
 		glGenBuffers(1, &id);
+		glBindBuffer(GL_UNIFORM_BUFFER, id);
 		glBindBufferRange(GL_UNIFORM_BUFFER, binding, id, 0, size);
+		glBindBuffer(GL_UNIFORM_BUFFER, 0);
+
 		this->name = name;
 		this->binding = binding;
-		this->size = size;
 	}
 
 	void Bind() {
@@ -25,7 +25,6 @@ struct UniformBuffer {
 
 	void Allocate(const GLsizei size) {
 		glBufferData(GL_UNIFORM_BUFFER, size, nullptr, GL_DYNAMIC_DRAW);
-		this->size = 0;
 	}
 
 	void BufferSubData(const GLsizei offset, const GLsizei size, const void* data) {
@@ -34,7 +33,6 @@ struct UniformBuffer {
 
 	void BufferData(size_t size, const void* data) {
 		glBufferData(GL_UNIFORM_BUFFER, size, data, GL_DYNAMIC_DRAW);
-		this->data = data;
 	}
 
 	void Unbind() {

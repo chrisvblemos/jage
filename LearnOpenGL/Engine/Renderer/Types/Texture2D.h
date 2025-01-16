@@ -1,6 +1,6 @@
 #pragma once
 
-#include <Engine/Core.h>
+#include <Core/Core.h>
 
 struct Texture2D {
 	std::string name;
@@ -10,6 +10,7 @@ struct Texture2D {
 	GLint level = 0;
 	GLsizei width = 0;
 	GLsizei height = 0;
+	GLenum internalFormat = 0;
 	GLenum format = 0;
 	GLint border = 0;
 	GLenum type = 0;
@@ -24,6 +25,7 @@ struct Texture2D {
 		GLint level,
 		GLsizei width,
 		GLsizei height,
+		GLenum internalFormat,
 		GLenum format,
 		GLint border,
 		GLenum type) {
@@ -31,13 +33,14 @@ struct Texture2D {
 		this->level = level;
 		this->width = width;
 		this->height = height;
-		this->format = format;
+		this->format = format;						// this is how data is handled from the CPU
+		this->internalFormat = internalFormat;		// this is how the GPU stores pixel data
 		this->border = border;
 		this->type = type;
 
 		glGenTextures(1, &id);
 		glBindTexture(GL_TEXTURE_2D, id);
-		glTexImage2D(GL_TEXTURE_2D, level, format, width, height, border, format, type, data);
+		glTexImage2D(GL_TEXTURE_2D, level, internalFormat, width, height, border, format, type, data);
 		glBindTexture(GL_TEXTURE_2D, 0);
 	}
 

@@ -1,9 +1,9 @@
 #pragma once
 
-#include <Engine/Core.h>
-#include <Engine/ECS/EntityManager.h>
-#include <Engine/ECS/ComponentManager.h>
-#include <Engine/ECS/SystemManager.h>
+#include <Core/Core.h>
+#include <ECS/EntityManager.h>
+#include <ECS/ComponentManager.h>
+#include <ECS/SystemManager.h>
 
 class World {
 private:

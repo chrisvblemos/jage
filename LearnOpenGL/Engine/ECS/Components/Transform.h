@@ -1,6 +1,6 @@
 #pragma once
 
-#include <Engine/Core.h>
+#include <Core/Core.h>
 
 #define PI glm::pi<float>()
 #define VEC3_UNIT glm::vec3(1.0f)

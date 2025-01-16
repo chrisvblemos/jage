@@ -1,7 +1,7 @@
 
-#include <Engine/ECS/Components/Transform.h>
-#include <Engine/ECS/Components/RigidBody.h>
-#include <Engine/World/World.h>
+#include <ECS/Components/Transform.h>
+#include <ECS/Components/RigidBody.h>
+#include <World/World.h>
 #include "PhysicsSystem.h"
 
 void PhysicsSystem::Update(float dt) {

@@ -1,6 +1,6 @@
 #pragma once
 
-#include <Engine/Core.h>
+#include <Core/Core.h>
 
 struct VertexArrayBuffer {
 	VertexArrayBuffer() = default;
@@ -31,8 +31,13 @@ struct VertexArrayBuffer {
 		glBindVertexArray(0);
 	}
 
-	void SetAttribPointer(GLuint index, GLuint nElements, GLenum dataType, GLsizei stride, void* offset) {
+	void SetAttribPointer(GLuint index, GLuint nElements, GLenum dataType, GLsizei stride, void* offset, const uint32_t divisor = 0) {
 		glVertexAttribPointer(index, nElements, GL_FLOAT, GL_FALSE, stride, offset);
+
+		if (divisor > 0) {
+			glVertexAttribDivisor(index, divisor);
+		}
+
 		glEnableVertexAttribArray(index);
 
 		arrayAttribPointers.push_back(VertexArrayAttribPointer(index, nElements, dataType, stride, offset));

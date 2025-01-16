@@ -1,6 +1,6 @@
 #pragma once
 
-#include <Engine/Core.h>
+#include <Core/Core.h>
 
 struct StaticMeshRenderer {
 	std::vector<AssetId> meshes{};

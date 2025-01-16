@@ -1,7 +1,7 @@
 #pragma once
 
-#include <Engine/Renderer/Types/Types.h>
-#include <Engine/Core.h>
+#include <Renderer/Types/Types.h>
+#include <Core/Core.h>
 
 struct Texture;
 struct Transform;
@@ -11,28 +11,27 @@ struct Camera;
 struct DirectionalLight;
 struct PointLight;
 
-// UBOs
+// UBOs & SSBOs
 #define LIGHTS_UNIFORM_BUFFER_INDEX 0
 #define CAMERA_UNIFORM_BUFFER_INDEX 1
-
-// SSBOs
-#define SSBO_MESH_INSTANCE_DATA 0
-#define SSBO_MATERIAL_INSTANCE_DATA 1
-#define SSBO_POINT_LIGHT_DATA_ARRAY 2
+#define SSBO_MESH_INSTANCE_DATA 2
+#define SSBO_MATERIAL_INSTANCE_DATA 3
+#define SSBO_POINT_LIGHT_DATA_ARRAY 4
 
 // SHADERS
-#define SHADER_LIGHTING 0
-#define SHADER_SCREEN 1
-#define SHADER_GBUFFER 2
-#define SHADER_SHADOW_MAP 3
-#define SHADER_POINT_SHADOW_MAP 4
+#define SHADER_LIGHTING 1
+#define SHADER_SCREEN 2
+#define SHADER_GBUFFER 3
+#define SHADER_SHADOW_MAP 4
+#define SHADER_POINT_SHADOW_MAP 5
 
 // MESHES
+#define MAX_MESHES 10000
 #define MAX_MESH_INSTANCES 10000
-#define MAX_MATERIAL_INSTANCES 50000
+#define MAX_MATERIAL_INSTANCES 10000
 #define MAX_POINT_LIGHTS 32
 
-struct MaterialData {
+struct alignas(16) MaterialData {
 	glm::vec4 baseColor;
 	glm::vec4 specularColor;
 	float shininess;
@@ -49,13 +48,13 @@ struct MeshData {
 };
 
 struct MeshInstanceData {
-	glm::mat4 model;
-	glm::mat4 inverseModel;
-	uint32_t id;
-	uint32_t materialIndex;
+	alignas(16) glm::mat4 model;
+	alignas(16) glm::mat4 inverseModel;
+	alignas(4) uint32_t id;
+	alignas(4) uint32_t materialIndex;
 };
 
-struct SceneLightData {
+struct alignas(16) SceneLightData {
 	bool mHasDirectionalLight;
     glm::vec3 mDirectionalLightDirection;
     glm::vec3 mDirectionalLightColor;
@@ -73,14 +72,14 @@ struct PointLightData {
 	float mIntensity;
 	float shadowFarPlane;
 	int shadowCubeMapIndex;
-	float padding;
+	float padding[2];
 };
 
 struct PointLightsDataArray {
 	PointLightData mPointLights[MAX_POINT_LIGHTS];
 };
 
-struct CameraData {
+struct alignas(16) CameraData {
 	glm::vec4 mPosition;
 	glm::mat4 mProjection{ 1.0f };
 	glm::mat4 mView{ 1.0f };
@@ -112,8 +111,9 @@ private:
 	UniformBuffer sceneLightDataUBO;
 	UniformBuffer cameraDataUBO;
 
-	std::unordered_map<uint32_t, MeshData> meshAssetToDataMap;
-	std::vector<MeshInstanceData> meshInstanceDataArray;
+	std::unordered_map<AssetId, MeshData> meshAssetToDataMap;
+	//std::unordered_map<AssetId, std::vector<MeshInstanceData>> meshAssetToInstanceDataMap;
+	std::unordered_map<Entity, MeshInstanceData> entityToInstanceDataMap;
 	std::vector<DrawIndirectElementCommand> meshDrawCommandArray;
 
 	std::vector<MaterialData> materialDataArray;
@@ -124,6 +124,9 @@ private:
 	ElementArrayBuffer meshEBO;
 	ShaderStorageBuffer meshSSBO;
 	ShaderStorageBuffer materialSSBO;
+
+	GLuint currentMeshEBOOffset = 0;
+	GLuint currentMeshVBOOffset = 0;
 
 	FrameBuffer screenFBO;
 	uint32_t screenRBO = 0;
