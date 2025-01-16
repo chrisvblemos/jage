@@ -62,7 +62,6 @@ bool OpenGL::Initialize() {
 	meshVAO.SetAttribPointer(1, 3, GL_FLOAT, sizeof(Vertex), (void*)offsetof(Vertex, Normal));
 	meshVAO.SetAttribPointer(2, 2, GL_FLOAT, sizeof(Vertex), (void*)offsetof(Vertex, TexCoords));
 
-
 	meshVAO.Unbind();
 	meshEBO.Unbind();
 	meshVBO.Unbind();
@@ -111,7 +110,8 @@ void OpenGL::InitShadowMap() {
 	// directional and spot lights
 	shadowMapFBO = FrameBuffer();
 	shadowMapFBO.Generate("shadowMap", SHADOW_MAP_RESOLUTION, SHADOW_MAP_RESOLUTION);
-	shadowMapFBO.CreateDepthAttachment(GL_DEPTH_ATTACHMENT);
+	shadowMapFBO.Bind();
+	shadowMapFBO.CreateDepthAttachment(GL_DEPTH_COMPONENT32F);
 	shadowMapFBO.DisableColorBuffer();
 
 	if (!shadowMapFBO.CheckComplete()) {

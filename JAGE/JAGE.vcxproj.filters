@@ -1925,6 +1925,7 @@
       <Filter>Header Files</Filter>
     </None>
     <None Include="ThirdParty\imgui\imgui.natstepfilter" />
+    <None Include="imgui.ini" />
   </ItemGroup>
   <ItemGroup>
     <Natvis Include="ThirdParty\imgui\imgui.natvis" />

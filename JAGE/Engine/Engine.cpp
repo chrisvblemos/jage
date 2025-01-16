@@ -78,6 +78,17 @@ void Engine::Init() {
 		return;
 	}
 
+	// Setup Dear ImGui context
+	IMGUI_CHECKVERSION();
+	ImGui::CreateContext();
+	ImGuiIO& io = ImGui::GetIO();
+	io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
+	io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
+
+	// Setup Platform/Renderer back ends
+	ImGui_ImplGlfw_InitForOpenGL(window, true);          // Second param install_callback=true will install GLFW callbacks and chain to existing ones.
+	ImGui_ImplOpenGL3_Init("#version 460");
+
 	// load default assets
 	MeshModel* DefaultPlane = AssetLoader::Get().LoadMeshModelFromFile("Assets/Meshes/default_plane.obj");
 	MeshModel* DefaultCube = AssetLoader::Get().LoadMeshModelFromFile("Assets/Meshes/default_cube.obj");
@@ -155,6 +166,14 @@ void Engine::Init() {
 
 	uint32_t nFrames = 0;
 	while (!glfwWindowShouldClose(window)) {
+		glfwPollEvents();
+		HandleInput(window);
+
+		ImGui_ImplOpenGL3_NewFrame();
+		ImGui_ImplGlfw_NewFrame();
+		ImGui::NewFrame();
+		ImGui::ShowDemoWindow(); // Show demo window! :)
+
 		const auto currentFrame = static_cast<float>(glfwGetTime());
 		dt = currentFrame - lastFrame;
 		lastFrame = currentFrame;
@@ -164,15 +183,18 @@ void Engine::Init() {
 			cubeTransform->rotation = glm::angleAxis(0.05f * dt, glm::vec3(0.0f, 1.0f, 0.0f)) * cubeTransform->rotation;
 		}
 
-		playerSystem->Update(dt);
-		renderSystem->Update(dt);
+	/*	playerSystem->Update(dt);
+		renderSystem->Update(dt);*/
 
-		// process player input
-		HandleInput(window);
-		glfwPollEvents();
+		ImGui::Render();
+		ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
 		glfwSwapBuffers(window);
 	}
+
+	ImGui_ImplOpenGL3_Shutdown();
+	ImGui_ImplGlfw_Shutdown();
+	ImGui::DestroyContext();
 
 	glfwTerminate();
 }
