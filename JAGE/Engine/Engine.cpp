@@ -16,6 +16,7 @@
 #include <ECS/Systems/RenderSystem.h>
 #include <ECS/Systems/PlayerSystem.h>
 #include <Core/Types/MeshModel.h>
+#include <LogDisplay.h>
 #include "Engine.h"
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
@@ -27,7 +28,7 @@ bool Engine::CreateWindow() {
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
-	window = glfwCreateWindow(800, 600, "LearnOpenGL", nullptr, nullptr);
+	window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "LearnOpenGL", nullptr, nullptr);
 	if (window == nullptr)
 	{
 		std::cout << "Could not create game window." << std::endl;
@@ -78,15 +79,13 @@ void Engine::Init() {
 		return;
 	}
 
-	// Setup Dear ImGui context
+	// imgui initialization
 	IMGUI_CHECKVERSION();
 	ImGui::CreateContext();
 	ImGuiIO& io = ImGui::GetIO();
 	io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
 	io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
-
-	// Setup Platform/Renderer back ends
-	ImGui_ImplGlfw_InitForOpenGL(window, true);          // Second param install_callback=true will install GLFW callbacks and chain to existing ones.
+	ImGui_ImplGlfw_InitForOpenGL(window, true);
 	ImGui_ImplOpenGL3_Init("#version 460");
 
 	// load default assets
@@ -103,10 +102,14 @@ void Engine::Init() {
 	world.RegisterComponent<PointLight>();
 	world.RegisterComponent<DirectionalLight>();
 
+	Signature any;
+	any.set();
+
 	// register systems
 	PlayerSystem* playerSystem = world.RegisterSystem<PlayerSystem>();
 	Signature playerRequiredSignature = world.MakeSignature<Transform, Camera, PlayerMovement>();
 	world.SetSystemRequiredSignature<PlayerSystem>(playerRequiredSignature);
+	world.SetSystemOptionalSignature<PlayerSystem>(any);
 
 	RenderSystem* renderSystem = world.RegisterSystem<RenderSystem>();
 	renderSystem->SetRenderApi(&OpenGL::Get());
@@ -172,7 +175,7 @@ void Engine::Init() {
 		ImGui_ImplOpenGL3_NewFrame();
 		ImGui_ImplGlfw_NewFrame();
 		ImGui::NewFrame();
-		ImGui::ShowDemoWindow(); // Show demo window! :)
+		//ImGui::ShowDemoWindow(); // Show demo window! :)
 
 		const auto currentFrame = static_cast<float>(glfwGetTime());
 		dt = currentFrame - lastFrame;
@@ -183,8 +186,13 @@ void Engine::Init() {
 			cubeTransform->rotation = glm::angleAxis(0.05f * dt, glm::vec3(0.0f, 1.0f, 0.0f)) * cubeTransform->rotation;
 		}
 
-	/*	playerSystem->Update(dt);
-		renderSystem->Update(dt);*/
+		playerSystem->Update(dt);
+		renderSystem->Update(dt);
+
+		float fps = 1.0f / dt;
+		LOG_DISPLAY_KEYED(std::format("{:.2f}", fps), "FPS");
+		LOG_DISPLAY_KEYED(std::format("{:.2f}ms", 1000.0f * dt), "Frame Time");
+		LogDisplayWindow::Get().Update(dt);
 
 		ImGui::Render();
 		ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
@@ -192,9 +200,9 @@ void Engine::Init() {
 		glfwSwapBuffers(window);
 	}
 
-	ImGui_ImplOpenGL3_Shutdown();
-	ImGui_ImplGlfw_Shutdown();
-	ImGui::DestroyContext();
+	//ImGui_ImplOpenGL3_Shutdown();
+	//ImGui_ImplGlfw_Shutdown();
+	//ImGui::DestroyContext();
 
 	glfwTerminate();
 }

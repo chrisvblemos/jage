@@ -24,7 +24,7 @@ struct ShaderStorageBuffer {
 	}
 
 	void Allocate(const GLsizei size) {
-
+		glBufferData(GL_SHADER_STORAGE_BUFFER, size, nullptr, GL_DYNAMIC_DRAW);
 	}
 
 	void BufferSubData(const GLuint offset, const GLsizei size, const void* data) {

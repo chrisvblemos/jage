@@ -173,7 +173,7 @@ xcopy /E /I /Y "$(ProjectDir)Assets\Meshes\*" "$(TargetDir)Assets\Meshes\"</Comm
     <ClCompile Include="Engine\ECS\Systems\RenderSystem.cpp" />
     <ClCompile Include="Engine\ECS\SystemManager.cpp" />
     <ClCompile Include="Engine\Utils.h" />
-    <ClCompile Include="main.cpp" />
+    <ClCompile Include="Main.cpp" />
     <ClCompile Include="Engine\Input\MouseInput.cpp" />
     <ClCompile Include="Engine\Renderer\OpenGL.cpp" />
     <ClCompile Include="ThirdParty\glad\glad.c" />
@@ -211,6 +211,9 @@ xcopy /E /I /Y "$(ProjectDir)Assets\Meshes\*" "$(TargetDir)Assets\Meshes\"</Comm
     <ClInclude Include="Engine\ECS\Components\PointLight.h" />
     <ClInclude Include="Engine\Core.h" />
     <ClInclude Include="Engine\ECS\Systems\System.h" />
+    <ClInclude Include="Engine\LogDisplay.h" />
+    <ClInclude Include="Engine\Logging.h" />
+    <ClInclude Include="Engine\Renderer\OpenGLUtils.h" />
     <ClInclude Include="Engine\Renderer\Types\DrawIndirectBuffer.h" />
     <ClInclude Include="Engine\Renderer\Types\ElementArrayBuffer.h" />
     <ClInclude Include="Engine\Renderer\Types\FrameBuffer.h" />

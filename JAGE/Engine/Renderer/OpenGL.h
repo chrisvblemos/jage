@@ -26,9 +26,9 @@ struct PointLight;
 #define SHADER_POINT_SHADOW_MAP 5
 
 // MESHES
-#define MAX_MESHES 10000
-#define MAX_MESH_INSTANCES 10000
-#define MAX_MATERIAL_INSTANCES 10000
+#define MAX_MESHES 100
+#define MAX_MESH_INSTANCES 200
+#define MAX_MATERIAL_INSTANCES 200
 #define MAX_POINT_LIGHTS 32
 
 struct alignas(16) MaterialData {
@@ -79,7 +79,7 @@ struct PointLightsDataArray {
 	PointLightData mPointLights[MAX_POINT_LIGHTS];
 };
 
-struct alignas(16) CameraData {
+struct CameraData {
 	glm::vec4 mPosition;
 	glm::mat4 mProjection{ 1.0f };
 	glm::mat4 mView{ 1.0f };
@@ -100,9 +100,6 @@ const float quadVertices[] = {
 class OpenGL {
 private:
 	OpenGL() = default;
-
-	uint32_t SCR_WIDTH = 800;
-	uint32_t SCR_HEIGHT = 600;
 
 	uint32_t SHADOW_MAP_RESOLUTION = 512;
 

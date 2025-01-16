@@ -4,5 +4,6 @@
 
 class System {
 public:
+	std::string name;
 	std::set<Entity> mEntities{};
 };

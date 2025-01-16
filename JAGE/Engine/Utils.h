@@ -21,26 +21,6 @@ namespace Utils {
 		return id;
 	}
 
-	inline static void LogMatrix4(const glm::mat4& matrix, const std::string& name) {
-		std::cout << name << ":\n";
-		for (int row = 0; row < 4; ++row) {
-			for (int col = 0; col < 4; ++col) {
-				std::cout << matrix[row][col] << " ";
-			}
-			std::cout << std::endl;
-		}
-	}
-
-	inline static void LogVec3(const glm::vec3& v, const std::string& name) {
-		std::cout << name << std::endl;
-		std::cout << v.x << " " << v.y << " " << v.z << std::endl;
-	}
-
-	inline static void LogVec2(const glm::vec2& v, const std::string& name) {
-		std::cout << name << std::endl;
-		std::cout << v.x << " " << v.y << std::endl;
-	}
-
 	inline static glm::vec3 RandomPointInSphere(float radius) {
 		std::random_device rd;
 		std::mt19937 gen(rd());

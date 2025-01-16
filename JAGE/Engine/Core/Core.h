@@ -17,6 +17,7 @@
 #include <bitset>
 #include <array>
 #include <queue>
+#include <format>
 
 #include <glm/glm.hpp>
 #include <glm/common.hpp>
@@ -32,6 +33,13 @@
 
 #include <glad/glad.h>
 #include <glfw/glfw3.h>
+
+#include <LogDisplay.h>
+#include <Logging.h>
+#include <Utils.h>
+
+#define SCR_WIDTH 1920
+#define SCR_HEIGHT 1080
 
 namespace Constants {
 	constexpr uint32_t MAX_ENTITIES = 5000;

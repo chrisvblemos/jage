@@ -8,9 +8,12 @@
 #include <ECS/Components/DirectionalLight.h>
 #include <ECS/Components/PointLight.h>
 
+#include "OpenGLUtils.h"
 #include "OpenGL.h"
 
 bool OpenGL::Initialize() {
+
+	EnableOpenGLDebugOutput();
 
 	Shader lightingShader = Shader();
 	Shader screenShader = Shader();
@@ -419,6 +422,7 @@ void OpenGL::DebugGbuffer(uint32_t layer) {
 
 void OpenGL::BufferStaticMesh(Entity instanceId, StaticMesh* staticMesh, Transform* transform) {
 	if (transform == nullptr || staticMesh == nullptr) {
+		LOG(LogGeneric, LOG_INFO, "Failed to buffer static mesh. Mesh data was null.");
 		return;
 	}
 
@@ -500,7 +504,7 @@ void OpenGL::BufferStaticMesh(Entity instanceId, StaticMesh* staticMesh, Transfo
 	instanceData->model = CalculateModelMatrix(transform->position, transform->rotation, transform->scale);
 	instanceData->inverseModel = glm::inverseTranspose(instanceData->model);
 
-	std::cout << "Mesh: " + std::to_string(assetId) + " | Instances: " + std::to_string(command.instanceCount) << std::endl;
+	//std::cout << "Mesh: " + std::to_string(assetId) + " | Instances: " + std::to_string(command.instanceCount) << std::endl;
 
 	// store / update the draw command data
 	// by storing data at a given offset

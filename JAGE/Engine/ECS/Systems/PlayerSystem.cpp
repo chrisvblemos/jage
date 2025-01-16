@@ -12,6 +12,10 @@ const float MAX_CAMERA_PITCH = glm::radians(89.0f);
 const float MIN_CAMERA_PITCH = glm::radians(-89.0f);
 
 void PlayerSystem::Update(float dt) {
+	if (mEntities.empty()) {
+		return;
+	}
+
 	for (const Entity& entity : mEntities)
 	{
 		Transform& transform = World::Get().GetComponent<Transform>(entity);
@@ -80,5 +84,8 @@ void PlayerSystem::Update(float dt) {
 		transform.position += playerMovement.velocity * dt;
 		camera.position = transform.position;
 
+		LOG_DISPLAY_KEYED(Logging::vec3Str(camera.position), "Camera.position");
+		LOG_DISPLAY_KEYED(Logging::quatStr(camera.rotation), "Camera.rotation");
+		LOG_DISPLAY_KEYED(Logging::quatStr(transform.rotation), "Player.rotation");
 	}
 };

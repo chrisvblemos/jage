@@ -5,8 +5,9 @@
 
 class PlayerSystem : public System {
 public:
-	std::set<Entity> mEntities{};
+	PlayerSystem() {
+		name = "PlayerSystem";
+	}
 
-	PlayerSystem() = default;
 	void Update(float dt);
 };

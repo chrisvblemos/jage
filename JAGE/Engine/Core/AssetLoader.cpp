@@ -23,9 +23,8 @@ MeshModel* AssetLoader::LoadMeshModelFromFile(const std::string& path) {
 
 	if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode)
 	{
-		std::cout << "AssetLoader: Failed to load model from file at " << path << std::endl;
-		std::cout << "AssimpImporter: " << importer.GetErrorString() << std::endl;
-		return nullptr;
+		LOG("AssimpImporter", LOG_ERROR, importer.GetErrorString());
+		LOG(LogAssetLoader, LOG_CRITICAL, "Failed to load model from file at " + path);
 	}
 
 	MeshModel* mm = AssetManager::Get().CreateAsset<MeshModel>();
@@ -135,13 +134,13 @@ Texture* AssetLoader::LoadTextureFromFile(const std::string& path) {
 	}
 
 	//std::string path = directory + "/" + std::string(filename);
-	std::cout << "Loading texture at " << path << std::endl;
+	LOG(LogAssetLoader, LOG_INFO, "Loading texture from " + path);
 
 	int width, height, nrChannels;
 	unsigned char* data = stbi_load(path.data(), &width, &height, &nrChannels, 0);
 
 	if (!data) {
-		std::cout << "Error: Failed to load texture from file " << path << std::endl;
+		LOG(LogAssetLoader, LOG_ERROR, "Failed to load texture from " + path);
 		stbi_image_free(data);
 		return 0;
 	}
@@ -158,6 +157,7 @@ Texture* AssetLoader::LoadTextureFromFile(const std::string& path) {
 		return newTexture;
 	}
 	else {
+		LOG(LogAssetLoader, LOG_ERROR, "Failed to load texture from " + path);
 		std::cout << "Error: Failed to load texture from file " << path << std::endl;
 		stbi_image_free(data);
 		return nullptr;

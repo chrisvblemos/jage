@@ -20,10 +20,14 @@ void SystemManager::EntitySignatureChanged(Entity entity, Signature entitySignat
 		if ((entitySignature & systemRequiredSignatureMask) == systemRequiredSignatureMask) {
 			if (systemOptionalSignatureMask.none() || (entitySignature & systemOptionalSignatureMask).any()) {
 				system->mEntities.insert(entity);
+				LOG(LogSystemManager, LOG_VERBOSE, "Registered entity " + std::to_string(entity) + " to " + (system->name));
 			}
 		}
 		else {
-			system->mEntities.erase(entity);
+			if (system->mEntities.count(entity) > 0) {
+				LOG(LogSystemManager, LOG_VERBOSE, "Unregistered entity " + std::to_string(entity) + " from " + (system->name));
+				system->mEntities.erase(entity);
+			}
 		}
 	}
 }

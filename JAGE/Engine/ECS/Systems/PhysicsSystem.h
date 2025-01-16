@@ -5,8 +5,9 @@
 
 class PhysicsSystem : public System {
 public:
-	PhysicsSystem() = default;
-	std::set<Entity> mEntities{};
+	PhysicsSystem() {
+		name = "PhysicsSystem";
+	}
 
 	void Update(float dt);
 };
