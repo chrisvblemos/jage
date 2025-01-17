@@ -12,8 +12,6 @@ layout (location = 2) in vec2 aTexCoords;
 struct MeshInstanceData {
 	mat4 model;
 	mat4 inverseModel;
-	int id;
-	int materialIndex;
 };
 
 layout(std430, binding = 2) readonly buffer MeshInstanceDataArray {

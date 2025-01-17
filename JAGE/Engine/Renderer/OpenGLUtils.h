@@ -1,6 +1,7 @@
 #pragma once
 
 #include <Core/Core.h>
+#include <Logging.h>
 
 // Callback function for OpenGL debug messages
 void APIENTRY GLDebugMessageCallback(GLenum source, GLenum type, GLuint id,
@@ -44,12 +45,21 @@ void APIENTRY GLDebugMessageCallback(GLenum source, GLenum type, GLuint id,
 	default:                             severityStr = "Unknown"; break;
 	}
 
+	std::string msg = std::format("Source: {}, Type: {}, ID: {}, Message: {}", sourceStr, type, id, message);
+
 	// Print debug message
-	std::cerr << "[OpenGL Debug] Source: " << sourceStr
-		<< ", Type: " << typeStr
-		<< ", Severity: " << severityStr
-		<< ", ID: " << id
-		<< ", Message: " << message << std::endl;
+	//std::cerr << "[OpenGL Debug] Source: " << sourceStr
+	//	<< ", Type: " << typeStr
+	//	<< ", Severity: " << severityStr
+	//	<< ", ID: " << id
+	//	<< ", Message: " << message << std::endl;
+
+	if (type == GL_DEBUG_TYPE_ERROR) {
+		LOG(LogGeneric, LOG_ERROR, msg);
+	}
+	else {
+		LOG(LogGeneric, LOG_VERBOSE, msg);
+	}
 
 #ifdef _DEBUG
 	if (severity == GL_DEBUG_SEVERITY_HIGH) {

@@ -31,34 +31,58 @@ void RenderSystem::Update(float dt) {
 	// buffer mesh data
 	for (const Entity& entity : mEntities) {
 		Transform& transform = World::Get().GetComponent<Transform>(entity);
-
 		Signature entitySignature = World::Get().GetEntitySignature(entity);
 
 		if ((entitySignature & staticMeshSignature) == staticMeshSignature) {
+
 			StaticMeshRenderer& staticMeshRenderer = World::Get().GetComponent<StaticMeshRenderer>(entity);
 
  			// load static mesh into GPU buffer
-			for (AssetId smId : staticMeshRenderer.meshes) {
-				StaticMesh* sm = AssetManager::Get().GetAssetById<StaticMesh>(smId);
-				mRenderApi->BufferStaticMesh(entity, sm, &transform);
+			for (AssetId assetID : staticMeshRenderer.meshes) {
+				auto it_0 = cachedStaticMeshes.find(assetID);
+				if (it_0 == cachedStaticMeshes.end()) {
+					cachedStaticMeshes.insert(assetID);
+					hasNewStaticMesh = true;
+					StaticMesh* sm = AssetManager::Get().GetAssetById<StaticMesh>(assetID);
+					mRenderApi->RegisterStaticMesh(sm);
+				}
+
+				auto it_1 = entityToTransformID.find(entity);
+				if (it_1 == entityToTransformID.end()) {
+					entityToTransformID[entity] = transforms.size();
+					transforms.push_back(transform);
+
+					mRenderApi->RegisterStaticMeshInstance(assetID, entity, &transform);
+					hasTransformsChanged = true;
+				}
+
+				uint32_t cachedTransformIndex = entityToTransformID[entity];
+				Transform& cachedTransform = transforms[cachedTransformIndex];
+				if (transform.position != cachedTransform.position ||
+					transform.rotation != cachedTransform.rotation ||
+					transform.scale != cachedTransform.scale) {
+
+					transforms[cachedTransformIndex] = transform;
+					mRenderApi->RegisterStaticMeshInstance(assetID, entity, &transform);
+					hasTransformsChanged = true;
+				}
+					
 			}
-		}
-
-		// register all lights to renderer API
-		if ((entitySignature & directionalLightSignature) == directionalLightSignature) {
-			DirectionalLight& light = World::Get().GetComponent<DirectionalLight>(entity);
-			mRenderApi->RegisterDirectionalLight(&light);
-		}
-
-		if ((entitySignature & pointLightSignature) == pointLightSignature) {
-			PointLight& light = World::Get().GetComponent<PointLight>(entity);
-			mRenderApi->RegisterPointLight(&light);
 		}
 	}
 
-	// execute render passes
+	mRenderApi->UploadCameraData();
+
+	if (hasNewStaticMesh) {
+		mRenderApi->BatchUploadStaticMeshData();
+		hasNewStaticMesh = false;
+	}
+
+	if (hasTransformsChanged) {
+		mRenderApi->BatchUploadStaticMeshInstanceData();
+		hasTransformsChanged = false;
+	}
+
 	mRenderApi->GeometryPass();
-	//mRenderApi->ShadowMapPass();
-	//mRenderApi->LightingPass();
-	mRenderApi->DebugGbuffer(2);
+	mRenderApi->DebugGbuffer(0);
 }

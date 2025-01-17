@@ -3,6 +3,7 @@
 #include <Renderer/Types/Types.h>
 #include <Core/Core.h>
 
+struct Vertex;
 struct Texture;
 struct Transform;
 struct Material;
@@ -26,7 +27,7 @@ struct PointLight;
 #define SHADER_POINT_SHADOW_MAP 5
 
 // MESHES
-#define MAX_MESHES 100
+#define MAX_MESHES 10000
 #define MAX_MESH_INSTANCES 20000
 #define MAX_MATERIAL_INSTANCES 200
 #define MAX_POINT_LIGHTS 32
@@ -50,8 +51,6 @@ struct MeshData {
 struct MeshInstanceData {
 	alignas(16) glm::mat4 model;
 	alignas(16) glm::mat4 inverseModel;
-	alignas(4) uint32_t id;
-	alignas(4) uint32_t materialIndex;
 };
 
 struct alignas(16) SceneLightData {
@@ -108,19 +107,20 @@ private:
 	UniformBuffer sceneLightDataUBO;
 	UniformBuffer cameraDataUBO;
 
-	std::unordered_map<AssetId, MeshData> meshAssetToDataMap;
-	//std::unordered_map<AssetId, std::vector<MeshInstanceData>> meshAssetToInstanceDataMap;
-	std::unordered_map<Entity, MeshInstanceData> entityToInstanceDataMap;
-	std::vector<DrawIndirectElementCommand> meshDrawCommandArray;
-
-	std::vector<MaterialData> materialDataArray;
-
 	DrawIndirectBuffer meshDIB;
 	VertexArrayBuffer meshVAO;
 	VertexBuffer meshVBO;
 	ElementArrayBuffer meshEBO;
 	ShaderStorageBuffer meshSSBO;
 	ShaderStorageBuffer materialSSBO;
+
+	std::unordered_map<Entity, uint32_t> entityToInstanceIDMap;
+	std::unordered_map<AssetId, MeshData> meshDataMap;
+	std::unordered_map<AssetId, std::vector<MeshInstanceData>> meshInstanceMap;
+
+	std::vector<GLuint> meshIndicesDataArray;
+	std::vector<Vertex> meshVertexDataArray;
+	std::vector<DrawIndirectElementCommand> meshDrawCommandDataArray;
 
 	GLuint currentMeshEBOOffset = 0;
 	GLuint currentMeshVBOOffset = 0;
@@ -146,10 +146,6 @@ private:
 	Camera* currentActiveCamera;
 	std::vector<uint32_t> pointShadowCubemaps;
 	std::vector<PointLight*> pointLights;
-	std::unordered_map<uint32_t, StaticMesh*> VAOToMeshMap;
-	std::unordered_map<uint32_t, Transform*> meshInstanceToTransformMap;
-	std::unordered_map<uint32_t, std::vector<Entity>> VAOToInstanceIdMap;
-	std::unordered_map<AssetId, uint32_t> assetToTextureIDMap{}; // loadedTextures[assetId] = gl_id;
 
 	void InitGBuffer();
 	void InitShadowMap();
@@ -187,13 +183,15 @@ public:
 		}
 	}
 
-	// Uniform buffer objects
 	void UploadSceneLightData();
 	void UploadCameraData();
+	void BatchUploadStaticMeshData();
+	void BatchUploadStaticMeshInstanceData();
 
 	// Buffering
 	void BufferTexture(Texture* texture);
-	void BufferStaticMesh(Entity instanceId, StaticMesh* staticMesh, Transform* transform);
+	void RegisterStaticMesh(const StaticMesh* staticMesh);
+	void RegisterStaticMeshInstance(const AssetId assetID, const Entity entity, const Transform* transform);
 	
 	// Passes
 	void GeometryPass();

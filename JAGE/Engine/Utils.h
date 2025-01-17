@@ -21,7 +21,7 @@ namespace Utils {
 		return id;
 	}
 
-	inline static glm::vec3 RandomPointInSphere(float radius) {
+	inline static glm::vec3 RandomPointInSphere(const float radius, const glm::vec3& origin = glm::vec3(0.0f)) {
 		std::random_device rd;
 		std::mt19937 gen(rd());
 		std::uniform_real_distribution<float> dist(0.0f, 1.0f);
@@ -31,9 +31,9 @@ namespace Utils {
 		float theta = angleDist(gen);
 		float phi = acos(1 - 2 * dist(gen));
 
-		float x = r * sin(phi) * cos(theta);
-		float y = r * sin(phi) * sin(theta);
-		float z = r * cos(phi);
+		float x = origin.x + r * sin(phi) * cos(theta);
+		float y = origin.y + r * sin(phi) * sin(theta);
+		float z = origin.z + r * cos(phi);
 
 		return { x,y,z };
 

@@ -7,6 +7,7 @@
 #include <imgui/imgui.h>
 #include <format>
 
+
 #define LogGeneric "Generic"
 #define LogAssetLoader "AssetLoader"
 #define LogAssetManager "AssetManager"
@@ -23,15 +24,18 @@
 #define LOG_CRITICAL Logging::LogLevel::Critical
 
 namespace Logging {
+
 	enum LogLevel : uint8_t {
+		Critical,
+		Error,
+		Warning,
 		Info,
 		Debug,
 		Verbose,
-		Warning,
-		Error,
-		Critical,
 		Count
 	};
+
+	static LogLevel GlobalLogLevel = LogLevel::Info;
 
 	inline std::string LogLevelToString(const LogLevel& level) {
 		switch (level) {
@@ -46,6 +50,10 @@ namespace Logging {
 
 	inline void Log(const std::string& module, const LogLevel level, const std::string& message) {
 		std::string res = module + LogLevelToString(level) + message;
+
+		if (level > GlobalLogLevel) {
+			return;
+		}
 
 		std::cout << res << std::endl;
 		if (level == LogLevel::Critical)

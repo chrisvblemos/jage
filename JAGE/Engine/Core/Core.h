@@ -42,7 +42,7 @@
 #define SCR_HEIGHT 1080
 
 namespace Constants {
-	constexpr uint32_t MAX_ENTITIES = 5000;
+	constexpr uint32_t MAX_ENTITIES = 100000;
 	constexpr uint32_t MAX_COMPONENTS = 32;
 
 	constexpr glm::vec3 NULL_VECTOR3 = glm::vec3(0.0f);
