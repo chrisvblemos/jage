@@ -60,5 +60,5 @@ void RenderSystem::Update(float dt) {
 	mRenderApi->GeometryPass();
 	//mRenderApi->ShadowMapPass();
 	//mRenderApi->LightingPass();
-	mRenderApi->DebugGbuffer(0);
+	mRenderApi->DebugGbuffer(2);
 }

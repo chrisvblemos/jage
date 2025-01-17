@@ -30,3 +30,8 @@ void MouseInput::HandleInput() {
 	lastX = xposf;
 	lastY = yposf;
 };
+
+void MouseInput::SetMouseCursorVisibility(const bool value)
+{
+	glfwSetInputMode(window, GLFW_CURSOR, value ? GLFW_CURSOR_NORMAL : GLFW_CURSOR_DISABLED);
+}

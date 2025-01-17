@@ -40,14 +40,14 @@ void KeyboardInput::HandleInput() {
 	}
 }
 
-bool KeyboardInput::IsKeyPressed(EKey key) {
+bool KeyboardInput::IsKeyPressed(int key) {
 	return keyStates[key] == EKeyState::Pressed;
 }
 
-bool KeyboardInput::IsKeyHeld(EKey key) {
+bool KeyboardInput::IsKeyHeld(int key) {
 	return keyStates[key] == EKeyState::Held;
 }
 
-bool KeyboardInput::IsKeyReleased(EKey key) {
+bool KeyboardInput::IsKeyReleased(int key) {
 	return keyStates[key] == EKeyState::Released;
 }

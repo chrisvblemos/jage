@@ -20,7 +20,9 @@ public:
 
 	bool Initialize();
 	Entity CreateEntity();
-	void DestroyEntity(Entity entity);
+	void DestroyEntity(const Entity entity);
+	const std::string GetEntityName(const Entity entity) const;
+	const std::vector<Entity> GetEntities() const;
 
 	const Signature& GetEntitySignature(Entity entity) const;
 
@@ -31,7 +33,7 @@ public:
 	}
 
 	template<typename T>
-	void AddComponent(Entity entity, T component)
+	void AddComponent(const Entity entity, T component)
 	{
 		mComponentManager->AddComponent<T>(entity, component);
 
@@ -50,7 +52,7 @@ public:
 	}
 
 	template<typename T>
-	void RemoveComponent(Entity entity)
+	void RemoveComponent(const Entity entity)
 	{
 		mComponentManager->RemoveComponent<T>(entity);
 
@@ -62,7 +64,7 @@ public:
 	}
 
 	template<typename T>
-	T& GetComponent(Entity entity)
+	T& GetComponent(const Entity entity)
 	{
 		return mComponentManager->GetComponent<T>(entity);
 	}
@@ -81,13 +83,13 @@ public:
 	}
 
 	template<typename T>
-	void SetSystemRequiredSignature(Signature signature)
+	void SetSystemRequiredSignature(const Signature signature)
 	{
 		mSystemManager->SetRequiredSignature<T>(signature);
 	}
 
 	template<typename T>
-	void SetSystemOptionalSignature(Signature signature)
+	void SetSystemOptionalSignature(const Signature signature)
 	{
 		mSystemManager->SetOptionalSignature<T>(signature);
 	}

@@ -14,13 +14,22 @@ Entity World::CreateEntity()
 	return mEntityManager->CreateEntity();
 }
 
-const Signature& World::GetEntitySignature(Entity entity) const{
+const Signature& World::GetEntitySignature(const Entity entity) const{
 	return mEntityManager->GetSignature(entity);
 }
 
-void World::DestroyEntity(Entity entity)
+void World::DestroyEntity(const Entity entity)
 {
 	mEntityManager->DestroyEntity(entity);
 	mComponentManager->EntityDestroyed(entity);
 	mSystemManager->EntityDestroyed(entity);
+}
+
+const std::string World::GetEntityName(const Entity entity) const {
+	return mEntityManager->GetEntityName(entity);
+}
+
+const std::vector<Entity> World::GetEntities() const
+{
+	return mEntityManager->GetActiveEntities();
 }

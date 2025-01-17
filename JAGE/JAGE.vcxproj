@@ -163,6 +163,7 @@ xcopy /E /I /Y "$(ProjectDir)Assets\Meshes\*" "$(TargetDir)Assets\Meshes\"</Comm
     <ClCompile Include="Engine\Core\AssetLoader.cpp" />
     <ClCompile Include="Engine\ECS\ComponentManager.cpp" />
     <ClCompile Include="Engine\ECS\Components\Transform.h" />
+    <ClCompile Include="Engine\Editor\Editor.cpp" />
     <ClCompile Include="Engine\World\World.cpp" />
     <ClCompile Include="Engine\Defaults\Models.h" />
     <ClCompile Include="Engine\Engine.cpp" />
@@ -211,6 +212,10 @@ xcopy /E /I /Y "$(ProjectDir)Assets\Meshes\*" "$(TargetDir)Assets\Meshes\"</Comm
     <ClInclude Include="Engine\ECS\Components\PointLight.h" />
     <ClInclude Include="Engine\Core.h" />
     <ClInclude Include="Engine\ECS\Systems\System.h" />
+    <ClInclude Include="Engine\Editor\Editor.h" />
+    <ClInclude Include="Engine\Editor\Viewers\EntityViewer.h" />
+    <ClInclude Include="Engine\Editor\Widgets\Components\ComponentWidget.h" />
+    <ClInclude Include="Engine\Editor\Widgets\Components\TransformWidget.h" />
     <ClInclude Include="Engine\LogDisplay.h" />
     <ClInclude Include="Engine\Logging.h" />
     <ClInclude Include="Engine\Renderer\OpenGLUtils.h" />

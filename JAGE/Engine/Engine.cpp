@@ -17,6 +17,7 @@
 #include <ECS/Systems/PlayerSystem.h>
 #include <Core/Types/MeshModel.h>
 #include <LogDisplay.h>
+#include <Editor/Editor.h>
 #include "Engine.h"
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
@@ -140,7 +141,7 @@ void Engine::Init() {
 	//Transform& backpackTransform = world.GetComponent<Transform>(backpack);
 	//backpackTransform.scale = glm::vec3(0.1f); // scale down backpack size
 
-	uint32_t nCubes = 100;
+	uint32_t nCubes = 500;
 	std::vector<Transform*> cubeTransforms;
 	for (uint32_t i = 0; i < nCubes; i++) {
 		Entity cube = world.CreateEntity();
@@ -167,6 +168,8 @@ void Engine::Init() {
 	DirectionalLight& sunDirLight = world.GetComponent<DirectionalLight>(sun);
 	sunDirLight.intensity = 0.7f;
 
+	Editor editor = Editor();
+
 	uint32_t nFrames = 0;
 	while (!glfwWindowShouldClose(window)) {
 		glfwPollEvents();
@@ -183,7 +186,7 @@ void Engine::Init() {
 
 		// rotate cubes around origin
 		for (Transform* cubeTransform : cubeTransforms) {
-			cubeTransform->rotation = glm::angleAxis(0.05f * dt, glm::vec3(0.0f, 1.0f, 0.0f)) * cubeTransform->rotation;
+			cubeTransform->rotation = glm::angleAxis(0.5f * dt, glm::vec3(0.0f, 1.0f, 0.0f)) * cubeTransform->rotation;
 		}
 
 		playerSystem->Update(dt);
@@ -193,6 +196,8 @@ void Engine::Init() {
 		LOG_DISPLAY_KEYED(std::format("{:.2f}", fps), "FPS");
 		LOG_DISPLAY_KEYED(std::format("{:.2f}ms", 1000.0f * dt), "Frame Time");
 		LogDisplayWindow::Get().Update(dt);
+
+		editor.Update(dt);
 
 		ImGui::Render();
 		ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());

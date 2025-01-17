@@ -25,6 +25,13 @@ public:
 
 	bool Initialize(GLFWwindow* window);
 	void HandleInput();
+	void SetMouseCursorVisibility(const bool value);
 
-	inline glm::vec2 GetMouseDelta(double sensitivity = 1.0) { return mouseDelta * sensitivity; }
+	inline glm::vec2 GetMouseDelta(double sensitivity = 1.0) { 
+		if (glfwGetInputMode(window, GLFW_CURSOR) == GLFW_CURSOR_DISABLED) {
+			return mouseDelta * sensitivity;
+		}
+		
+		return glm::vec2(0.0f);
+	}
 };

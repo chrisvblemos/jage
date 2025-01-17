@@ -29,7 +29,7 @@ class KeyboardInput {
 private:
 	KeyboardInput() = default;
 	GLFWwindow* window;
-	std::unordered_map<EKey, EKeyState> keyStates;
+	std::unordered_map<int, EKeyState> keyStates;
 
 public:
 	// prevents copying
@@ -43,9 +43,8 @@ public:
 
 	bool Initialize(GLFWwindow* window);
 	void HandleInput();
-	void RegisterKey(EKey key);
-	bool IsKeyPressed(EKey key);
-	bool IsKeyHeld(EKey key);
-	bool IsKeyReleased(EKey key);
+	bool IsKeyPressed(int key);
+	bool IsKeyHeld(int key);
+	bool IsKeyReleased(int key);
 
 };

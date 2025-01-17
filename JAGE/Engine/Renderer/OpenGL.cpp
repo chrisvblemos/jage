@@ -7,6 +7,8 @@
 #include <ECS/Components/Camera.h>
 #include <ECS/Components/DirectionalLight.h>
 #include <ECS/Components/PointLight.h>
+#include <Utils.h>
+#include <LogDisplay.h>
 
 #include "OpenGLUtils.h"
 #include "OpenGL.h"
@@ -420,7 +422,7 @@ void OpenGL::DebugGbuffer(uint32_t layer) {
 	glEnable(GL_DEPTH_TEST);
 }
 
-void OpenGL::BufferStaticMesh(Entity instanceId, StaticMesh* staticMesh, Transform* transform) {
+void OpenGL::BufferStaticMesh(Entity entity, StaticMesh* staticMesh, Transform* transform) {
 	if (transform == nullptr || staticMesh == nullptr) {
 		LOG(LogGeneric, LOG_INFO, "Failed to buffer static mesh. Mesh data was null.");
 		return;
@@ -484,7 +486,7 @@ void OpenGL::BufferStaticMesh(Entity instanceId, StaticMesh* staticMesh, Transfo
 	// check if instance is already registered
 	// if it is, just grab a reference to it
 	MeshInstanceData* instanceData = nullptr;
-	auto it = entityToInstanceDataMap.find(instanceId);
+	auto it = entityToInstanceDataMap.find(entity);
 	if (it != entityToInstanceDataMap.end()) {
 		instanceData = &it->second;
 	}
@@ -493,25 +495,25 @@ void OpenGL::BufferStaticMesh(Entity instanceId, StaticMesh* staticMesh, Transfo
 		// we need tp create a mew one
 		// and update the instance count
 		// inside the draw command
-		auto [it, res] = entityToInstanceDataMap.emplace(instanceId, MeshInstanceData());
+		auto [it, res] = entityToInstanceDataMap.emplace(entity, MeshInstanceData());
 		instanceData = &it->second;
-		instanceData->id = instanceId;
+		instanceData->id = command.instanceCount; // this is the instance id
 
 		command.instanceCount++; // increment the number of instances of this mesh / draw command
+
+		// store / update the draw command data
+		// by storing data at a given offset
+		// inside the draw indirect buffer object
+		meshDIB.Bind();
+		meshDIB.BufferSubData(meshData.drawCommandId * sizeof(DrawIndirectElementCommand), sizeof(DrawIndirectElementCommand), &command);
+		meshDIB.Unbind();
 	}
 
 	// update the models (TODO optimize so that we only update when it has changed)
 	instanceData->model = CalculateModelMatrix(transform->position, transform->rotation, transform->scale);
 	instanceData->inverseModel = glm::inverseTranspose(instanceData->model);
 
-	//std::cout << "Mesh: " + std::to_string(assetId) + " | Instances: " + std::to_string(command.instanceCount) << std::endl;
-
-	// store / update the draw command data
-	// by storing data at a given offset
-	// inside the draw indirect buffer object
-	meshDIB.Bind();
-	meshDIB.BufferSubData(meshData.drawCommandId * sizeof(DrawIndirectElementCommand), sizeof(DrawIndirectElementCommand), &command);
-	meshDIB.Unbind();
+	LOG_DISPLAY_KEYED(Logging::quatStr(transform->rotation), "Cube.rotation");
 
 	// SSBO stores data in the following manner:
 	// mesh_data_0: instance_data_0, instance_data 1, .... instance_data_MAX_MESH_INSTANCES ||| mesh_data_1: instance_data_10, instance_data_11, ..., instance_data_1MAX_MESH_INSTANCES ...
@@ -520,7 +522,7 @@ void OpenGL::BufferStaticMesh(Entity instanceId, StaticMesh* staticMesh, Transfo
 	// NOTE: we have to subtract 1 due to baseInstance already
 	// pointing to the first element
 	meshSSBO.Bind();
-	meshSSBO.BufferSubData((command.baseInstance + command.instanceCount - 1) * sizeof(MeshInstanceData), sizeof(MeshInstanceData), &(*instanceData));
+	meshSSBO.BufferSubData((command.baseInstance + instanceData->id) * sizeof(MeshInstanceData), sizeof(MeshInstanceData), &(*instanceData));
 	meshSSBO.Unbind();
 }
 
