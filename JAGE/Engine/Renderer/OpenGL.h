@@ -50,8 +50,8 @@ struct MeshData {
 };
 
 struct MeshInstanceData {
-	alignas(16) glm::mat4 model;
-	alignas(16) glm::mat4 inverseModel;
+	glm::mat4 model;
+	glm::mat4 inverseModel;
 };
 
 struct SceneLightData {
