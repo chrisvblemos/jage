@@ -1,10 +1,23 @@
 #version 460 core
+#extension GL_ARB_shader_draw_parameters : enable
 
 layout (location = 0) in vec3 aPos;
 
-uniform mat4 uLightSpaceMatrix;
-uniform mat4 uModel;
+struct MeshInstanceData {
+	mat4 model;
+	mat4 inverseModel;
+};
 
-void main() {
-	gl_Position = uLightSpaceMatrix * uModel * vec4(aPos, 1.0);
+layout(std430, binding = 2) readonly buffer MeshInstanceDataArray {
+    MeshInstanceData meshInstancesDataArray[];
+};
+
+uniform mat4 uLightSpaceMatrix;
+
+void main()
+{
+	uint instanceIndex = gl_InstanceID + gl_BaseInstanceARB;
+	MeshInstanceData instanceData = meshInstancesDataArray[instanceIndex];
+
+	gl_Position = uLightSpaceMatrix * instanceData.model * vec4(aPos, 1.0);
 }

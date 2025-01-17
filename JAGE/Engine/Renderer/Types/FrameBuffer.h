@@ -5,23 +5,13 @@
 struct FrameBuffer {
 	FrameBuffer() = default;
 
-	struct ColorAttachment {
-		std::string name;
-		GLuint id = 0;
-	};
-
-	struct DepthAttachment {
-		std::string name;
-		GLuint id = 0;
-	};
-
 	std::string name;
 	GLuint id;
 	GLuint width = 0;
 	GLuint height = 0;
 	GLuint rbo = 0;
-	std::vector<ColorAttachment> colorAttachments;
-	DepthAttachment depthAttachment;
+	std::vector<GLuint> colorTextAttachments;
+	GLuint depthTextAttachment;
 
 	void Generate(const std::string name, uint32_t width, uint32_t height) {
 		glGenFramebuffers(1, &id);
@@ -32,19 +22,19 @@ struct FrameBuffer {
 	}
 
 	void Clear() {
-		colorAttachments.clear();
+		colorTextAttachments.clear();
 		glDeleteFramebuffers(1, &id);
 	}
 
-	void CreateDepthAttachment(GLenum format) {
-		glGenTextures(1, &depthAttachment.id);
-		glBindTexture(GL_TEXTURE_2D, depthAttachment.id);
+	void CreateTextDepthAttachment(GLenum format) {
+		glGenTextures(1, &depthTextAttachment);
+		glBindTexture(GL_TEXTURE_2D, depthTextAttachment);
 		glTexStorage2D(GL_TEXTURE_2D, 1, format, width, height);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthAttachment.id, 0);
+		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthTextAttachment, 0);
 	}
 
 	void Bind() {
@@ -53,6 +43,15 @@ struct FrameBuffer {
 
 	void Unbind() {
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	}
+
+	void ActiveAndBindDepthAttachment(const GLuint i) {
+		if (depthTextAttachment == 0) {
+			LOG(LogGeneric, LOG_CRITICAL, std::format("Failed to active and bind texture depth attachment for framebuffer."));
+		}
+
+		glActiveTexture(GL_TEXTURE0 + i);
+		glBindTexture(GL_TEXTURE_2D, depthTextAttachment);
 	}
 
 	void CreateRenderBuffer() {
@@ -65,51 +64,34 @@ struct FrameBuffer {
 
 	void AttachColorTexture2D(const std::string& name, const GLuint texture, const GLuint i) {
 		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + i, GL_TEXTURE_2D, texture, 0);
-		ColorAttachment colorAttachment;
-		colorAttachment.id = texture;
-		colorAttachment.name = name;
-
-		colorAttachments.push_back(colorAttachment);
+		colorTextAttachments.push_back(texture);
 	}
 
 	void AttachDepthTexture2D(const std::string& name, const GLuint texture) {
 		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_TEXTURE_2D, texture, 0);
-		DepthAttachment depthAttachment;
-		depthAttachment.id = texture;
-		depthAttachment.name = name;
-
-		this->depthAttachment = depthAttachment;
+		this->depthTextAttachment = texture;
 	}
 
 	void AttachCubeMapTexture(const std::string& name, const GLuint cubemapTexture) {
 		glFramebufferTexture(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, cubemapTexture, 0);
-		DepthAttachment depthAttachment;
-		depthAttachment.id = cubemapTexture;
-		depthAttachment.name = name;
-
-		this->depthAttachment = depthAttachment;
+		this->depthTextAttachment = cubemapTexture;
 	}
 
 	void DettachDepthTexture() {
 		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_TEXTURE_2D, 0, 0);
 	}
 
-	void DrawBuffer(const std::string& name) {
-		for (int i = 0; i < colorAttachments.size(); i++) {
-			if (name == colorAttachments[i].name) {
-				glDrawBuffer(GL_COLOR_ATTACHMENT0 + i);
-				return;
-			}
-		}
+	void DrawBuffer(const GLuint i) {
+		glDrawBuffer(GL_COLOR_ATTACHMENT0 + i);
 	}
 
 	void DrawColorBuffers() {
-		size_t nColorAttachments = colorAttachments.size();
-		std::vector<GLuint> attachments;
-		for (int i = 0; i < colorAttachments.size(); i++) {
-			attachments.push_back(GL_COLOR_ATTACHMENT0 + i);
+		std::vector<GLenum> colorAttachmentEnums;
+		for (int i = 0; i < colorTextAttachments.size(); i++) {
+			colorAttachmentEnums.push_back(GL_COLOR_ATTACHMENT0 + i);
 		}
-		glDrawBuffers(static_cast<GLsizei>(colorAttachments.size()), attachments.data());
+
+		glDrawBuffers(static_cast<GLsizei>(colorTextAttachments.size()), colorAttachmentEnums.data());
 	}
 
 	void DisableColorBuffer() {

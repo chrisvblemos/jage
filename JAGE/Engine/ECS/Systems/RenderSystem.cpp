@@ -69,6 +69,11 @@ void RenderSystem::Update(float dt) {
 					
 			}
 		}
+
+		if ((entitySignature & directionalLightSignature) == directionalLightSignature) {
+			DirectionalLight& dirLight = World::Get().GetComponent<DirectionalLight>(entity);
+			mRenderApi->RegisterDirectionalLight(&dirLight);
+		}
 	}
 
 	mRenderApi->UploadCameraData();
@@ -84,5 +89,8 @@ void RenderSystem::Update(float dt) {
 	}
 
 	mRenderApi->GeometryPass();
-	mRenderApi->DebugGbuffer(0);
+	mRenderApi->ShadowMapPass();
+	mRenderApi->UploadSceneLightData();
+	mRenderApi->LightingPass();
+	//mRenderApi->DebugGbuffer(0);
 }

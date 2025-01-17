@@ -3,7 +3,7 @@
 in vec2 TexCoords;
 out vec4 FragColor;
 
-layout (binding = 0) uniform samplerCubeArray shadowCubemapArray;
+//layout (binding = 0) uniform samplerCubeArray shadowCubemapArray;
 layout (binding = 1) uniform sampler2D directionalLightShadowMap;
 layout (binding = 2) uniform sampler2D gPosition;
 layout (binding = 3) uniform sampler2D gNormal;
@@ -30,21 +30,21 @@ const vec2 POISSON_DISK_16[16] = vec2[](
         vec2(0.61337256, 0.74964296)
 );
 
-struct PointLightData {
-    vec3 position;
-    float radius;
-    vec3 color;
-    float intensity;
-    float shadowFarPlane;
-    int shadowCubemapIndex;
-    float padding;
-};
+//struct PointLightData {
+//    vec3 position;
+//    float radius;
+//    vec3 color;
+//    float intensity;
+//    float shadowFarPlane;
+//    int shadowCubemapIndex;
+//    float padding;
+//};
+//
+//layout(std430, binding = 4) readonly buffer PointLightDataArray {
+//    PointLightData pointLights[];
+//};
 
-layout(std430, binding = 0) readonly buffer PointLightDataArray {
-    PointLightData pointLights[];
-};
-
-layout(std140, binding = 1) uniform SceneLightData {
+layout(std140, binding = 5) uniform SceneLightData {
     bool hasDirectionalLight;
     vec3 directionalLightDirection;
     vec3 directionalLightColor;
@@ -55,7 +55,7 @@ layout(std140, binding = 1) uniform SceneLightData {
     float ambientLightIntensity;
 };
 
-layout (std140, binding = 0) uniform CameraData {
+layout (std140, binding = 1) uniform CameraData {
 	vec4 viewPos;
 };
 
@@ -76,36 +76,36 @@ void main() {
     vec3 lightingResult = vec3(0.0, 0.0, 0.0);              // result of lighting calculations
 
     // point lights
-    if (pointLightsCount > 0) {
-	    for (int i = 0; i < pointLightsCount; ++i) {
-            PointLightData pointLight = pointLights[i];
-            vec3 pointLightDir = normalize(pointLight.position - FragPos);
-            float distanceToLight = length(pointLight.position - FragPos);
-
-            // attenuates the light intensity smoothly up to lightRadius
-            float attenuation = 1.0 / (1.0 + distanceToLight * distanceToLight / (pointLight.radius * pointLight.radius));
-            attenuation *= clamp(1.0 - pow(distanceToLight / pointLight.radius, 4), 0.0, 1.0);
-            float attenuatedIntensity = pointLight.intensity * attenuation;
-
-            vec3 pointLightResult = GetLight(
-                pointLight.color, 
-                attenuatedIntensity, 
-                pointLightDir, 
-                viewDir, 
-                Normal, 
-                Specular
-            );
-
-            float shadow = GetPointLightDataShadow(
-                pointLight.shadowCubemapIndex, 
-                FragPos, 
-                pointLight.position, 
-                pointLight.shadowFarPlane
-            );
-            
-		    lightingResult += (1.0 - shadow) * pointLightResult;
-	    };
-    };
+//    if (pointLightsCount > 0) {
+//	    for (int i = 0; i < pointLightsCount; ++i) {
+//            PointLightData pointLight = pointLights[i];
+//            vec3 pointLightDir = normalize(pointLight.position - FragPos);
+//            float distanceToLight = length(pointLight.position - FragPos);
+//
+//            // attenuates the light intensity smoothly up to lightRadius
+//            float attenuation = 1.0 / (1.0 + distanceToLight * distanceToLight / (pointLight.radius * pointLight.radius));
+//            attenuation *= clamp(1.0 - pow(distanceToLight / pointLight.radius, 4), 0.0, 1.0);
+//            float attenuatedIntensity = pointLight.intensity * attenuation;
+//
+//            vec3 pointLightResult = GetLight(
+//                pointLight.color, 
+//                attenuatedIntensity, 
+//                pointLightDir, 
+//                viewDir, 
+//                Normal, 
+//                Specular
+//            );
+//
+//            float shadow = GetPointLightDataShadow(
+//                pointLight.shadowCubemapIndex, 
+//                FragPos, 
+//                pointLight.position, 
+//                pointLight.shadowFarPlane
+//            );
+//            
+//		    lightingResult += (1.0 - shadow) * pointLightResult;
+//	    };
+//    };
 
     // directional light
     if (hasDirectionalLight) {
@@ -155,17 +155,17 @@ float GetRandomPoissonIndex(vec4 seed4) {
     return fract(sin(dot_product) * 43758.5453);
 };
 
-float GetPointLightDataShadow(int i, vec3 fragPos, vec3 lightPos, float farPlane) {
-    vec3 fragToLight = fragPos - lightPos;
-    float closestDepth = texture(shadowCubemapArray, vec4(fragToLight, i)).r;
-    closestDepth *= farPlane;
-
-    float currentDepth = length(fragToLight);
-    float bias = 0.05;
-    float shadow = currentDepth - bias > closestDepth? 1.0 : 0.0;
-
-    return shadow;
-};
+//float GetPointLightDataShadow(int i, vec3 fragPos, vec3 lightPos, float farPlane) {
+//    vec3 fragToLight = fragPos - lightPos;
+//    float closestDepth = texture(shadowCubemapArray, vec4(fragToLight, i)).r;
+//    closestDepth *= farPlane;
+//
+//    float currentDepth = length(fragToLight);
+//    float bias = 0.05;
+//    float shadow = currentDepth - bias > closestDepth? 1.0 : 0.0;
+//
+//    return shadow;
+//};
 
 float GetDirectLightShadow(vec3 fragPos, float bias) {
     vec4 fragPosLightSpace = directionalLightMatrix * vec4(fragPos, 1.0);

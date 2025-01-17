@@ -13,11 +13,12 @@ struct DirectionalLight;
 struct PointLight;
 
 // UBOs & SSBOs
-#define LIGHTS_UNIFORM_BUFFER_INDEX 0
-#define CAMERA_UNIFORM_BUFFER_INDEX 1
+#define UBO_LIGHTS 0
+#define UBO_CAMERA_DATA 1
 #define SSBO_MESH_INSTANCE_DATA 2
 #define SSBO_MATERIAL_INSTANCE_DATA 3
 #define SSBO_POINT_LIGHT_DATA_ARRAY 4
+#define UBO_SCENE_LIGHT_DATA 5
 
 // SHADERS
 #define SHADER_LIGHTING 1
@@ -53,13 +54,15 @@ struct MeshInstanceData {
 	alignas(16) glm::mat4 inverseModel;
 };
 
-struct alignas(16) SceneLightData {
-	bool mHasDirectionalLight;
+struct SceneLightData {
+	uint32_t mHasDirectionalLight;
+	float padding1[3];
     glm::vec3 mDirectionalLightDirection;
+	float padding2;
     glm::vec3 mDirectionalLightColor;
     float mDirectionalLightIntensity;
     glm::mat4 mDirectionalLightMatrix;
-    int mPointLightsCount;
+	uint32_t mPointLightsCount;
     glm::vec3 mAmbientLightColor;
     float mAmbientLightIntensity;
 };
@@ -70,7 +73,7 @@ struct PointLightData {
 	glm::vec3 mColor;
 	float mIntensity;
 	float shadowFarPlane;
-	int shadowCubeMapIndex;
+	uint32_t shadowCubeMapIndex;
 	float padding[2];
 };
 
@@ -117,16 +120,11 @@ private:
 	std::unordered_map<Entity, uint32_t> entityToInstanceIDMap;
 	std::unordered_map<AssetId, MeshData> meshDataMap;
 	std::unordered_map<AssetId, std::vector<MeshInstanceData>> meshInstanceMap;
-
 	std::vector<GLuint> meshIndicesDataArray;
 	std::vector<Vertex> meshVertexDataArray;
 	std::vector<DrawIndirectElementCommand> meshDrawCommandDataArray;
 
-	GLuint currentMeshEBOOffset = 0;
-	GLuint currentMeshVBOOffset = 0;
-
 	FrameBuffer screenFBO;
-	uint32_t screenRBO = 0;
 	VertexArrayBuffer screenQuadVAO;
 	VertexBuffer screenQuadVBO;
 	Texture2D screenTextureID;

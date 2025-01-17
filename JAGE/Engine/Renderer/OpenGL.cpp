@@ -42,7 +42,7 @@ bool OpenGL::Initialize() {
 	pointLightDataArraySSBO.Unbind();
 
 	cameraDataUBO = UniformBuffer();
-	cameraDataUBO.Generate("cameraData", CAMERA_UNIFORM_BUFFER_INDEX, sizeof(CameraData));
+	cameraDataUBO.Generate("cameraData", UBO_CAMERA_DATA, sizeof(CameraData));
 	cameraDataUBO.Bind();
 	cameraDataUBO.Allocate(sizeof(CameraData));
 	cameraDataUBO.Unbind();
@@ -101,6 +101,13 @@ bool OpenGL::Initialize() {
 	meshDIB.Allocate(MAX_MESHES * sizeof(DrawIndirectElementCommand));
 	meshDIB.Unbind();
 
+
+	sceneLightDataUBO = UniformBuffer();
+	sceneLightDataUBO.Generate("scene_light", UBO_SCENE_LIGHT_DATA, sizeof(SceneLightData));
+	sceneLightDataUBO.Bind();
+	sceneLightDataUBO.Allocate(sizeof(SceneLightData));
+	sceneLightDataUBO.Unbind();
+
 	InitShadowMap();
 	InitGBuffer();
 	BufferScreenQuad();
@@ -116,7 +123,7 @@ void OpenGL::InitShadowMap() {
 	shadowMapFBO = FrameBuffer();
 	shadowMapFBO.Generate("shadowMap", SHADOW_MAP_RESOLUTION, SHADOW_MAP_RESOLUTION);
 	shadowMapFBO.Bind();
-	shadowMapFBO.CreateDepthAttachment(GL_DEPTH_COMPONENT32F);
+	shadowMapFBO.CreateTextDepthAttachment(GL_DEPTH_COMPONENT32F);
 	shadowMapFBO.DisableColorBuffer();
 
 	if (!shadowMapFBO.CheckComplete()) {
@@ -248,31 +255,31 @@ void OpenGL::UploadSceneLightData() {
 	sceneLightData.mPointLightsCount = static_cast<GLsizei>(pointLights.size());
 
 	sceneLightDataUBO.Bind();
-	sceneLightDataUBO.BufferSubData(0, sizeof(SceneLightData), &sceneLightData);
+	sceneLightDataUBO.BufferData(sizeof(SceneLightData), &sceneLightData);
 	sceneLightDataUBO.Unbind();
 
-	PointLightsDataArray pointLightsDataArray;
-	for (int i = 0; i < pointLights.size(); i++) {
-		PointLight* light = pointLights[i];
-		if (light == nullptr) {
-			continue;
-		}
+	//PointLightsDataArray pointLightsDataArray;
+	//for (int i = 0; i < pointLights.size(); i++) {
+	//	PointLight* light = pointLights[i];
+	//	if (light == nullptr) {
+	//		continue;
+	//	}
 
-		PointLightData pointLightData;
-		pointLightData.mColor = light->color;
-		pointLightData.mIntensity = light->intensity;
-		pointLightData.mPosition = light->position;
-		pointLightData.mRadius = light->radius;
-		pointLightData.shadowFarPlane = light->shadowMapFarPlane;
-		pointLightData.shadowCubeMapIndex = light->glShadowMapIndex;
+	//	PointLightData pointLightData;
+	//	pointLightData.mColor = light->color;
+	//	pointLightData.mIntensity = light->intensity;
+	//	pointLightData.mPosition = light->position;
+	//	pointLightData.mRadius = light->radius;
+	//	pointLightData.shadowFarPlane = light->shadowMapFarPlane;
+	//	pointLightData.shadowCubeMapIndex = light->glShadowMapIndex;
 
-		pointLightsDataArray.mPointLights[i] = pointLightData;
-	}
+	//	pointLightsDataArray.mPointLights[i] = pointLightData;
+	//}
 
-	pointLightDataArraySSBO.Bind();
+	//pointLightDataArraySSBO.Bind();
 	// TODO fix me to use offsets correctly
 	//pointLightDataArraySSBO.BufferSubData(pointLights.size() * sizeof(PointLightData), &pointLightsDataArray.mPointLights);
-	pointLightDataArraySSBO.Unbind();
+	//pointLightDataArraySSBO.Unbind();
 }
 
 void OpenGL::UploadCameraData() {
@@ -307,9 +314,9 @@ void OpenGL::PointShadowMapPass() {
 	pointShadowCubemapArray.Bind();
 	pointShadowCubemapArray.Allocate(GL_DEPTH_COMPONENT32F, SHADOW_MAP_RESOLUTION, SHADOW_MAP_RESOLUTION, 6 * pointLightsCount);
 
-	meshSSBO.Bind();
-	meshDIB.Bind();
-	meshVAO.Bind();
+	//meshSSBO.Bind();
+	//meshDIB.Bind();
+	//meshVAO.Bind();
 
 	for (unsigned int i = 0; i < pointLightsCount; i++) {
 		glClear(GL_DEPTH_BUFFER_BIT);
@@ -326,9 +333,9 @@ void OpenGL::PointShadowMapPass() {
 
 	glCullFace(GL_BACK);
 	glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);
-	meshVAO.Unbind();
-	meshDIB.Unbind();
-	meshSSBO.Unbind();
+	//meshVAO.Unbind();
+	//meshDIB.Unbind();
+	//meshSSBO.Unbind();
 	pointShadowCubemapArray.Unbind();
 	pointShadowFBO.Unbind();
 }
@@ -352,9 +359,6 @@ void OpenGL::ShadowMapPass() {
 	meshDIB.Bind();
 	meshVAO.Bind();
 
-	//meshSSBO.BufferData(meshInstanceDataArray.size() * sizeof(MeshInstanceData), meshInstanceDataArray.data());
-	//meshDIB.BufferData(meshDrawCommandArray.size() * sizeof(DrawIndirectElementCommand), meshDrawCommandArray.data());
-
 	meshDIB.Draw(meshDrawCommandDataArray.size());
 
 	meshVAO.Unbind();
@@ -373,10 +377,8 @@ void OpenGL::LightingPass() {
 	Shader lightingShader = mCompiledShaders[SHADER_LIGHTING];
 	lightingShader.Bind();
 
-	UploadSceneLightData();
-
-	pointShadowCubemapArray.ActiveAndBind(0);
-	directionalLightShadowMap.ActiveAndBind(1);
+	//pointShadowCubemapArray.ActiveAndBind(0);
+	shadowMapFBO.ActiveAndBindDepthAttachment(1);
 	gPosition.ActiveAndBind(2);
 	gNormal.ActiveAndBind(3);
 	gAlbedoSpec.ActiveAndBind(4);
@@ -387,7 +389,7 @@ void OpenGL::LightingPass() {
 	screenQuadVAO.Unbind();
 
 	glEnable(GL_DEPTH_TEST);
-	pointShadowCubemapArray.Unbind();
+	//pointShadowCubemapArray.Unbind();
 	directionalLightShadowMap.Unbind();
 	gPosition.Unbind();
 	gNormal.Unbind();
@@ -529,6 +531,7 @@ void OpenGL::GeometryPass() {
 	meshDIB.Draw(meshDrawCommandDataArray.size());
 
 	gBuffer.Unbind();
+
 	meshVAO.Unbind();
 	meshDIB.Unbind();
 	meshSSBO.Unbind();
