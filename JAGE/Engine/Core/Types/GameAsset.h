@@ -10,4 +10,5 @@ public:
 
 	GameAsset() = default;
 	GameAsset(const std::string& assetName) : assetName(assetName) {};
+	GameAsset(const AssetId id) : assetId(id) {};
 };

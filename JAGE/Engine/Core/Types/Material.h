@@ -1,6 +1,7 @@
 #pragma once
 
 #include <Core/Core.h>
+#include "Texture.h"
 #include "GameAsset.h"
 
 struct Material : public GameAsset {
@@ -14,20 +15,5 @@ struct Material : public GameAsset {
 
 	Material() = default;
 	Material(const std::string& assetName) : GameAsset(assetName) {};
-
-	bool HasDiffuseTexture() const {
-		return (diffuseTexture != -1);
-	}
-
-	bool HasSpecularTexture() const {
-		return (specularTexture != -1);
-	}
-
-	bool HasRoughnessTexture() const {
-		return (roughnessTexture != -1);
-	}
-
-	bool HasNormalTexture() const {
-		return (normalTexture != -1);
-	}
+	Material(const AssetId id) : GameAsset(id) {};
 };

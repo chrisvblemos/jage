@@ -7,10 +7,11 @@ struct Vertex;
 struct Texture;
 struct Transform;
 struct Material;
-struct StaticMesh;
+struct Mesh;
 struct Camera;
 struct DirectionalLight;
 struct PointLight;
+struct StaticMeshRenderer;
 
 // UBOs & SSBOs
 #define UBO_LIGHTS 0
@@ -19,6 +20,8 @@ struct PointLight;
 #define SSBO_MATERIAL_INSTANCE_DATA 3
 #define SSBO_POINT_LIGHT_DATA_ARRAY 4
 #define UBO_SCENE_LIGHT_DATA 5
+#define SSBO_TEXTURE_HANDLERS 6
+#define SSBO_MESH_INDIRECT_DRAW_COMMAND 7
 
 // SHADERS
 #define SHADER_LIGHTING 1
@@ -32,26 +35,28 @@ struct PointLight;
 #define MAX_MESH_INSTANCES 20000
 #define MAX_MATERIAL_INSTANCES 200
 #define MAX_POINT_LIGHTS 32
+#define MAX_TEXTURES 10000
 
-struct alignas(16) MaterialData {
-	glm::vec4 baseColor;
-	glm::vec4 specularColor;
-	float shininess;
-	float roughness;
-	uint32_t textureIndices[3];
-	float padding[2];
+struct MeshDrawCmdData {
+	GLuint count = 0;				// n of indices to draw for each instance
+	GLuint instanceCount = 0;		// n of instances to draw
+	GLuint firstIndex = 0;			// index of start of indices
+	GLuint baseVertex = 0;			// index of start of vertex
+	GLuint baseInstance = 0;			// index of first instance
+
+	GLint diffTexHndlrIndex = -1;
+	GLint specTexHndlrIndex = -1;
+	GLint normTexHndlrIndex = -1;
 };
 
-struct MeshData {
-	uint32_t firstIndex;		// location in the EBO
-	uint32_t indexCount;		// number of indices
-	uint32_t baseVertex;		// location in the VBO
-	uint32_t drawCommandId;		// index in draw command buffer
-};
 
 struct MeshInstanceData {
 	glm::mat4 model;
 	glm::mat4 inverseModel;
+};
+
+struct MeshMetaData {
+	int32_t drawCmdIndex = -1;
 };
 
 struct SceneLightData {
@@ -115,14 +120,18 @@ private:
 	VertexBuffer meshVBO;
 	ElementArrayBuffer meshEBO;
 	ShaderStorageBuffer meshSSBO;
-	ShaderStorageBuffer materialSSBO;
+	ShaderStorageBuffer textureHndlrsSSBO;
 
-	std::unordered_map<Entity, uint32_t> entityToInstanceIDMap;
-	std::unordered_map<AssetId, MeshData> meshDataMap;
-	std::unordered_map<AssetId, std::vector<MeshInstanceData>> meshInstanceMap;
-	std::vector<GLuint> meshIndicesDataArray;
+	std::unordered_map<AssetId, std::unordered_map<Entity, uint32_t>> assToEntMeshInstIndexes;
+	std::unordered_map<AssetId, MeshMetaData> assToMesh;
+	std::unordered_map<AssetId, std::vector<MeshInstanceData>> assToMeshInsts;
+
+	std::vector<MeshDrawCmdData> meshDrawCmdDataArray;
+	std::vector<GLuint> meshIndexDataArray;
 	std::vector<Vertex> meshVertexDataArray;
-	std::vector<DrawIndirectElementCommand> meshDrawCommandDataArray;
+
+	std::unordered_map<AssetId, Texture2D> assetIDToTex2DMap;
+	std::vector<GLuint64> tex2DHndlrDataArray;
 
 	FrameBuffer screenFBO;
 	VertexArrayBuffer screenQuadVAO;
@@ -183,13 +192,12 @@ public:
 
 	void UploadSceneLightData();
 	void UploadCameraData();
-	void BatchUploadStaticMeshData();
-	void BatchUploadStaticMeshInstanceData();
+	void BatchMeshInstData();
 
 	// Buffering
-	void BufferTexture(Texture* texture);
-	void RegisterStaticMesh(const StaticMesh* staticMesh);
-	void RegisterStaticMeshInstance(const AssetId assetID, const Entity entity, const Transform* transform);
+	void RegisterTexture2D(Texture* texture);
+	void UpsertMeshEntity(const Entity entity, const std::vector<const Mesh*>& meshes, const Transform& transform);
+	void RegisterMesh(const Mesh* mesh);
 	
 	// Passes
 	void GeometryPass();

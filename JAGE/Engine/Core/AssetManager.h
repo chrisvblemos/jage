@@ -3,87 +3,66 @@
 #include <Utils.h>
 #include <Core/Core.h>
 #include "Types/MeshModel.h"
-#include "Types/StaticMesh.h"
+#include "Types/Mesh.h"
 #include "Types/Texture.h"
 #include "Types/Material.h"
 #include "Types/GameAsset.h"
 
 class AssetManager {
-private:
-	AssetManager() = default;
-
-	uint32_t assetCount = 0;
-	std::stack<uint32_t> assetIdPool;
-
-	std::unordered_map<const char*, std::vector<std::unique_ptr<GameAsset>>> assets;
-
 public:
-	// prevents copying
-	AssetManager(const AssetManager&) = delete;
-	AssetManager& operator=(const AssetManager&) = delete;
-
 	static AssetManager& Get() {
 		static AssetManager instance;
 		return instance;
 	}
 
-	template <typename T>
-	std::vector<T*> GetAssets() {
-		auto it = assets.find(typeid(T).name());
-		if (it == assets.end()) {
-			return {};
-		}
-
-		std::vector<T*> result;
-		for (const auto& asset : it->second) {
-			result.push_back(static_cast<T*>(asset.get()));
-		}
-
-		return result;
+	template<typename T>
+	T& CreateAsset() {
+		auto& container = GetContainer<T>();
+		auto asset = std::make_unique<T>();
+		asset->assetId = nextId++;
+		T& ref = *asset;
+		container[asset->assetId] = std::move(asset);
+		return ref;
 	}
 
-	template <typename T>
+	template<typename T>
 	T* GetAssetById(AssetId id) {
-		for (const auto& asset : GetAssets<T>()) {
-			if (asset->assetId == id) {
-				return asset;
-			}
-		}
-
-		return nullptr;
+		auto& container = GetContainer<T>();
+		auto it = container.find(id);
+		return it != container.end() ? it->second.get() : nullptr;
 	}
 
-	template <typename T>
-	T* GetAssetByName(const std::string& name) {
-		for (const auto& asset : GetAssets<T>()) {
-			if (asset->assetName == name) {
-				return asset;
-			}
-		}
-
-		return nullptr;
-	}
-
-	template <typename T>
+	template<typename T>
 	T* GetAssetByPath(const std::string& path) {
-		for (const auto& asset : GetAssets<T>()) {
-			if (asset->assetPath == path) {
-				return asset;
+		auto& container = GetContainer<T>();
+		for (const auto& pair : container) {
+			if (pair.second->assetPath == path) {
+				return pair.second.get();
 			}
 		}
-
 		return nullptr;
 	}
 
-	template <typename T>
-	T* CreateAsset() {
-		uint32_t assetId = Utils::AllocateIdFromPool(assetIdPool, assetCount);
-		std::unique_ptr<T> asset = std::make_unique<T>();
-		asset->assetId = assetId;
+private:
+	AssetManager() = default;
+	AssetManager(const AssetManager&) = delete;
+	AssetManager& operator=(const AssetManager&) = delete;
 
-		const char* type_name = typeid(T).name();
-		assets[type_name].push_back(std::move(asset));
+	template<typename T>
+	std::unordered_map<AssetId, std::unique_ptr<T>>& GetContainer();
 
-		return static_cast<T*>(assets[type_name].back().get());
-	}
+	template<> std::unordered_map<AssetId, std::unique_ptr<Mesh>>& GetContainer<Mesh>() { return meshes; }
+	template<> std::unordered_map<AssetId, std::unique_ptr<MeshModel>>& GetContainer<MeshModel>() { return meshModels; }
+	template<> std::unordered_map<AssetId, std::unique_ptr<Material>>& GetContainer<Material>() { return materials; }
+	template<> std::unordered_map<AssetId, std::unique_ptr<Texture>>& GetContainer<Texture>() { return textures; }
+
+	AssetId nextId = 0;
+
+	std::unordered_map<AssetId, std::unique_ptr<Mesh>> meshes;
+	std::unordered_map<AssetId, std::unique_ptr<MeshModel>> meshModels;
+	std::unordered_map<AssetId, std::unique_ptr<Material>> materials;
+	std::unordered_map<AssetId, std::unique_ptr<Texture>> textures;
+
+
 };
+

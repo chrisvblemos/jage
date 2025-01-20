@@ -9,7 +9,7 @@ struct UniformBuffer {
 	GLuint id;
 	GLuint binding = 0;
 
-	void Generate(const std::string& name, GLuint binding, GLsizei size) {
+	void Generate(const std::string& name, GLuint binding, GLsizeiptr size) {
 		glGenBuffers(1, &id);
 		glBindBuffer(GL_UNIFORM_BUFFER, id);
 		glBindBufferRange(GL_UNIFORM_BUFFER, binding, id, 0, size);
@@ -23,11 +23,11 @@ struct UniformBuffer {
 		glBindBuffer(GL_UNIFORM_BUFFER, id);
 	}
 
-	void Allocate(const GLsizei size) {
+	void Allocate(const GLsizeiptr size) {
 		glBufferData(GL_UNIFORM_BUFFER, size, nullptr, GL_DYNAMIC_DRAW);
 	}
 
-	void BufferSubData(const GLsizei offset, const GLsizei size, const void* data) {
+	void BufferSubData(const GLsizeiptr offset, const GLsizeiptr size, const void* data) {
 		glBufferSubData(GL_UNIFORM_BUFFER, offset, size, data);
 	}
 

@@ -5,8 +5,7 @@
 struct Texture2D {
 	std::string name;
 	GLuint id = 0;
-	GLuint64 handle = 0;
-	const void* data = nullptr;
+	GLuint handleIndex = 0;
 	GLint level = 0;
 	GLsizei width = 0;
 	GLsizei height = 0;
@@ -14,8 +13,6 @@ struct Texture2D {
 	GLenum format = 0;
 	GLint border = 0;
 	GLenum type = 0;
-	std::unordered_map<std::string, uint32_t> intVals;
-	std::unordered_map<std::string, float> floatVals;
 
 	Texture2D() = default;
 
@@ -33,8 +30,8 @@ struct Texture2D {
 		this->level = level;
 		this->width = width;
 		this->height = height;
-		this->format = format;						// this is how data is handled from the CPU
-		this->internalFormat = internalFormat;		// this is how the GPU stores pixel data
+		this->format = format;						
+		this->internalFormat = internalFormat;		
 		this->border = border;
 		this->type = type;
 

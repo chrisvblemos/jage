@@ -37,37 +37,14 @@ void RenderSystem::Update(float dt) {
 
 			StaticMeshRenderer& staticMeshRenderer = World::Get().GetComponent<StaticMeshRenderer>(entity);
 
- 			// load static mesh into GPU buffer
-			for (AssetId assetID : staticMeshRenderer.meshes) {
-				auto it_0 = cachedStaticMeshes.find(assetID);
-				if (it_0 == cachedStaticMeshes.end()) {
-					cachedStaticMeshes.insert(assetID);
-					hasNewStaticMesh = true;
-					StaticMesh* sm = AssetManager::Get().GetAssetById<StaticMesh>(assetID);
-					mRenderApi->RegisterStaticMesh(sm);
-				}
-
-				auto it_1 = entityToTransformID.find(entity);
-				if (it_1 == entityToTransformID.end()) {
-					entityToTransformID[entity] = transforms.size();
-					transforms.push_back(transform);
-
-					mRenderApi->RegisterStaticMeshInstance(assetID, entity, &transform);
-					hasTransformsChanged = true;
-				}
-
-				uint32_t cachedTransformIndex = entityToTransformID[entity];
-				Transform& cachedTransform = transforms[cachedTransformIndex];
-				if (transform.position != cachedTransform.position ||
-					transform.rotation != cachedTransform.rotation ||
-					transform.scale != cachedTransform.scale) {
-
-					transforms[cachedTransformIndex] = transform;
-					mRenderApi->RegisterStaticMeshInstance(assetID, entity, &transform);
-					hasTransformsChanged = true;
-				}
-					
+			std::vector<const Mesh*> meshes;
+			auto& assetManager = AssetManager::Get();
+			for (const AssetId assetID : staticMeshRenderer.meshes) {
+				Mesh* mesh = assetManager.GetAssetById<Mesh>(assetID);
+				meshes.push_back(mesh);
 			}
+
+			mRenderApi->UpsertMeshEntity(entity, meshes, transform);
 		}
 
 		if ((entitySignature & directionalLightSignature) == directionalLightSignature) {
@@ -77,20 +54,10 @@ void RenderSystem::Update(float dt) {
 	}
 
 	mRenderApi->UploadCameraData();
-
-	if (hasNewStaticMesh) {
-		mRenderApi->BatchUploadStaticMeshData();
-		hasNewStaticMesh = false;
-	}
-
-	if (hasTransformsChanged) {
-		mRenderApi->BatchUploadStaticMeshInstanceData();
-		hasTransformsChanged = false;
-	}
-
+	mRenderApi->BatchMeshInstData();
 	mRenderApi->GeometryPass();
-	mRenderApi->ShadowMapPass();
-	mRenderApi->UploadSceneLightData();
-	mRenderApi->LightingPass();
-	//mRenderApi->DebugGbuffer(0);
+	//mRenderApi->ShadowMapPass();
+	//mRenderApi->UploadSceneLightData();
+	//mRenderApi->LightingPass();
+	mRenderApi->DebugGbuffer(0);
 }

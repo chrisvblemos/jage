@@ -71,7 +71,7 @@ void Engine::Init() {
 	}
 
 	float dt = 0.0f;
-	float lastFrame = 0.0f;
+	float lastFrame = 0.0f; 
 
 	World& world = World::Get();
 
@@ -81,7 +81,7 @@ void Engine::Init() {
 		return;
 	}
 
-	// imgui initialization
+	// IMGUI initialization
 	IMGUI_CHECKVERSION();
 	ImGui::CreateContext();
 	ImGuiIO& io = ImGui::GetIO();
@@ -91,9 +91,9 @@ void Engine::Init() {
 	ImGui_ImplOpenGL3_Init("#version 460");
 
 	// load default assets
-	MeshModel* DefaultPlane = AssetLoader::Get().LoadMeshModelFromFile("Assets/Meshes/default_plane.obj");
-	MeshModel* DefaultCube = AssetLoader::Get().LoadMeshModelFromFile("Assets/Meshes/default_cube.obj");
-	MeshModel* backpackModel = AssetLoader::Get().LoadMeshModelFromFile("Assets/Meshes/SurvivalGuitarBackpack/backpack.obj");
+	MeshModel& DefaultPlane = AssetLoader::Get().LoadMeshModelFromFile("Assets/Meshes/default_plane.obj");
+	MeshModel& DefaultCube = AssetLoader::Get().LoadMeshModelFromFile("Assets/Meshes/default_cube.obj");
+	MeshModel& backpackModel = AssetLoader::Get().LoadMeshModelFromFile("Assets/Meshes/SurvivalGuitarBackpack/backpack.obj");
 	
 	// register components
 	world.RegisterComponent<Transform>();
@@ -133,7 +133,7 @@ void Engine::Init() {
 	// white ground
 	Entity ground = world.CreateEntity();
 	world.AddComponent(ground, Transform{glm::vec3(0.0f, -1.5f, 0.0f), QUAT_NO_ROTATION, glm::vec3(1000.0f, 1.0f, 1000.0f)});
-	world.AddComponent(ground, StaticMeshRenderer{ DefaultPlane->meshes });
+	world.AddComponent(ground, StaticMeshRenderer{ DefaultPlane.meshes });
 	
 	// the backpack
 	//Entity backpack = world.CreateEntity();
@@ -142,12 +142,21 @@ void Engine::Init() {
 	//Transform& backpackTransform = world.GetComponent<Transform>(backpack);
 	//backpackTransform.scale = glm::vec3(0.1f); // scale down backpack size
 
-	uint32_t nCubes = 20;
+	//uint32_t nBackpacks = 5;
+	//std::vector<Transform*> bkpTransforms;
+	//for (uint32_t i = 0; i < nBackpacks; i++) {
+	//	Entity backpack = world.CreateEntity();
+	//	world.AddComponent(backpack, Transform{ Utils::RandomPointInSphere(15.f, glm::vec3(0.0f, 12.0f, 0.0f)), Utils::RandomQuaternion(), glm::vec3(Utils::RandomFloat() + glm::vec3(0.5f)) });
+	//	world.AddComponent(backpack, StaticMeshRenderer{ backpackModel.meshes });
+	//	bkpTransforms.push_back(&world.GetComponent<Transform>(backpack));
+	//}
+
+	uint32_t nCubes = 30;
 	std::vector<Transform*> cubeTransforms;
 	for (uint32_t i = 0; i < nCubes; i++) {
 		Entity cube = world.CreateEntity();
 		world.AddComponent(cube, Transform{Utils::RandomPointInSphere(15.f, glm::vec3(0.0f, 12.0f, 0.0f)), Utils::RandomQuaternion(), glm::vec3(Utils::RandomFloat() + glm::vec3(0.5f))});
-		world.AddComponent(cube, StaticMeshRenderer{ DefaultCube->meshes });
+		world.AddComponent(cube, StaticMeshRenderer{ DefaultCube.meshes });
 		cubeTransforms.push_back(&world.GetComponent<Transform>(cube));
 	}
 
@@ -186,9 +195,9 @@ void Engine::Init() {
 		lastFrame = currentFrame;
 
 		// rotate cubes around origin
-		for (Transform* cubeTransform : cubeTransforms) {
-			cubeTransform->rotation = cubeTransform->rotation * glm::angleAxis(0.1f * dt, cubeTransform->Up());
-		}
+		//for (Transform* cubeTransform : cubeTransforms) {
+		//	cubeTransform->rotation = cubeTransform->rotation * glm::angleAxis(0.1f * dt, cubeTransform->Up());
+		//}
 
 		playerSystem->Update(dt);
 		renderSystem->Update(dt);

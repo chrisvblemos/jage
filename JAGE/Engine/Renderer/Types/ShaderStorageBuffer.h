@@ -8,8 +8,9 @@ struct ShaderStorageBuffer {
 	std::string name;
 	GLuint id;
 	GLuint binding = 0;
+	GLenum mode = GL_DYNAMIC_DRAW;
 
-	void Generate(const std::string& name, const GLuint binding) {
+	void Generate(const std::string& name, const GLuint binding, const GLenum mode = GL_DYNAMIC_DRAW) {
 		glGenBuffers(1, &id);
 		glBindBuffer(GL_SHADER_STORAGE_BUFFER, id);
 		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, binding, id);
@@ -17,22 +18,23 @@ struct ShaderStorageBuffer {
 
 		this->name = name;
 		this->binding = binding;
+		this->mode = mode;
 	}
 
 	void Bind() {
 		glBindBuffer(GL_SHADER_STORAGE_BUFFER, id);
 	}
 
-	void Allocate(const GLsizei size) {
-		glBufferData(GL_SHADER_STORAGE_BUFFER, size, nullptr, GL_DYNAMIC_DRAW);
+	void Allocate(const GLsizeiptr size) {
+		glBufferData(GL_SHADER_STORAGE_BUFFER, size, nullptr, mode);
 	}
 
-	void BufferSubData(const GLuint offset, const GLsizei size, const void* data) {
+	void BufferSubData(const GLuint offset, const GLsizeiptr size, const void* data) {
 		glBufferSubData(GL_SHADER_STORAGE_BUFFER, offset, size, data);
 	}
 
-	void BufferData(const GLsizei size, const void* data) {
-		glBufferData(GL_SHADER_STORAGE_BUFFER, size, data, GL_DYNAMIC_DRAW);
+	void BufferData(const GLsizeiptr size, const void* data) {
+		glBufferData(GL_SHADER_STORAGE_BUFFER, size, data, mode);
 	}
 
 	void Unbind() {

@@ -1,34 +1,39 @@
 #version 460 core
+#extension GL_ARB_bindless_texture : enable
 
 layout (location = 0) out vec3 gPosition;
 layout (location = 1) out vec3 gNormal;
 layout (location = 2) out vec4 gAlbedoSpec;
 
-//layout (binding = 0) uniform sampler2D uDiffuseTexture;
-//layout (binding = 1) uniform sampler2D uSpecularTexture;
-
 in vec2 TexCoords;
 in vec3 FragPos;
 in vec3 Normal;
+in flat int DiffuseTextureHndlrIndex;
+in flat int SpecularTextureHndlrIndex;
+in flat int NormalTextureHndlrIndex;
 
-//uniform vec3 uBaseColor;
-//uniform float uBaseSpecular;
-//
-//uniform bool uHasDiffuseTexture = false;
-//uniform bool uHasSpecularTexture = false;
+layout(std430, binding = 6) readonly buffer Tex2DSamplerDataArray {
+    sampler2D tex2DSamplerDataArray[];
+};
 
 void main() {
 	gPosition = FragPos;
+	
 	gNormal = normalize(Normal);
-	gAlbedoSpec = vec4(0.5, 0.0, 0.5, 0.5);
+	if (NormalTextureHndlrIndex >= 0) {
+		sampler2D tex = tex2DSamplerDataArray[NormalTextureHndlrIndex];
+		gNormal = texture(tex, TexCoords).rgb;
+	}
 
-//	gAlbedoSpec.rgb = uBaseColor;
-//	if (uHasDiffuseTexture) {
-//		gAlbedoSpec.rgb = texture(uDiffuseTexture, TexCoords).rgb;
-//	}
-//
-//	gAlbedoSpec.a = uBaseSpecular;
-//	if (uHasSpecularTexture) {
-//		gAlbedoSpec.a = texture(uSpecularTexture, TexCoords).r;
-//	}
+	gAlbedoSpec.rgb = vec3(0.5f, 0.0f, 0.5f);
+	if (DiffuseTextureHndlrIndex >= 0) {
+		sampler2D tex = tex2DSamplerDataArray[DiffuseTextureHndlrIndex];
+		gAlbedoSpec.rgb = texture(tex, TexCoords).rgb;
+	}
+
+	gAlbedoSpec.a = 0.5f;
+	if (SpecularTextureHndlrIndex >= 0) {
+		sampler2D tex = tex2DSamplerDataArray[SpecularTextureHndlrIndex];
+		gAlbedoSpec.a = texture(tex, TexCoords).r;
+	}
 }

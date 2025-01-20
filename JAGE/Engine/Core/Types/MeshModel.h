@@ -8,4 +8,5 @@ struct MeshModel : public GameAsset {
 
 	MeshModel() = default;
 	MeshModel(const std::string& assetName) : GameAsset(assetName) {};
+	MeshModel(const AssetId id) : GameAsset(id) {};
 };

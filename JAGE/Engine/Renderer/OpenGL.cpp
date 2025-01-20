@@ -1,12 +1,13 @@
 #include <ECS/EntityManager.h>
 #include <Core/Types/GameAsset.h>
 #include <Core/Types/Texture.h>
-#include <Core/Types/StaticMesh.h>
+#include <Core/Types/Mesh.h>
 #include <Core/Types/Material.h>
 #include <ECS/Components/Transform.h>
 #include <ECS/Components/Camera.h>
 #include <ECS/Components/DirectionalLight.h>
 #include <ECS/Components/PointLight.h>
+#include <ECS/Components/StaticMeshRenderer.h>
 #include <Utils.h>
 #include <LogDisplay.h>
 
@@ -47,8 +48,6 @@ bool OpenGL::Initialize() {
 	cameraDataUBO.Allocate(sizeof(CameraData));
 	cameraDataUBO.Unbind();
 
-	// a single VAO for pointing to a VBO and EBO
-	// dedicated to storing mesh data
 	meshVAO = VertexArrayBuffer();
 	meshVAO.Generate("meshes");
 	meshVAO.Bind();
@@ -56,12 +55,12 @@ bool OpenGL::Initialize() {
 	meshVBO = VertexBuffer();
 	meshVBO.Generate("meshes");
 	meshVBO.Bind();
-	meshVBO.Allocate(MAX_MESHES * sizeof(Vertex));
+	meshVBO.Allocate(sizeof(Vertex));
 
 	meshEBO = ElementArrayBuffer();
 	meshEBO.Generate("meshes");
 	meshEBO.Bind();
-	meshEBO.Allocate(MAX_MESHES * sizeof(GLint));
+	meshEBO.Allocate(sizeof(GLint));
 
 	meshVAO.SetAttribPointer(0, 3, GL_FLOAT, sizeof(Vertex), (void*)offsetof(Vertex, Position));
 	meshVAO.SetAttribPointer(1, 3, GL_FLOAT, sizeof(Vertex), (void*)offsetof(Vertex, Normal));
@@ -71,36 +70,22 @@ bool OpenGL::Initialize() {
 	meshEBO.Unbind();
 	meshVBO.Unbind();
 
-	// storing mesh instance data
-	// we initially allocate data for
-	// MAX_MESHES, where each mesh
-	// allows for MAX_MESH_INSTANCES of
-	// the MeshInstanceData struct
 	meshSSBO = ShaderStorageBuffer();
 	meshSSBO.Generate("mesh_instances", SSBO_MESH_INSTANCE_DATA);
 	meshSSBO.Bind();
-	meshSSBO.Allocate(MAX_MESH_INSTANCES * sizeof(MeshInstanceData));
+	meshSSBO.Allocate(sizeof(MeshInstanceData));
 	meshSSBO.Unbind();	
 
-	materialSSBO = ShaderStorageBuffer();
-	materialSSBO.Generate("materials", SSBO_MATERIAL_INSTANCE_DATA);
-	materialSSBO.Bind();
-	materialSSBO.Allocate(MAX_MESHES * MAX_MATERIAL_INSTANCES * sizeof(MaterialData));
-	materialSSBO.Unbind();
-
-	// initialize the draw indirect 
-	// buffer object to store draw 
-	// commands. 
-	// we initially allocate it to
-	// MAX_MESHES since there should
-	// be one draw call command for
-	// each one of the meshes.
 	meshDIB = DrawIndirectBuffer();
-	meshDIB.Generate("mesh_instances");
+	meshDIB.Generate("mesh_instances", SSBO_MESH_INDIRECT_DRAW_COMMAND);
 	meshDIB.Bind();
-	meshDIB.Allocate(MAX_MESHES * sizeof(DrawIndirectElementCommand));
+	meshDIB.Allocate(sizeof(MeshDrawCmdData));
 	meshDIB.Unbind();
 
+	textureHndlrsSSBO.Generate("texture_hndlrs", SSBO_TEXTURE_HANDLERS, GL_DYNAMIC_DRAW);
+	textureHndlrsSSBO.Bind();
+	textureHndlrsSSBO.Allocate(MAX_TEXTURES * sizeof(GLuint64));
+	textureHndlrsSSBO.Unbind();
 
 	sceneLightDataUBO = UniformBuffer();
 	sceneLightDataUBO.Generate("scene_light", UBO_SCENE_LIGHT_DATA, sizeof(SceneLightData));
@@ -114,7 +99,6 @@ bool OpenGL::Initialize() {
 
 	glEnable(GL_CULL_FACE);
 
-	// all good
 	return true;
 }
 
@@ -183,37 +167,51 @@ void OpenGL::InitGBuffer() {
 	}
 }
 
-void OpenGL::BufferTexture(Texture* texture) {
-	//assert(texture != nullptr && "OpenGL: Failed to buffer texture.");
+void OpenGL::RegisterTexture2D(Texture* texture) {
+	assert(texture != nullptr && "OpenGL: Failed to buffer texture.");
 
-	//if (assetToTextureIDMap.count(texture->assetId)) { // texture already loaded
-	//	return;
-	//}
+	auto it = assetIDToTex2DMap.find(texture->assetId);
+	if (it != assetIDToTex2DMap.end())
+		return;
 
-	//GLenum format = GL_RED;
-	//GLenum internalFormat = GL_R8;
-	//if (texture->nrChannels == 3)
-	//{
-	//	format = GL_RGB;
-	//	internalFormat = GL_RGB8;
-	//}
-	//else if (texture->nrChannels == 4)
-	//{
-	//	format = GL_RGBA;
-	//	internalFormat = GL_RGBA8;
-	//}
+	GLenum format = GL_RED;
+	GLenum internalFormat = GL_R8;
+	if (texture->nrChannels == 3)
+	{
+		format = GL_RGB;
+		internalFormat = GL_RGB8;
+	}
+	else if (texture->nrChannels == 4)
+	{
+		format = GL_RGBA;
+		internalFormat = GL_RGBA8;
+	}
 
-	//Texture2D glTexture = Texture2D();
-	//glTexture.Generate(texture->assetName, texture->data, 0, texture->width, texture->height, internalFormat, format, 0, GL_UNSIGNED_BYTE);
-	//glTexture.Bind();
-	//glTexture.SetInt(GL_TEXTURE_WRAP_S, GL_REPEAT);
-	//glTexture.SetInt(GL_TEXTURE_WRAP_T, GL_REPEAT);
-	//glTexture.SetInt(GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-	//glTexture.SetInt(GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	//glTexture.GenerateMipMap();
-	//glTexture.Unbind();
+	Texture2D glTex2D = Texture2D();
+	glTex2D.Generate(texture->assetName, texture->data, 0, texture->width, texture->height, internalFormat, format, 0, GL_UNSIGNED_BYTE);
+	glTex2D.Bind();
+	glTex2D.SetInt(GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTex2D.SetInt(GL_TEXTURE_WRAP_T, GL_REPEAT);
+	glTex2D.SetInt(GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+	glTex2D.SetInt(GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTex2D.GenerateMipMap();
 
-	//assetToTextureIDMap.emplace(texture->assetId, glTexture.id);
+	glTex2D.handleIndex = tex2DHndlrDataArray.size();
+	GLuint64 texHandle = glGetTextureHandleARB(glTex2D.id);
+	if (texHandle == 0) {
+		LOG(LogGeneric, LOG_CRITICAL, std::format("Failed to generate bindless handle for texture {}", texture->assetPath));
+		return;
+	}
+
+	glMakeTextureHandleResidentARB(texHandle);
+	tex2DHndlrDataArray.push_back(texHandle);
+	assetIDToTex2DMap[texture->assetId] = glTex2D;
+
+	textureHndlrsSSBO.Bind();
+	textureHndlrsSSBO.BufferSubData(tex2DHndlrDataArray.size() * sizeof(GLuint64), sizeof(GLuint64), &glTex2D.handleIndex);
+	textureHndlrsSSBO.Unbind();
+
+	glTex2D.Unbind();
 }
 
 void OpenGL::BufferScreenQuad() {
@@ -328,7 +326,7 @@ void OpenGL::PointShadowMapPass() {
 
 		pointShadowCubemapArray.SetLevelParameters(i);
 
-		meshDIB.Draw(meshDrawCommandDataArray.size()); // draw scene (we assume that mesh data has already been buffered in the geometry pass
+		meshDIB.Draw(meshDrawCmdDataArray.size(), sizeof(MeshDrawCmdData)); // draw scene (we assume that mesh data has already been buffered in the geometry pass
 	}
 
 	glCullFace(GL_BACK);
@@ -359,7 +357,7 @@ void OpenGL::ShadowMapPass() {
 	meshDIB.Bind();
 	meshVAO.Bind();
 
-	meshDIB.Draw(meshDrawCommandDataArray.size());
+	meshDIB.Draw(meshDrawCmdDataArray.size(), sizeof(MeshDrawCmdData));
 
 	meshVAO.Unbind();
 	meshDIB.Unbind();
@@ -424,92 +422,98 @@ void OpenGL::DebugGbuffer(uint32_t layer) {
 	glEnable(GL_DEPTH_TEST);
 }
 
-void OpenGL::RegisterStaticMeshInstance(const AssetId assetID, Entity entity, const Transform* transform) {
-	if (transform == nullptr)
-		return;
+void OpenGL::UpsertMeshEntity(const Entity entity, const std::vector<const Mesh*>& meshes, const Transform& transform) {
+	glm::mat4 model = CalculateModelMatrix(transform.position, transform.rotation, transform.scale);;
+	glm::mat4 inverseModel = glm::inverseTranspose(model);
 
-	MeshData& meshData = meshDataMap[assetID];
-	DrawIndirectElementCommand& command = meshDrawCommandDataArray[meshData.drawCommandId];
-	std::vector<MeshInstanceData>& meshInstances = meshInstanceMap[assetID];
+	for (const Mesh* mesh : meshes) {
+		auto meshDataIt = assToMesh.find(mesh->assetId);
+		if (assToMesh.find(mesh->assetId) == assToMesh.end()) {
+			LOG(LogGeneric, LOG_ERROR, std::format("Missing open gl mesh for mesh {}.", mesh->assetPath));
+			continue;
+		}
 
-	// check if instance is already registered
-	MeshInstanceData* instanceData = nullptr;
-	auto it = entityToInstanceIDMap.find(entity);
-	if (it != entityToInstanceIDMap.end()) {
-		instanceData = &meshInstances[it->second];
-	}
-	else {
-		entityToInstanceIDMap[entity] = meshInstances.size();
+		auto& meshInstances = assToMeshInsts[mesh->assetId];
+		auto [entInstIt, inserted] = assToEntMeshInstIndexes[mesh->assetId].try_emplace(entity, meshInstances.size());
 
-		meshInstances.emplace_back(MeshInstanceData());
-		instanceData = &meshInstances.back();
-		command.instanceCount++;
-	}
+		if (inserted) {
+			meshInstances.emplace_back();
+			meshDrawCmdDataArray[meshDataIt->second.drawCmdIndex].instanceCount++;
+		}
 
-	instanceData->model = CalculateModelMatrix(transform->position, transform->rotation, transform->scale);
-	instanceData->inverseModel = glm::inverseTranspose(instanceData->model);
+		auto& instance = meshInstances[entInstIt->second];
+		instance.model = model;
+		instance.inverseModel = inverseModel;
+	}	
 }
 
-void OpenGL::RegisterStaticMesh(const StaticMesh* sm) {
-	if (sm == nullptr)
-		return;
+void OpenGL::RegisterMesh(const Mesh* mesh) {
+	const std::vector<Vertex>& vertices = mesh->vertices;
+	const std::vector<GLuint>& indices = mesh->indices;
 
-	AssetId assetID = sm->assetId;
+	auto [it, inserted] = assToMesh.try_emplace(mesh->assetId);
+	if (inserted) {
+		it->second.drawCmdIndex = meshDrawCmdDataArray.size();
 
-	// check if mesh is already buffered to the GPU
-	if (meshDataMap.find(assetID) == meshDataMap.end()) {
+		meshDrawCmdDataArray.push_back(MeshDrawCmdData());
+		MeshDrawCmdData& cmd = meshDrawCmdDataArray.back();
 
-		const std::vector<Vertex>& meshVertices = sm->vertices;
-		const std::vector<GLuint>& meshIndices = sm->indices;
+		cmd.count = indices.size();
+		cmd.instanceCount = 0;
+		cmd.firstIndex = meshIndexDataArray.size();
+		cmd.baseVertex = meshVertexDataArray.size();
 
-		MeshData meshData;
-		meshData.indexCount = meshIndices.size();
-		meshData.firstIndex = meshIndicesDataArray.size();
-		meshData.baseVertex = meshVertexDataArray.size();
-		meshData.drawCommandId = meshDrawCommandDataArray.size();
-		meshDataMap[assetID] = meshData;
-
-		meshIndicesDataArray.insert(meshIndicesDataArray.end(), meshIndices.begin(), meshIndices.end());
-		meshVertexDataArray.insert(meshVertexDataArray.end(), meshVertices.begin(), meshVertices.end());
-
-		DrawIndirectElementCommand command;
-		command.count = meshData.indexCount;
-		command.instanceCount = 0;
-		command.firstIndex = meshData.firstIndex;
-		command.baseVertex = meshData.baseVertex;
+		cmd.diffTexHndlrIndex = mesh->diffuseTexture >= 0 ? assetIDToTex2DMap[mesh->diffuseTexture].handleIndex : -1;
+		cmd.specTexHndlrIndex = mesh->specularTexture >= 0 ? assetIDToTex2DMap[mesh->specularTexture].handleIndex : -1;
+		cmd.normTexHndlrIndex = mesh->normalTexture >= 0 ? assetIDToTex2DMap[mesh->normalTexture].handleIndex : -1;
 		
-		meshDrawCommandDataArray.push_back(command);
+		meshIndexDataArray.insert(meshIndexDataArray.end(), indices.begin(), indices.end());
+		meshVertexDataArray.insert(meshVertexDataArray.end(), vertices.begin(), vertices.end());
+
+		meshVAO.Bind();
+		meshVBO.Bind();
+		meshEBO.Bind();
+
+		//meshVBO.BufferData(meshVertexDataArray.size() * sizeof(Vertex), meshVertexDataArray.data());
+		//meshEBO.BufferData(meshIndexDataArray.size() * sizeof(GLuint), meshIndexDataArray.data());
+
+		GLsizeiptr vertexOffset = cmd.baseVertex * sizeof(Vertex);
+		GLsizeiptr verticesSize = vertices.size() * sizeof(Vertex);
+
+		GLsizeiptr indexOffset = cmd.firstIndex * sizeof(GLuint);
+		GLsizeiptr indicesSize = indices.size() * sizeof(GLuint);
+
+		if (vertexOffset + verticesSize > meshVBO.size) {
+			GLsizeiptr newSize = std::max(meshVBO.size * 2, vertexOffset + verticesSize);
+
+		}
+
+		if (offset + size > meshVBO.size)
+		meshVBO.BufferSubData(cmd.baseVertex * sizeof(Vertex), vertices.size() * sizeof(Vertex), meshVertexDataArray.data());
+		meshEBO.BufferSubData(cmd.firstIndex * sizeof(GLuint), indices.size() * sizeof(GLuint), meshIndexDataArray.data());
+
+		meshVBO.Unbind();
+		meshEBO.Unbind();
+		meshVAO.Unbind();
 	}
 }
 
-void OpenGL::BatchUploadStaticMeshData() {
-	meshVBO.Bind();
-	meshEBO.Bind();
+void OpenGL::BatchMeshInstData() {
+	std::vector<MeshInstanceData> meshInstDataArray;
+	for (const auto& it : assToMeshInsts) {
+		MeshMetaData& metaData = assToMesh[it.first];
+		MeshDrawCmdData& cmdData = meshDrawCmdDataArray[metaData.drawCmdIndex];
+		cmdData.baseInstance = meshInstDataArray.size();
 
-	meshVBO.BufferData(meshVertexDataArray.size() * sizeof(Vertex), meshVertexDataArray.data());
-	meshEBO.BufferData(meshIndicesDataArray.size() * sizeof(GLuint), meshIndicesDataArray.data());
-
-	meshVBO.Unbind();
-	meshEBO.Unbind();
-}
-
-void OpenGL::BatchUploadStaticMeshInstanceData() {
-	std::vector<MeshInstanceData> meshInstanceDataArray;
-	for (auto& it : meshInstanceMap) {
-		const MeshData& meshData = meshDataMap[it.first];
-
-		std::vector<MeshInstanceData>& instancesData = it.second;
-		DrawIndirectElementCommand& command = meshDrawCommandDataArray[meshData.drawCommandId];
-
-		command.baseInstance = meshInstanceDataArray.size();
-		meshInstanceDataArray.insert(meshInstanceDataArray.end(), instancesData.begin(), instancesData.end());
+		const std::vector<MeshInstanceData>& meshInsts = it.second;
+		meshInstDataArray.insert(meshInstDataArray.end(), meshInsts.begin(), meshInsts.end());
 	}
 
 	meshDIB.Bind();
 	meshSSBO.Bind();
 	
-	meshDIB.BufferData(meshDrawCommandDataArray.size() * sizeof(DrawIndirectElementCommand), meshDrawCommandDataArray.data());
-	meshSSBO.BufferData(meshInstanceDataArray.size() * sizeof(MeshInstanceData), meshInstanceDataArray.data());
+	meshDIB.BufferData(meshDrawCmdDataArray.size() * sizeof(MeshDrawCmdData), meshDrawCmdDataArray.data());
+	meshSSBO.BufferData(meshInstDataArray.size() * sizeof(MeshInstanceData), meshInstDataArray.data());
 	
 	meshDIB.Unbind();
 	meshSSBO.Unbind();
@@ -520,6 +524,7 @@ void OpenGL::GeometryPass() {
 	gBufferShader.Bind();
 
 	gBuffer.Bind();
+
 	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	glEnable(GL_DEPTH_TEST);
@@ -528,11 +533,12 @@ void OpenGL::GeometryPass() {
 	meshDIB.Bind();
 	meshVAO.Bind();
 
-	meshDIB.Draw(meshDrawCommandDataArray.size());
-
-	gBuffer.Unbind();
+	meshDIB.Draw(meshDrawCmdDataArray.size(), sizeof(MeshDrawCmdData));
 
 	meshVAO.Unbind();
 	meshDIB.Unbind();
 	meshSSBO.Unbind();
+
+	gBuffer.Unbind();
+	
 }

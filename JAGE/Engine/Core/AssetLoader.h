@@ -14,7 +14,7 @@ class AssetLoader {
 private:
 	AssetLoader() = default;
 
-	void ProcessObjNode(aiNode* node, const aiScene* scene, const std::string& path, MeshModel* meshModel);
+	void ProcessObjNode(aiNode* node, const aiScene* scene, const std::string& path, MeshModel& meshModel);
 	AssetId ProcessMesh(aiMesh* mesh, const aiScene* scene, const std::string& path);
 	std::vector<AssetId> LoadTexturesFromMaterial(aiMaterial* mat, aiTextureType aiType, const std::string& path);
 
@@ -28,6 +28,6 @@ public:
 		return instance;
 	}
 
-	MeshModel* LoadMeshModelFromFile(const std::string& path);
-	Texture* LoadTextureFromFile(const std::string& path);
+	MeshModel& LoadMeshModelFromFile(const std::string& path);
+	Texture& LoadTextureFromFile(const std::string& path);
 };

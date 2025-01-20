@@ -200,7 +200,7 @@ xcopy /E /I /Y "$(ProjectDir)Assets\Meshes\*" "$(TargetDir)Assets\Meshes\"</Comm
     <ClInclude Include="Engine\Core\Types\GameAsset.h" />
     <ClInclude Include="Engine\Core\Types\Material.h" />
     <ClInclude Include="Engine\Core\Types\MeshModel.h" />
-    <ClInclude Include="Engine\Core\Types\StaticMesh.h" />
+    <ClInclude Include="Engine\Core\Types\Mesh.h" />
     <ClInclude Include="Engine\Core\Types\Texture.h" />
     <ClInclude Include="Engine\ECS\ComponentArray.h" />
     <ClInclude Include="Engine\ECS\ComponentManager.h" />
