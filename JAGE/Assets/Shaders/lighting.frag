@@ -31,6 +31,15 @@ const vec3 POISSON_SPHERE_16[16] = vec3[](
     vec3( 0.0000,  0.0000, -1.0000)
 );
 
+const vec3 sampleOffsetDirections[20] = vec3[]
+(
+   vec3( 1,  1,  1), vec3( 1, -1,  1), vec3(-1, -1,  1), vec3(-1,  1,  1), 
+   vec3( 1,  1, -1), vec3( 1, -1, -1), vec3(-1, -1, -1), vec3(-1,  1, -1),
+   vec3( 1,  1,  0), vec3( 1, -1,  0), vec3(-1, -1,  0), vec3(-1,  1,  0),
+   vec3( 1,  0,  1), vec3(-1,  0,  1), vec3( 1,  0, -1), vec3(-1,  0, -1),
+   vec3( 0,  1,  1), vec3( 0, -1,  1), vec3( 0, -1, -1), vec3( 0,  1, -1)
+);  
+
 struct PointLightData {
     vec3 position;
     float radius;
@@ -160,28 +169,22 @@ float GetRandomPoissonIndex(vec4 seed4) {
 float GetPointLightDataShadow(int i, vec3 fragPos, vec3 lightPos, float farPlane) {
     float shadow  = 0.0;
     float bias    = 0.05; 
-    float samples = 4.0;
-    float offset  = 0.1;
+    float samples = 20.0;
     vec3 fragToLight = fragPos - lightPos;
     float currentDepth = length(fragToLight);
+    float viewDistance = length(viewPos.xyz - fragPos);
+    float diskRadius = (1.0 + (viewDistance / farPlane)) / 25.0;
 
-    for(float x = -offset; x < offset; x += offset / (samples * 0.5))
+    for(int j = 0; j < samples; ++j)
     {
-        for(float y = -offset; y < offset; y += offset / (samples * 0.5))
-        {
-            for(float z = -offset; z < offset; z += offset / (samples * 0.5))
-            {
-                vec3 nudged = fragToLight + vec3(x, y, z);
-                float closestDepth = texture(shadowCubemapArray, vec4(nudged, i)).r; 
-                closestDepth *= farPlane;   // undo mapping [0;1]
-                if(currentDepth - bias > closestDepth)
-                    shadow += 1.0;
-            }
-        }
+        vec3 nudge = fragToLight + sampleOffsetDirections[j] * diskRadius;
+        float closestDepth = texture(shadowCubemapArray, vec4(nudge, i)).r;
+        closestDepth *= farPlane;   // undo mapping [0;1]
+        if(currentDepth - bias > closestDepth)
+            shadow += 1.0;
     }
 
-    shadow /= (samples * samples * samples);
-
+    shadow /= float(samples);  
     return shadow;
 };
 

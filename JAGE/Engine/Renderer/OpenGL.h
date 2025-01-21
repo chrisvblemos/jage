@@ -41,7 +41,7 @@ struct StaticMeshRenderer;
 #define MAX_POINT_LIGHTS 128
 #define MAX_TEXTURES 10000
 
-#define SHADOW_MAP_RESOLUTION 512
+#define SHADOW_MAP_RESOLUTION 1024
  
 struct MeshDrawCmdData {
 	GLuint count = 0;				// n of indices to draw for each instance
