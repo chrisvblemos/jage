@@ -88,9 +88,9 @@ struct PointLightData {
 	float shadowNearPlane;
 	GLuint shadowCubeMapIndex;
 	GLuint dataArrayIndex;
-	float constant = 0.1f;
-	float linear = .01f;
-	float quadratic = .02f;
+	float constant = 1.0f;
+	float linear = 0.7f;
+	float quadratic = 1.8f;
 	float padding[3];
 };
 
