@@ -89,11 +89,6 @@ void main() {
             float attenuation = 1.0 / (pointLight.constant + pointLight.linear * distanceToLight + pointLight.quadratic * distanceToLight * distanceToLight);
             float attenuatedIntensity = pointLight.intensity * attenuation;
 
-            // attenuates the light intensity smoothly up to lightRadius
-//            float attenuation = 1.0 / (1.0 + distanceToLight * distanceToLight / (pointLight.radius * pointLight.radius));
-//            attenuation *= clamp(1.0 - pow(distanceToLight / pointLight.radius, 4), 0.0, 1.0);
-//            float attenuatedIntensity = pointLight.intensity * attenuation;
-
             vec3 pointLightResult = GetLight(
                 pointLight.color, 
                 attenuatedIntensity, 
@@ -163,25 +158,29 @@ float GetRandomPoissonIndex(vec4 seed4) {
 };
 
 float GetPointLightDataShadow(int i, vec3 fragPos, vec3 lightPos, float farPlane) {
+    float shadow  = 0.0;
+    float bias    = 0.05; 
+    float samples = 4.0;
+    float offset  = 0.1;
     vec3 fragToLight = fragPos - lightPos;
-//    float closestDepth = texture(shadowCubemapArray, vec4(fragToLight, i)).r;
-//    closestDepth *= farPlane;
-
     float currentDepth = length(fragToLight);
-    float bias = 0.05;
-    float diskRadius = (1.0 + currentDepth / farPlane) / 25.0;
 
-    float shadow = 0;
-    for (int j = 0; j < POISSON_SAMPLES; j++) {
-        vec3 nudgedDir = normalize(fragToLight + POISSON_SPHERE_16[j] * diskRadius);
-        float closestDepth = texture(shadowCubemapArray, vec4(nudgedDir, i)).r;
-        closestDepth *= farPlane;
-
-        if (currentDepth - bias > closestDepth)
-            shadow += 1.0;
+    for(float x = -offset; x < offset; x += offset / (samples * 0.5))
+    {
+        for(float y = -offset; y < offset; y += offset / (samples * 0.5))
+        {
+            for(float z = -offset; z < offset; z += offset / (samples * 0.5))
+            {
+                vec3 nudged = fragToLight + vec3(x, y, z);
+                float closestDepth = texture(shadowCubemapArray, vec4(nudged, i)).r; 
+                closestDepth *= farPlane;   // undo mapping [0;1]
+                if(currentDepth - bias > closestDepth)
+                    shadow += 1.0;
+            }
+        }
     }
 
-    shadow /= float(POISSON_SAMPLES); // average out result
+    shadow /= (samples * samples * samples);
 
     return shadow;
 };
