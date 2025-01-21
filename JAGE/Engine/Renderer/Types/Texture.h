@@ -14,58 +14,62 @@ public:
 	TextureBase() = default;
 	TextureBase(
 		const std::string name,
-		const GLenum type,
-		const GLenum format,
 		const GLenum internalFormat,
 		const GLuint width,
 		const GLuint height)
-		:	name(name),
-			type(type),
-			format(format),
-			internalFormat(internalFormat),
-			width(width),
-			height(height) {};
-	
+		: name(name),
+		type(type),
+		internalFormat(internalFormat),
+		width(width),
+		height(height) {
+	};
+
 	void BindToUnit(const GLuint unit) {
 		glBindTextureUnit(unit, id);
+		isBound = true;
 		this->unit = unit;
 	}
 
 	void UnbindFromUnit(const GLuint unit) {
 		glBindTextureUnit(unit, 0);
+		isBound = false;
 		this->unit = -1;
 	}
 
-	void Bind() const {
-		glBindTexture(type, id);
+	virtual void Bind() = 0;
+	virtual void Unbind() = 0;
+
+	template <typename T>
+	void SetParam(const GLenum pname, const T pvalue) const {};
+
+	template <>
+	void SetParam<GLfloat>(GLenum pname, const GLfloat pvalue) const {
+		glTextureParameterf(id, pname, pvalue);
 	}
 
-	void Unbind() const {
-		glBindTexture(type, 0);
+	template <>
+	void SetParam<GLint>(GLenum pname, const GLint pvalue) const {
+		glTextureParameteri(id, pname, pvalue);
 	}
 
 	template <typename T>
-	void SetParam(const GLenum pname, const T& pvalue) {
-		if (handle != 0) {
-			LOG(LogOpenGL, LOG_WARNING, std::format("Attempting to set param in immutable texture {}.", name));
-			return;
-		}
+	void SetParams(GLenum pname, const T* pvalues) const {};
 
-		if constexpr (std::is_value_v<T, GLint>) {
-			glTextureParameteri(id, pname, pvalue);
-		}
-		else if constexpr (std::is_value_v<T, GLfloat>) {
-			glTextureParameterf(id, pname, pvalue);
-		}
-		else if constexpr (std::is_value_v<T, std::vector<GLfloat>>) {
-			glTextureParameterfv(id, pname, pvalue.data());
-		}
-		else {
-			static_assert(!std::is_same_v<T, T>, "Unsupported texture parameter type.");
-		}
+	template <>
+	void SetParams<GLfloat>(GLenum pname, const GLfloat* pvalues) const {
+		glTextureParameterfv(id, pname, pvalues);
 	}
 
-	void MakeResident() const {
+	template <>
+	void SetParams<GLint>(GLenum pname, const GLint* pvalues) const {
+		glTextureParameteriv(id, pname, pvalues);
+	}
+
+	void MakeResident() {
+		if(handle == 0) {
+			handle = glGetTextureHandleARB(id);
+		}
+
 		if (!isResident && handle != 0)
 			glMakeTextureHandleResidentARB(handle);
 	}
@@ -91,8 +95,11 @@ public:
 		glGenerateTextureMipmap(id);
 	}
 
-	uint32_t GetHadleIndex() const { return handleIdx; }
 	std::string GetName() const { return name; }
+	GLuint GetID() const { return id; }
+	GLuint64 GetHandle() const { return handle; }
+	uint32_t GetHandleIndex() const { return handleIdx; }
+	void SetHandleIndex(const int32_t index) { handleIdx = index; }
 
 protected:
 	std::string name;
@@ -114,22 +121,19 @@ public:
 	TextureCubeMapArray() = default;
 	TextureCubeMapArray(
 		const std::string name,
-		const GLenum type,
-		const GLenum format,
 		const GLenum internalFormat,
 		const GLuint width,
 		const GLuint height,
-		const GLuint nCubemaps)
+		const GLuint depth,
+		const GLint levels)
 		: TextureBase(
 			name,
-			type,
-			format,
 			internalFormat,
 			width,
-			height), nCubemaps(nCubemaps) {
-	
-		if (nCubemaps % 6 == 0) {
-			LOG(LogOpenGL, LOG_CRITICAL, "Failed to generate texture cubemap array. nCubemaps isn't a multiple of 6.");
+			height), depth(depth), levels(levels) {
+
+		if (depth % 6 == 0) {
+			LOG(LogOpenGL, LOG_CRITICAL, "Failed to generate texture cubemap array. Depth isn't a multiple of 6.");
 			return;
 		}
 
@@ -139,20 +143,33 @@ public:
 		glTextureParameteri(id, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 		glTextureParameteri(id, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 		glTextureParameteri(id, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
-		glTextureStorage3D(id, 1, format, width, height, nCubemaps);
+		glTextureStorage3D(id, 1, internalFormat, width, height, depth);
 	};
 
-	void SetSubImage(const GLint level, const GLsizei width, const GLsizei height, const GLsizei depth, const GLenum format, const GLenum type, const void* data) {
+	void Bind() override {
+		glBindTexture(GL_TEXTURE_CUBE_MAP_ARRAY, id);
+		isBound = true;
+	}
+
+	void Unbind() override {
+		glBindTexture(GL_TEXTURE_CUBE_MAP_ARRAY, 0);
+		isBound = false;
+	}
+
+	void SetSubImage(const GLint level, const GLsizei width, const GLsizei height, 
+		const GLsizei selDepth, const GLenum format, const GLenum type, const void* data) {
 		if (handle != 0) {
 			LOG(LogOpenGL, LOG_WARNING, std::format("Attempting to set param in immutable texture {}.", name));
 			return;
 		}
 
-		glTextureSubImage3D(id, level, 0, 0, 0, width, height, depth, format, type, data);
+		this->type = type;
+		glTextureSubImage3D(id, level, 0, 0, 0, width, height, selDepth, format, type, data);
 	}
 
 private:
-	GLuint nCubemaps = 0;
+	GLuint depth = 0;
+	GLint levels = 0;
 };
 
 class Texture2D : public TextureBase {
@@ -161,17 +178,11 @@ public:
 
 	Texture2D(
 		const std::string name,
-		const GLenum type,
-		const GLenum format,
 		const GLenum internalFormat,
 		const GLuint width,
-		const GLuint height,
-		const GLuint nCubemaps,
-		const void* data)
+		const GLuint height)
 		: TextureBase(
 			name,
-			type,
-			format,
 			internalFormat,
 			width,
 			height) {
@@ -183,21 +194,28 @@ public:
 		glTextureParameteri(id, GL_TEXTURE_WRAP_T, GL_REPEAT);
 		glTextureParameteri(id, GL_TEXTURE_WRAP_R, GL_REPEAT);
 		glTextureStorage2D(id, 1, internalFormat, width, height);
-		
-		if (data == nullptr)
-		{
-			LOG(LogOpenGL, LOG_CRITICAL, std::format("Texture {} has invalid data.", name));
-			return;
-		}
 	}
 
-	void SetSubImage2D(const GLuint width, const GLuint height, const GLenum format, const GLenum type, const void* data) {
-		if (handle != 0) {
+	void Bind() override {
+		glBindTexture(GL_TEXTURE_2D, id);
+	}
+
+	void Unbind() override {
+		glBindTexture(GL_TEXTURE_2D, id);
+	}
+
+	void SetSubImage2D(const GLenum format, const GLint level, const GLint xoffset, 
+		const GLint yoffset, const GLenum type, const void* data) {
+		if (handle != 0)
 			LOG(LogOpenGL, LOG_WARNING, std::format("Attempting to set param in immutable texture {}.", name));
-			return;
-		}
 
-		glTextureSubImage2D(id, 0, 0, 0, width, height, format, type, data);
-	}
+		if (data == nullptr)
+			LOG(LogOpenGL, LOG_CRITICAL, std::format("Failed to set sub image 2D for texture {}. Data is null.", name));
+
+		this->type = type;
+		this->format = format;
 	
+		glTextureSubImage2D(id, level, xoffset, yoffset, width, height, format, type, data);
+	}
+
 };

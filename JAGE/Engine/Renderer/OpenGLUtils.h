@@ -3,19 +3,6 @@
 #include <Core/Core.h>
 #include <Logging.h>
 
-template <typename T>
-class ScopedBind {
-	T& bindable;
-
-	ScopedBind(const T& bindable) {
-		bindable.Bind();
-	}
-
-	~ScopedBind() {
-		bindable.Unbind();
-	}
-};
-
 // Callback function for OpenGL debug messages
 void APIENTRY GLDebugMessageCallback(GLenum source, GLenum type, GLuint id,
 	GLenum severity, GLsizei length,

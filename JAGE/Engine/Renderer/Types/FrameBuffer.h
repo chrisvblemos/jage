@@ -1,48 +1,45 @@
 #pragma once
 
 #include <Core/Core.h>
+#include "IBindable.h"
 
-struct FrameBuffer {
+class FrameBuffer {
+public:
 	FrameBuffer() = default;
 
-	std::string name;
-	GLuint id;
-	GLuint width = 0;
-	GLuint height = 0;
-	GLuint rbo = 0;
-	std::vector<GLuint> colorTextAttachments;
-	GLuint depthTextAttachment;
-
-	void Generate(const std::string name, uint32_t width, uint32_t height) {
-		glGenFramebuffers(1, &id);
-
-		this->name = name;
+	FrameBuffer(const GLuint width, const GLuint height) {
+		glCreateFramebuffers(1, &id);
 		this->width = width;
 		this->height = height;
 	}
 
 	void Clear() {
+		if (id != 0) {
+			glDeleteFramebuffers(1, &id);
+			id = 0;
+		}
+
 		colorTextAttachments.clear();
 		glDeleteFramebuffers(1, &id);
+		rbo = 0;
 	}
 
 	void CreateTextDepthAttachment(const GLenum format, const GLenum wrapMethod = GL_CLAMP_TO_BORDER, const glm::vec4& borderColor = glm::vec4(1.0f)) {
-		glGenTextures(1, &depthTextAttachment);
-		glBindTexture(GL_TEXTURE_2D, depthTextAttachment);
-		glTexStorage2D(GL_TEXTURE_2D, 1, format, width, height);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
-		glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, &borderColor[0]);
-		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthTextAttachment, 0);
+		glCreateTextures(GL_TEXTURE_2D, 1, &depthTextAttachment);
+		glTextureStorage2D(depthTextAttachment, 1, format, width, height);
+		glTextureParameteri(depthTextAttachment, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		glTextureParameteri(depthTextAttachment, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		glTextureParameteri(depthTextAttachment, GL_TEXTURE_WRAP_S, wrapMethod);
+		glTextureParameteri(depthTextAttachment, GL_TEXTURE_WRAP_T, wrapMethod);
+		glTextureParameterfv(depthTextAttachment, GL_TEXTURE_BORDER_COLOR, &borderColor[0]);
+		glNamedFramebufferTexture(id, GL_DEPTH_ATTACHMENT, depthTextAttachment, 0);
 	}
 
-	void Bind() {
+	void Bind() const {
 		glBindFramebuffer(GL_FRAMEBUFFER, id);
 	}
 
-	void Unbind() {
+	void Unbind() const {
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	}
 
@@ -56,48 +53,51 @@ struct FrameBuffer {
 	}
 
 	void CreateRenderBuffer() {
-		glGenRenderbuffers(1, &rbo);
-		glBindRenderbuffer(GL_RENDERBUFFER, rbo);
-		glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, width, height);
-		glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, rbo);
-		glBindRenderbuffer(GL_RENDERBUFFER, 0);
+		glCreateRenderbuffers(1, &rbo);
+		glNamedRenderbufferStorage(rbo, GL_DEPTH24_STENCIL8, width, height);
+		glNamedFramebufferRenderbuffer(id, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, rbo);
 	}
 
-	void AttachColorTexture2D(const std::string& name, const GLuint texture, const GLuint i) {
-		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + i, GL_TEXTURE_2D, texture, 0);
-		colorTextAttachments.push_back(texture);
+	void AttachColorTex2D(const GLuint texture, const GLuint attachmentIndex) {
+		glNamedFramebufferTexture(id, GL_COLOR_ATTACHMENT0 + attachmentIndex, texture, 0);
+		if (attachmentIndex >= colorTextAttachments.size()) {
+			colorTextAttachments.resize(attachmentIndex + 1);
+		}
+		colorTextAttachments[attachmentIndex] = texture;
 	}
 
-	void AttachDepthTexture2D(const std::string& name, const GLuint texture) {
+	void AttachDepthTex2D(const GLuint texture) {
 		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_TEXTURE_2D, texture, 0);
 		this->depthTextAttachment = texture;
 	}
 
-	void AttachCubeMapTexture(const std::string& name, const GLuint cubemapTexture) {
-		glFramebufferTexture(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, cubemapTexture, 0);
-		this->depthTextAttachment = cubemapTexture;
+	void AttachDepthCubeMapTex(const GLuint texture) {
+		glNamedFramebufferTexture(id, GL_DEPTH_ATTACHMENT, texture, 0);
+		depthTextAttachment = texture;
 	}
 
 	void DettachDepthTexture() {
-		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_TEXTURE_2D, 0, 0);
+		glNamedFramebufferTexture(id, GL_DEPTH_STENCIL_ATTACHMENT, 0, 0);
+		depthTextAttachment = 0;
 	}
 
-	void DrawBuffer(const GLuint i) {
-		glDrawBuffer(GL_COLOR_ATTACHMENT0 + i);
+	void DrawBuffer(const GLuint attachmentIndex) {
+		GLenum attachment = GL_COLOR_ATTACHMENT0 + attachmentIndex;
+		glNamedFramebufferDrawBuffer(id, attachment);
 	}
 
 	void DrawColorBuffers() {
-		std::vector<GLenum> colorAttachmentEnums;
-		for (int i = 0; i < colorTextAttachments.size(); i++) {
-			colorAttachmentEnums.push_back(GL_COLOR_ATTACHMENT0 + i);
+		std::vector<GLenum> attachments(colorTextAttachments.size());
+		for (size_t i = 0; i < colorTextAttachments.size(); ++i) {
+			attachments[i] = GL_COLOR_ATTACHMENT0 + i;
 		}
 
-		glDrawBuffers(static_cast<GLsizei>(colorTextAttachments.size()), colorAttachmentEnums.data());
+		glNamedFramebufferDrawBuffers(id, static_cast<GLsizei>(attachments.size()), attachments.data());
 	}
 
 	void DisableColorBuffer() {
-		glDrawBuffer(GL_NONE);
-		glReadBuffer(GL_NONE);
+		glNamedFramebufferDrawBuffer(id, GL_NONE);
+		glNamedFramebufferReadBuffer(id, GL_NONE);
 	}
 
 	void SetViewport() {
@@ -105,8 +105,16 @@ struct FrameBuffer {
 	}
 
 	bool CheckComplete() {
-		return (glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE);
+		return (glCheckNamedFramebufferStatus(id, GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE);
 	}
+
+private:
+	GLuint id = 0;
+	GLuint width = 0;
+	GLuint height = 0;
+	GLuint rbo = 0;
+	std::vector<GLuint> colorTextAttachments;
+	GLuint depthTextAttachment;
 };
 
 

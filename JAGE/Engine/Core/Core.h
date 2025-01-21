@@ -18,6 +18,7 @@
 #include <array>
 #include <queue>
 #include <format>
+#include <type_traits>
 
 #include <glm/glm.hpp>
 #include <glm/common.hpp>

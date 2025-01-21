@@ -111,10 +111,14 @@
       <ConformanceMode>true</ConformanceMode>
       <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
       <LanguageStandard>stdcpp20</LanguageStandard>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <PrecompiledHeaderFile>stdafx.h</PrecompiledHeaderFile>
+      <ShowIncludes>false</ShowIncludes>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
-      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <GenerateDebugInformation>DebugFastLink</GenerateDebugInformation>
       <AdditionalDependencies>assimp-vc143-mt.lib;glfw3.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
@@ -219,16 +223,10 @@ xcopy /E /I /Y "$(ProjectDir)Assets\Meshes\*" "$(TargetDir)Assets\Meshes\"</Comm
     <ClInclude Include="Engine\LogDisplay.h" />
     <ClInclude Include="Engine\Logging.h" />
     <ClInclude Include="Engine\Renderer\OpenGLUtils.h" />
-    <ClInclude Include="Engine\Renderer\Types\DrawIndirectBuffer.h" />
-    <ClInclude Include="Engine\Renderer\Types\ElementArrayBuffer.h" />
+    <ClInclude Include="Engine\Renderer\Types\Buffer.h" />
     <ClInclude Include="Engine\Renderer\Types\FrameBuffer.h" />
-    <ClInclude Include="Engine\Renderer\Types\ShaderStorageBuffer.h" />
-    <ClInclude Include="Engine\Renderer\Types\Texture2D.h" />
-    <ClInclude Include="Engine\Renderer\Types\TextureCubemapArray.h" />
-    <ClInclude Include="Engine\Renderer\Types\Types.h" />
-    <ClInclude Include="Engine\Renderer\Types\UniformBuffer.h" />
-    <ClInclude Include="Engine\Renderer\Types\VertexArrayBuffer.h" />
-    <ClInclude Include="Engine\Renderer\Types\VertexBuffer.h" />
+    <ClInclude Include="Engine\Renderer\Types\IBindable.h" />
+    <ClInclude Include="Engine\Renderer\Types\VertexArray.h" />
     <ClInclude Include="Engine\World\World.h" />
     <ClInclude Include="Engine\Engine.h" />
     <ClInclude Include="Engine\ECS\EntityManager.h" />
@@ -240,6 +238,7 @@ xcopy /E /I /Y "$(ProjectDir)Assets\Meshes\*" "$(TargetDir)Assets\Meshes\"</Comm
     <ClInclude Include="Engine\Input\MouseInput.h" />
     <ClInclude Include="Engine\Renderer\OpenGL.h" />
     <ClInclude Include="Engine\Renderer\Types\Shader.h" />
+    <ClInclude Include="Engine\Renderer\Types\Texture.h" />
     <ClInclude Include="ThirdParty\assimp\aabb.h" />
     <ClInclude Include="ThirdParty\assimp\ai_assert.h" />
     <ClInclude Include="ThirdParty\assimp\anim.h" />

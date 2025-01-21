@@ -38,8 +38,6 @@ layout(std430, binding = 2) readonly buffer MeshInstanceDataArray {
     MeshInstanceData meshInstancesDataArray[];
 };
 
-
-
 layout (std140, binding = 1) uniform CameraData {
 	vec4 viewPos;
 	mat4 projection;
@@ -48,20 +46,20 @@ layout (std140, binding = 1) uniform CameraData {
 
 void main()
 {
-	uint instanceIndex = gl_InstanceID + gl_BaseInstanceARB;
-	MeshInstanceData instanceData = meshInstancesDataArray[instanceIndex];
+	 uint instanceIndex = gl_InstanceID + gl_BaseInstanceARB;
+	 MeshInstanceData instanceData = meshInstancesDataArray[instanceIndex];
 
-	gl_Position = projection * view * instanceData.model * vec4(aPos, 1.0);
+	 gl_Position = projection * view * instanceData.model * vec4(aPos, 1.0);
 
-	TexCoords = aTexCoords;
-	FragPos = vec3(instanceData.model * vec4(aPos, 1.0));
-	Normal = mat3(instanceData.inverseModel) * aNormal;
+	 TexCoords = aTexCoords;
+	 FragPos = vec3(instanceData.model * vec4(aPos, 1.0));
+	 Normal = mat3(instanceData.inverseModel) * aNormal;
 
-	int diffTexHndlrIndex = drawCmdsDataArray[gl_DrawID].diffTexHndlrIndex;
-	int specTexHndlrIndex = drawCmdsDataArray[gl_DrawID].specTexHndlrIndex;
-	int normTexHndlrIndex = drawCmdsDataArray[gl_DrawID].normTexHndlrIndex;
+	 int diffTexHndlrIndex = drawCmdsDataArray[gl_DrawID].diffTexHndlrIndex;
+	 int specTexHndlrIndex = drawCmdsDataArray[gl_DrawID].specTexHndlrIndex;
+	 int normTexHndlrIndex = drawCmdsDataArray[gl_DrawID].normTexHndlrIndex;
 
-	DiffuseTextureHndlrIndex = diffTexHndlrIndex;
-	SpecularTextureHndlrIndex = specTexHndlrIndex;
-	NormalTextureHndlrIndex = normTexHndlrIndex;
+	 DiffuseTextureHndlrIndex = diffTexHndlrIndex;
+	 SpecularTextureHndlrIndex = specTexHndlrIndex;
+	 NormalTextureHndlrIndex = normTexHndlrIndex;
 }

@@ -14,8 +14,9 @@
 #define LogSystemManager "SystemManager"
 #define LogComponentManager "ComponentManager"
 #define LogEntityManager "EntityManager"
+#define LogOpenGL "OpenGL"
 
-#define LOG(module, level, message) Logging::Log(module, level, message)
+#define LOG(module, level, message) Logging::Log(module, level, message, __FILE__, __LINE__)
 #define LOG_INFO Logging::LogLevel::Info
 #define LOG_DEBUG Logging::LogLevel::Debug
 #define LOG_VERBOSE Logging::LogLevel::Verbose
@@ -39,17 +40,17 @@ namespace Logging {
 
 	inline std::string LogLevelToString(const LogLevel& level) {
 		switch (level) {
-		case LogLevel::Info: return "<Info>: ";
-		case LogLevel::Debug: return "<Debug>: ";
-		case LogLevel::Warning: return "<Warning>: ";
-		case LogLevel::Error: return "<Error>: ";
-		case LogLevel::Critical: return "<CRITICAL>: ";
+		case LogLevel::Info: return "<Info>";
+		case LogLevel::Debug: return "<Debug>";
+		case LogLevel::Warning: return "<Warning>";
+		case LogLevel::Error: return "<Error>";
+		case LogLevel::Critical: return "<CRITICAL>";
 		default: return "<Unknown>: ";
 		};
 	}
 
-	inline void Log(const std::string& module, const LogLevel level, const std::string& message) {
-		std::string res = module + LogLevelToString(level) + message;
+	inline void Log(const std::string& module, const LogLevel level, const std::string& message, const std::string& source, const int32_t line) {
+		std::string res = std::format("{}{} [{}]({}): {}", module, LogLevelToString(level), source, line, message);
 
 		if (level > GlobalLogLevel) {
 			return;

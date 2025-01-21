@@ -142,14 +142,14 @@ void Engine::Init() {
 	//Transform& backpackTransform = world.GetComponent<Transform>(backpack);
 	//backpackTransform.scale = glm::vec3(0.1f); // scale down backpack size
 
-	//uint32_t nBackpacks = 5;
-	//std::vector<Transform*> bkpTransforms;
-	//for (uint32_t i = 0; i < nBackpacks; i++) {
-	//	Entity backpack = world.CreateEntity();
-	//	world.AddComponent(backpack, Transform{ Utils::RandomPointInSphere(15.f, glm::vec3(0.0f, 12.0f, 0.0f)), Utils::RandomQuaternion(), glm::vec3(Utils::RandomFloat() + glm::vec3(0.5f)) });
-	//	world.AddComponent(backpack, StaticMeshRenderer{ backpackModel.meshes });
-	//	bkpTransforms.push_back(&world.GetComponent<Transform>(backpack));
-	//}
+	uint32_t nBackpacks = 5;
+	std::vector<Transform*> bkpTransforms;
+	for (uint32_t i = 0; i < nBackpacks; i++) {
+		Entity backpack = world.CreateEntity();
+		world.AddComponent(backpack, Transform{ Utils::RandomPointInSphere(15.f, glm::vec3(0.0f, 12.0f, 0.0f)), Utils::RandomQuaternion(), glm::vec3(Utils::RandomFloat() + glm::vec3(0.5f)) });
+		world.AddComponent(backpack, StaticMeshRenderer{ backpackModel.meshes });
+		bkpTransforms.push_back(&world.GetComponent<Transform>(backpack));
+	}
 
 	uint32_t nCubes = 30;
 	std::vector<Transform*> cubeTransforms;

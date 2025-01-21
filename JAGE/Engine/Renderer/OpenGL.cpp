@@ -18,84 +18,46 @@ bool OpenGL::Initialize() {
 
 	EnableOpenGLDebugOutput();
 
-	Shader lightingShader = Shader();
-	Shader screenShader = Shader();
-	Shader gBufferShader = Shader();
-	Shader shadowMapShader = Shader();
-	Shader pointShadowMapShader = Shader();
+	lightingShader = Shader("Assets/Shaders/lighting.vert", "Assets/Shaders/lighting.frag");
+	screenShader = Shader("Assets/Shaders/screen.vert", "Assets/Shaders/screen.frag");
+	gBufferShader = Shader("Assets/Shaders/gbuffer.vert", "Assets/Shaders/gbuffer.frag");
+	shadowMapShader = Shader("Assets/Shaders/shadow_map.vert", "Assets/Shaders/shadow_map.frag");
+	pointShadowMapShader = Shader("Assets/Shaders/point_shadow_map.vert", "Assets/Shaders/point_shadow_map.frag", "Assets/Shaders/point_shadow_map.geom");
 
-	lightingShader.Compile("Lighting", "Assets/Shaders/lighting.vert", "Assets/Shaders/lighting.frag");
-	screenShader.Compile("Screen", "Assets/Shaders/screen.vert", "Assets/Shaders/screen.frag");
-	gBufferShader.Compile("gBuffer", "Assets/Shaders/gbuffer.vert", "Assets/Shaders/gbuffer.frag");
-	shadowMapShader.Compile("ShadowMap", "Assets/Shaders/shadow_map.vert", "Assets/Shaders/shadow_map.frag");
-	pointShadowMapShader.Compile("PointShadowMap", "Assets/Shaders/point_shadow_map.vert", "Assets/Shaders/point_shadow_map.frag", "Assets/Shaders/point_shadow_map.geom");
+	meshVBO = VertexArrayBuffer(5000 * MAX_MESHES, GL_DYNAMIC_STORAGE_BIT);
+	meshEBO = ElementArrayBuffer(3 * 5000 * MAX_MESHES, GL_DYNAMIC_STORAGE_BIT);
+	meshDIB = DrawIndirectBuffer(SSBO_MESH_INDIRECT_DRAW_COMMAND, MAX_MESHES * sizeof(MeshDrawCmdData), GL_DYNAMIC_STORAGE_BIT);
 
-	mCompiledShaders.emplace(SHADER_LIGHTING, lightingShader);
-	mCompiledShaders.emplace(SHADER_SCREEN, screenShader);
-	mCompiledShaders.emplace(SHADER_GBUFFER, gBufferShader);
-	mCompiledShaders.emplace(SHADER_SHADOW_MAP, shadowMapShader);
-	mCompiledShaders.emplace(SHADER_POINT_SHADOW_MAP, pointShadowMapShader);
+	meshSSBO = ShaderStorageBuffer(SSBO_MESH_INSTANCE_DATA, MAX_MESHES * sizeof(MeshInstanceData));
+	textureHndlrsSSBO = ShaderStorageBuffer(SSBO_TEXTURE_HANDLERS, MAX_TEXTURES * sizeof(GLuint64));
+	pointLightDataArraySSBO = ShaderStorageBuffer(SSBO_POINT_LIGHT_DATA_ARRAY, MAX_POINT_LIGHTS * sizeof(PointLightData));
+	
+	cameraDataUBO = UniformBuffer(UBO_CAMERA_DATA, sizeof(CameraData));
+	sceneLightDataUBO = UniformBuffer(UBO_SCENE_LIGHT_DATA, sizeof(SceneLightData), GL_DYNAMIC_STORAGE_BIT);
 
-	pointLightDataArraySSBO = ShaderStorageBuffer();
-	pointLightDataArraySSBO.Generate("pointLightDataArray", SSBO_POINT_LIGHT_DATA_ARRAY);
-	pointLightDataArraySSBO.Bind();
-	pointLightDataArraySSBO.Allocate(MAX_POINT_LIGHTS * sizeof(PointLightData));
-	pointLightDataArraySSBO.Unbind();
+	meshVAO = VertexArray();
+	std::vector<VertexAttrib> meshVAOAttribs = {
+		{ 0, 3, GL_FLOAT, GL_FALSE, offsetof(Vertex, Position) },
+		{ 1, 3, GL_FLOAT, GL_FALSE, offsetof(Vertex, Normal) },
+		{ 2, 2, GL_FLOAT, GL_FALSE, offsetof(Vertex, TexCoords) }
+	};
+	meshVAO.Configure(meshVBO.GetID(), sizeof(Vertex), meshEBO.GetID(), meshVAOAttribs);
 
-	cameraDataUBO = UniformBuffer();
-	cameraDataUBO.Generate("cameraData", UBO_CAMERA_DATA, sizeof(CameraData));
-	cameraDataUBO.Bind();
-	cameraDataUBO.Allocate(sizeof(CameraData));
-	cameraDataUBO.Unbind();
+	
+	screenQuadVBO = VertexArrayBuffer(sizeof(quadVertices), GL_DYNAMIC_STORAGE_BIT);
+	screenQuadVBO.UpdateData(0, sizeof(quadVertices), quadVertices);
+	screenQuadEBO = ElementArrayBuffer(sizeof(quadIndices), GL_DYNAMIC_STORAGE_BIT);
+	screenQuadEBO.UpdateData(0, sizeof(quadIndices), quadIndices);
 
-	meshVAO = VertexArrayBuffer();
-	meshVAO.Generate("meshes");
-	meshVAO.Bind();
-
-	meshVBO = VertexBuffer();
-	meshVBO.Generate("meshes");
-	meshVBO.Bind();
-	meshVBO.Allocate(sizeof(Vertex));
-
-	meshEBO = ElementArrayBuffer();
-	meshEBO.Generate("meshes");
-	meshEBO.Bind();
-	meshEBO.Allocate(sizeof(GLint));
-
-	meshVAO.SetAttribPointer(0, 3, GL_FLOAT, sizeof(Vertex), (void*)offsetof(Vertex, Position));
-	meshVAO.SetAttribPointer(1, 3, GL_FLOAT, sizeof(Vertex), (void*)offsetof(Vertex, Normal));
-	meshVAO.SetAttribPointer(2, 2, GL_FLOAT, sizeof(Vertex), (void*)offsetof(Vertex, TexCoords));
-
-	meshVAO.Unbind();
-	meshEBO.Unbind();
-	meshVBO.Unbind();
-
-	meshSSBO = ShaderStorageBuffer();
-	meshSSBO.Generate("mesh_instances", SSBO_MESH_INSTANCE_DATA);
-	meshSSBO.Bind();
-	meshSSBO.Allocate(sizeof(MeshInstanceData));
-	meshSSBO.Unbind();	
-
-	meshDIB = DrawIndirectBuffer();
-	meshDIB.Generate("mesh_instances", SSBO_MESH_INDIRECT_DRAW_COMMAND);
-	meshDIB.Bind();
-	meshDIB.Allocate(sizeof(MeshDrawCmdData));
-	meshDIB.Unbind();
-
-	textureHndlrsSSBO.Generate("texture_hndlrs", SSBO_TEXTURE_HANDLERS, GL_DYNAMIC_DRAW);
-	textureHndlrsSSBO.Bind();
-	textureHndlrsSSBO.Allocate(MAX_TEXTURES * sizeof(GLuint64));
-	textureHndlrsSSBO.Unbind();
-
-	sceneLightDataUBO = UniformBuffer();
-	sceneLightDataUBO.Generate("scene_light", UBO_SCENE_LIGHT_DATA, sizeof(SceneLightData));
-	sceneLightDataUBO.Bind();
-	sceneLightDataUBO.Allocate(sizeof(SceneLightData));
-	sceneLightDataUBO.Unbind();
+	screenQuadVAO = VertexArray();
+	std::vector<VertexAttrib> screenVAOAttribs = {
+		{0, 2, GL_FLOAT, GL_FALSE, 0},
+		{1, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float)}
+	};
+	screenQuadVAO.Configure(screenQuadVBO.GetID(), 4 * sizeof(float), screenQuadEBO.GetID(), screenVAOAttribs);
 
 	InitShadowMap();
 	InitGBuffer();
-	BufferScreenQuad();
 
 	glEnable(GL_CULL_FACE);
 
@@ -104,63 +66,48 @@ bool OpenGL::Initialize() {
 
 void OpenGL::InitShadowMap() {
 	// directional and spot lights
-	shadowMapFBO = FrameBuffer();
-	shadowMapFBO.Generate("shadowMap", SHADOW_MAP_RESOLUTION, SHADOW_MAP_RESOLUTION);
-	shadowMapFBO.Bind();
+	shadowMapFBO = FrameBuffer(SHADOW_MAP_RESOLUTION, SHADOW_MAP_RESOLUTION);
 	shadowMapFBO.CreateTextDepthAttachment(GL_DEPTH_COMPONENT32F);
 	shadowMapFBO.DisableColorBuffer();
 
 	if (!shadowMapFBO.CheckComplete()) {
-		std::cout << "OpenGL: Shadow map frame buffer is not complete!" << std::endl;
+		LOG(LogOpenGL, LOG_CRITICAL, "Shadow map framebuffer is incomplete.");
+		return;
 	}
 		
-	shadowMapFBO.Unbind();
+	// point shadow map
+	//BIND(Shader, pointShadowMapShader); // we bind here to tell open gl that we are using a geometry shader
+	//pointShadowCubemapArray = TextureCubeMapArray(GL_DEPTH_COMPONENT32F, SHADOW_MAP_RESOLUTION, SHADOW_MAP_RESOLUTION, 6);
+	//pointShadowFBO = FrameBuffer(SCR_WIDTH, SCR_HEIGHT);
+	//pointShadowFBO.AttachDepthCubeMapTex(pointShadowCubemapArray.GetID());
+	//pointShadowFBO.DisableColorBuffer();
+	//pointShadowMapShader.SetUFloat()
 
-	// point shadows
-	pointShadowCubemapArray = TextureCubeMapArray();
-	pointShadowCubemapArray.Generate(GL_DEPTH_COMPONENT32F, SHADOW_MAP_RESOLUTION, SHADOW_MAP_RESOLUTION, 6);
-
-	pointShadowFBO = FrameBuffer();
-	pointShadowFBO.Generate("pointShadowFBO", SCR_WIDTH, SCR_HEIGHT);
-	pointShadowFBO.Bind();
-	pointShadowFBO.AttachCubeMapTexture(pointShadowCubemapArray.name, pointShadowCubemapArray.id);
-	pointShadowFBO.DisableColorBuffer();
-	pointShadowFBO.Unbind();
-
-	if (!pointShadowFBO.CheckComplete()) {
-		throw std::runtime_error("OpenGL: Point shadow map frame buffer is not complete!");
-	}
+	//if (!pointShadowFBO.CheckComplete()) {
+	//	LOG(LogOpenGL, LOG_CRITICAL, "Point shadow map frame buffer is incomplete.");
+	//	return;
+	//}
 }
 
 void OpenGL::InitGBuffer() {
-	gPosition = Texture2D();
-	gPosition.Generate("gPosition", nullptr, 0, SCR_WIDTH, SCR_HEIGHT, GL_RGBA16F, GL_RGBA, 0, GL_FLOAT);
-	gPosition.Bind();
-	gPosition.SetInt(GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	gPosition.SetInt(GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	gPosition = Texture2D("gPostition", GL_RGBA16F, SCR_WIDTH, SCR_HEIGHT);
+	gPosition.SetParam(GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	gPosition.SetParam(GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
-	gNormal = Texture2D();
-	gNormal.Generate("gNormal", nullptr, 0, SCR_WIDTH, SCR_HEIGHT, GL_RGBA16F, GL_RGBA, 0, GL_FLOAT);
-	gNormal.Bind();
-	gNormal.SetInt(GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	gNormal.SetInt(GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	gNormal = Texture2D("gNormal", GL_RGBA16F, SCR_WIDTH, SCR_HEIGHT);
+	gNormal.SetParam(GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	gNormal.SetParam(GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
-	gAlbedoSpec = Texture2D();
-	gAlbedoSpec.Generate("gAlbedoSpec", nullptr, 0, SCR_WIDTH, SCR_HEIGHT, GL_RGBA8, GL_RGBA, 0, GL_FLOAT);
-	gAlbedoSpec.Bind();
-	gAlbedoSpec.SetInt(GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	gAlbedoSpec.SetInt(GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-	gAlbedoSpec.Unbind();
+	gAlbedoSpec = Texture2D("gAlbedoSpec", GL_RGBA8, SCR_WIDTH, SCR_HEIGHT);
+	gAlbedoSpec.SetParam(GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	gAlbedoSpec.SetParam(GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
-	gBuffer = FrameBuffer();
-	gBuffer.Generate("gBuffer", SCR_WIDTH, SCR_HEIGHT);
-	gBuffer.Bind();
-	gBuffer.AttachColorTexture2D(gPosition.name, gPosition.id, 0);
-	gBuffer.AttachColorTexture2D(gNormal.name, gNormal.id, 1);
-	gBuffer.AttachColorTexture2D(gAlbedoSpec.name, gAlbedoSpec.id, 2);
+	gBuffer = FrameBuffer(SCR_WIDTH, SCR_HEIGHT);
+	gBuffer.AttachColorTex2D(gPosition.GetID(), 0);
+	gBuffer.AttachColorTex2D(gNormal.GetID(), 1);
+	gBuffer.AttachColorTex2D(gAlbedoSpec.GetID(), 2);
 	gBuffer.DrawColorBuffers();
 	gBuffer.CreateRenderBuffer();
-	gBuffer.Unbind();
 
 	if (!gBuffer.CheckComplete()) {
 		throw std::runtime_error("OpenGL: G-buffer frame buffer is not complete!");
@@ -187,49 +134,21 @@ void OpenGL::RegisterTexture2D(Texture* texture) {
 		internalFormat = GL_RGBA8;
 	}
 
-	Texture2D glTex2D = Texture2D();
-	glTex2D.Generate(texture->assetName, texture->data, 0, texture->width, texture->height, internalFormat, format, 0, GL_UNSIGNED_BYTE);
-	glTex2D.Bind();
-	glTex2D.SetInt(GL_TEXTURE_WRAP_S, GL_REPEAT);
-	glTex2D.SetInt(GL_TEXTURE_WRAP_T, GL_REPEAT);
-	glTex2D.SetInt(GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-	glTex2D.SetInt(GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	Texture2D glTex2D = Texture2D(texture->assetName, internalFormat, texture->width, texture->height);
+	glTex2D.SetParam(GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTex2D.SetParam(GL_TEXTURE_WRAP_T, GL_REPEAT);
+	glTex2D.SetParam(GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+	glTex2D.SetParam(GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	glTex2D.GenerateMipMap();
+	glTex2D.SetSubImage2D(format, 0, 0, 0, GL_UNSIGNED_BYTE, texture->data);
+	glTex2D.MakeResident();
+	glTex2D.SetHandleIndex(tex2DHndlrDataArray.size());
 
-	glTex2D.handleIndex = tex2DHndlrDataArray.size();
-	GLuint64 texHandle = glGetTextureHandleARB(glTex2D.id);
-	if (texHandle == 0) {
-		LOG(LogGeneric, LOG_CRITICAL, std::format("Failed to generate bindless handle for texture {}", texture->assetPath));
-		return;
-	}
+	GLuint64 hndl = glTex2D.GetHandle();
+	textureHndlrsSSBO.UpdateData(tex2DHndlrDataArray.size() * sizeof(GLuint64), sizeof(GLuint64), &hndl);
+	tex2DHndlrDataArray.push_back(glTex2D.GetHandle());
 
-	glMakeTextureHandleResidentARB(texHandle);
-	tex2DHndlrDataArray.push_back(texHandle);
 	assetIDToTex2DMap[texture->assetId] = glTex2D;
-
-	textureHndlrsSSBO.Bind();
-	textureHndlrsSSBO.BufferSubData(tex2DHndlrDataArray.size() * sizeof(GLuint64), sizeof(GLuint64), &glTex2D.handleIndex);
-	textureHndlrsSSBO.Unbind();
-
-	glTex2D.Unbind();
-}
-
-void OpenGL::BufferScreenQuad() {
-	screenQuadVAO = VertexArrayBuffer();
-	screenQuadVAO.Generate("screenQuad");
-	screenQuadVBO = VertexBuffer();
-	screenQuadVBO.Generate("screenQuad");
-
-	screenQuadVAO.Bind();
-	screenQuadVBO.Bind();
-
-	screenQuadVBO.BufferData(sizeof(quadVertices), quadVertices);
-
-	screenQuadVAO.SetAttribPointer(0, 2, GL_FLOAT, 4 * sizeof(float), (void*)0);
-	screenQuadVAO.SetAttribPointer(1, 2, GL_FLOAT, 4 * sizeof(float), (void*)(2 * sizeof(float)));
-
-	screenQuadVAO.Unbind();
-	screenQuadVBO.Unbind();
 }
 
 glm::mat4 OpenGL::CalculateModelMatrix(const glm::vec3 &position, const glm::quat &rotation, const glm::vec3 &scale)
@@ -250,11 +169,9 @@ void OpenGL::UploadSceneLightData() {
 	sceneLightData.mDirectionalLightMatrix = directionalLight? directionalLight->LightSpaceMatrix(currentActiveCamera->position) : glm::mat4(1.0f);
 	sceneLightData.mAmbientLightColor = glm::vec3(1.0f);
 	sceneLightData.mAmbientLightIntensity = 0.1f;
-	sceneLightData.mPointLightsCount = static_cast<GLsizei>(pointLights.size());
+	sceneLightData.mPointLightsCount = static_cast<GLsizei>(pointLightDataArray.size());
 
-	sceneLightDataUBO.Bind();
-	sceneLightDataUBO.BufferData(sizeof(SceneLightData), &sceneLightData);
-	sceneLightDataUBO.Unbind();
+	sceneLightDataUBO.UpdateData(0, sizeof(SceneLightData), &sceneLightData);
 
 	//PointLightsDataArray pointLightsDataArray;
 	//for (int i = 0; i < pointLights.size(); i++) {
@@ -288,54 +205,57 @@ void OpenGL::UploadCameraData() {
 	cameraData.mProjection = currentActiveCamera->ProjectionMatrix();
 	cameraData.mView = currentActiveCamera->ViewMatrix();
 
-	cameraDataUBO.Bind();
-	cameraDataUBO.BufferSubData(0, sizeof(CameraData), &cameraData);
-	cameraDataUBO.Unbind();
+	cameraDataUBO.UpdateData(0, sizeof(CameraData), &cameraData);
 }
 
 void OpenGL::PointShadowMapPass() {
-	if (pointLights.empty()) {
-		return;
-	}
+	//if (pointLights.empty()) {
+	//	return;
+	//}
 
-	pointShadowFBO.Bind();
-	pointShadowFBO.SetViewport();
+	//pointShadowFBO.Bind();
+	//pointShadowFBO.SetViewport();
 
-	glEnable(GL_DEPTH_TEST);
-	glEnable(GL_TEXTURE_CUBE_MAP_ARRAY);
-	glCullFace(GL_FRONT);
+	//glEnable(GL_DEPTH_TEST);
+	//glEnable(GL_TEXTURE_CUBE_MAP_ARRAY);
+	//glCullFace(GL_FRONT);
 
-	Shader pointShadowShader = mCompiledShaders[SHADER_POINT_SHADOW_MAP];
-	pointShadowShader.Bind();
+	//Shader pointShadowShader = mCompiledShaders[SHADER_POINT_SHADOW_MAP];
+	//pointShadowShader.Bind();
 
-	size_t pointLightsCount = pointLights.size();
-	pointShadowCubemapArray.Bind();
-	pointShadowCubemapArray.Allocate(GL_DEPTH_COMPONENT32F, SHADOW_MAP_RESOLUTION, SHADOW_MAP_RESOLUTION, 6 * pointLightsCount);
+	//size_t pointLightsCount = pointLights.size();
+	//pointShadowCubemapArray.Bind();
+	//pointShadowCubemapArray.Allocate(GL_DEPTH_COMPONENT32F, SHADOW_MAP_RESOLUTION, SHADOW_MAP_RESOLUTION, 6 * pointLightsCount);
 
-	//meshSSBO.Bind();
-	//meshDIB.Bind();
-	//meshVAO.Bind();
 
-	for (unsigned int i = 0; i < pointLightsCount; i++) {
-		glClear(GL_DEPTH_BUFFER_BIT);
-		PointLight* pointLight = pointLights[i];
-		pointLight->glShadowMapIndex = i;
+	//{
+	//	BIND(FrameBuffer, pointShadowFBO);
 
-		std::vector<glm::mat4> cubemapViews = pointLight->GetCubemapLightSpaceMatrices(currentActiveCamera->position);
-		pointShadowShader.SetUMat4v("uCubeMapMatrices", cubemapViews.size(), cubemapViews.data());
 
-		pointShadowCubemapArray.SetLevelParameters(i);
+	//	BIND(VertexArray, meshVAO);
+	//	BIND(Buffer, meshDIB);
+	//	BIND(ShaderBuffer, meshSSBO);
 
-		meshDIB.Draw(meshDrawCmdDataArray.size(), sizeof(MeshDrawCmdData)); // draw scene (we assume that mesh data has already been buffered in the geometry pass
-	}
+	//	for (unsigned int i = 0; i < pointLightsCount; i++) {
+	//		glClear(GL_DEPTH_BUFFER_BIT);
+	//		PointLight* pointLight = pointLights[i];
+	//		pointLight->glShadowMapIndex = i;
 
-	glCullFace(GL_BACK);
-	glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);
-	//meshVAO.Unbind();
-	//meshDIB.Unbind();
-	//meshSSBO.Unbind();
-	pointShadowCubemapArray.Unbind();
-	pointShadowFBO.Unbind();
+	//		std::vector<glm::mat4> cubemapViews = pointLight->GetCubemapLightSpaceMatrices(currentActiveCamera->position);
+	//		pointShadowShader.SetUMat4v("uCubeMapMatrices", cubemapViews.size(), cubemapViews.data());
+
+	//		pointShadowCubemapArray.SetLevelParameters(i);
+	//		glMultiDrawElementsIndirect(GL_TRIANGLES, GL_UNSIGNED_INT, nullptr, meshDrawCmdDataArray.size(), sizeof(MeshDrawCmdData));
+	//	}
+	//}
+
+	//
+
+	//glCullFace(GL_BACK);
+	//glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);
+
+	//pointShadowCubemapArray.Unbind();
+	//pointShadowFBO.Unbind();
 }
 
 void OpenGL::ShadowMapPass() {
@@ -343,82 +263,66 @@ void OpenGL::ShadowMapPass() {
 		return;
 	}
 
-	shadowMapFBO.SetViewport();
-	shadowMapFBO.Bind();
+	BIND(Shader, shadowMapShader);
+	BIND(FrameBuffer, shadowMapFBO);
+	BIND(DrawIndirectBuffer, meshDIB);
+	BIND(VertexArray, meshVAO);
+
 	glClear(GL_DEPTH_BUFFER_BIT);
 	glEnable(GL_DEPTH_TEST);
 	glCullFace(GL_FRONT);
 
-	Shader shadowShader = mCompiledShaders[SHADER_SHADOW_MAP];
-	shadowShader.Bind();
-	shadowShader.SetUMat4("uLightSpaceMatrix", directionalLight->LightSpaceMatrix(currentActiveCamera->position));
-
-	meshSSBO.Bind();
-	meshDIB.Bind();
-	meshVAO.Bind();
-
-	meshDIB.Draw(meshDrawCmdDataArray.size(), sizeof(MeshDrawCmdData));
-
-	meshVAO.Unbind();
-	meshDIB.Unbind();
-	meshSSBO.Unbind();
-	shadowMapFBO.Unbind();
+	shadowMapFBO.SetViewport();
+	shadowMapShader.SetUMat4("uLightSpaceMatrix", directionalLight->LightSpaceMatrix(currentActiveCamera->position));
+	
+	glMultiDrawElementsIndirect(GL_TRIANGLES, GL_UNSIGNED_INT, nullptr, meshDrawCmdDataArray.size(), sizeof(MeshDrawCmdData));
 	
 	glCullFace(GL_BACK);
 	glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);
 }
 
 void OpenGL::LightingPass() {
+	BIND(Shader, lightingShader);
+	BIND(VertexArray, screenQuadVAO);
+	BIND_TEX(Texture2D, gPosition, 2);
+	BIND_TEX(Texture2D, gNormal, 3);
+	BIND_TEX(Texture2D, gAlbedoSpec, 4);
+
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-	Shader lightingShader = mCompiledShaders[SHADER_LIGHTING];
-	lightingShader.Bind();
-
-	//pointShadowCubemapArray.ActiveAndBind(0);
-	shadowMapFBO.ActiveAndBindDepthAttachment(1);
-	gPosition.ActiveAndBind(2);
-	gNormal.ActiveAndBind(3);
-	gAlbedoSpec.ActiveAndBind(4);
-
 	glDisable(GL_DEPTH_TEST);
-	screenQuadVAO.Bind();
 	glDrawArrays(GL_TRIANGLES, 0, 6);
-	screenQuadVAO.Unbind();
-
 	glEnable(GL_DEPTH_TEST);
-	//pointShadowCubemapArray.Unbind();
-	directionalLightShadowMap.Unbind();
-	gPosition.Unbind();
-	gNormal.Unbind();
-	gAlbedoSpec.Unbind();
 }
 
 void OpenGL::DebugGbuffer(uint32_t layer) {
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-	Shader shaderScreen = mCompiledShaders[SHADER_SCREEN];
-	shaderScreen.Bind();
+	BIND(Shader, screenShader);
+	BIND(VertexArray, screenQuadVAO);
 
+	Texture2D& textToUse = gPosition;
 	if (layer == 0) {
-		gPosition.ActiveAndBind(0);
+		// keep gPosiiton as default
 	}
-	if (layer == 1) {
-		gNormal.ActiveAndBind(0);
+	else if (layer == 1) {
+		textToUse = gNormal;
 	}
-	if (layer == 2) {
-		gAlbedoSpec.ActiveAndBind(0);
+	else if (layer == 2) {
+		textToUse = gAlbedoSpec;
 	}
-	if (layer == 3) {
-		directionalLightShadowMap.ActiveAndBind(0);
+	else if (layer == 3) {
+		textToUse = directionalLightShadowMap;
 	}
+	else {
+		LOG(LogOpenGL, LOG_WARNING, "Debug mode for gBuffer failed. Invalid layer.");
+	}
+
+	BIND_TEX(Texture2D, textToUse, 0);
 
 	glDisable(GL_DEPTH_TEST);
-	screenQuadVAO.Bind();
-	glDrawArrays(GL_TRIANGLES, 0, 6);
-	screenQuadVAO.Unbind();
-	glBindTexture(GL_TEXTURE_2D, 0);
+	glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, nullptr);
 	glEnable(GL_DEPTH_TEST);
 }
 
@@ -429,7 +333,7 @@ void OpenGL::UpsertMeshEntity(const Entity entity, const std::vector<const Mesh*
 	for (const Mesh* mesh : meshes) {
 		auto meshDataIt = assToMesh.find(mesh->assetId);
 		if (assToMesh.find(mesh->assetId) == assToMesh.end()) {
-			LOG(LogGeneric, LOG_ERROR, std::format("Missing open gl mesh for mesh {}.", mesh->assetPath));
+			LOG(LogOpenGL, LOG_ERROR, std::format("Missing open GL mesh data for mesh {}.", mesh->assetPath));
 			continue;
 		}
 
@@ -463,38 +367,18 @@ void OpenGL::RegisterMesh(const Mesh* mesh) {
 		cmd.firstIndex = meshIndexDataArray.size();
 		cmd.baseVertex = meshVertexDataArray.size();
 
-		cmd.diffTexHndlrIndex = mesh->diffuseTexture >= 0 ? assetIDToTex2DMap[mesh->diffuseTexture].handleIndex : -1;
-		cmd.specTexHndlrIndex = mesh->specularTexture >= 0 ? assetIDToTex2DMap[mesh->specularTexture].handleIndex : -1;
-		cmd.normTexHndlrIndex = mesh->normalTexture >= 0 ? assetIDToTex2DMap[mesh->normalTexture].handleIndex : -1;
+		cmd.diffTexHndlrIndex = mesh->diffuseTexture >= 0 ? assetIDToTex2DMap[mesh->diffuseTexture].GetHandleIndex() : -1;
+		cmd.specTexHndlrIndex = mesh->specularTexture >= 0 ? assetIDToTex2DMap[mesh->specularTexture].GetHandleIndex() : -1;
+		cmd.normTexHndlrIndex = mesh->normalTexture >= 0 ? assetIDToTex2DMap[mesh->normalTexture].GetHandleIndex() : -1;
 		
 		meshIndexDataArray.insert(meshIndexDataArray.end(), indices.begin(), indices.end());
 		meshVertexDataArray.insert(meshVertexDataArray.end(), vertices.begin(), vertices.end());
 
-		meshVAO.Bind();
-		meshVBO.Bind();
-		meshEBO.Bind();
-
-		//meshVBO.BufferData(meshVertexDataArray.size() * sizeof(Vertex), meshVertexDataArray.data());
-		//meshEBO.BufferData(meshIndexDataArray.size() * sizeof(GLuint), meshIndexDataArray.data());
-
-		GLsizeiptr vertexOffset = cmd.baseVertex * sizeof(Vertex);
-		GLsizeiptr verticesSize = vertices.size() * sizeof(Vertex);
-
-		GLsizeiptr indexOffset = cmd.firstIndex * sizeof(GLuint);
-		GLsizeiptr indicesSize = indices.size() * sizeof(GLuint);
-
-		if (vertexOffset + verticesSize > meshVBO.size) {
-			GLsizeiptr newSize = std::max(meshVBO.size * 2, vertexOffset + verticesSize);
-
-		}
-
-		if (offset + size > meshVBO.size)
-		meshVBO.BufferSubData(cmd.baseVertex * sizeof(Vertex), vertices.size() * sizeof(Vertex), meshVertexDataArray.data());
-		meshEBO.BufferSubData(cmd.firstIndex * sizeof(GLuint), indices.size() * sizeof(GLuint), meshIndexDataArray.data());
-
-		meshVBO.Unbind();
-		meshEBO.Unbind();
-		meshVAO.Unbind();
+		meshVBO.UpdateData(cmd.baseVertex * sizeof(Vertex), vertices.size() * sizeof(Vertex), vertices.data());
+		meshEBO.UpdateData(cmd.firstIndex * sizeof(GLuint), indices.size() * sizeof(GLuint), indices.data());
+	}
+	else {
+		LOG(LogOpenGL, LOG_WARNING, std::format("Mesh with asset id {} already registered. Ignoring...", mesh->assetId));
 	}
 }
 
@@ -509,36 +393,19 @@ void OpenGL::BatchMeshInstData() {
 		meshInstDataArray.insert(meshInstDataArray.end(), meshInsts.begin(), meshInsts.end());
 	}
 
-	meshDIB.Bind();
-	meshSSBO.Bind();
-	
-	meshDIB.BufferData(meshDrawCmdDataArray.size() * sizeof(MeshDrawCmdData), meshDrawCmdDataArray.data());
-	meshSSBO.BufferData(meshInstDataArray.size() * sizeof(MeshInstanceData), meshInstDataArray.data());
-	
-	meshDIB.Unbind();
-	meshSSBO.Unbind();
+	meshDIB.UpdateData(0, meshDrawCmdDataArray.size() * sizeof(MeshDrawCmdData), meshDrawCmdDataArray.data());
+	meshSSBO.UpdateData(0, meshInstDataArray.size() * sizeof(MeshInstanceData), meshInstDataArray.data());
 }
 
 void OpenGL::GeometryPass() {
-	Shader gBufferShader = mCompiledShaders[SHADER_GBUFFER];
-	gBufferShader.Bind();
-
-	gBuffer.Bind();
+	BIND(Shader, gBufferShader);
+	BIND(FrameBuffer, gBuffer);
+	BIND(DrawIndirectBuffer, meshDIB);
+	BIND(VertexArray, meshVAO);
 
 	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	glEnable(GL_DEPTH_TEST);
 
-	meshSSBO.Bind();
-	meshDIB.Bind();
-	meshVAO.Bind();
-
-	meshDIB.Draw(meshDrawCmdDataArray.size(), sizeof(MeshDrawCmdData));
-
-	meshVAO.Unbind();
-	meshDIB.Unbind();
-	meshSSBO.Unbind();
-
-	gBuffer.Unbind();
-	
+	glMultiDrawElementsIndirect(GL_TRIANGLES, GL_UNSIGNED_INT, nullptr, meshDrawCmdDataArray.size(), sizeof(MeshDrawCmdData));
 }

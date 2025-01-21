@@ -1,59 +1,64 @@
 #pragma once
 
 #include <Core/Core.h>
+#include "IBindable.h"
 
-struct Shader {
+class Shader {
+public:
     Shader() = default;
+	Shader(const std::string& vertPath, const std::string& fragPath, const std::string& geomPath = "")
+		:	vertPath(vertPath), fragPath(fragPath), geomPath(geomPath) {
+		Compile();
+	}
 
-    GLuint id = 0;
-    std::string name;
-
-    std::string vertPath;
-    std::string fragPath;
-    std::string geomPath;
-
-    bool isCompiled = true;
+	bool IsCompiled() const { return isCompiled; }
 
 	void Bind() const {
 		glUseProgram(id);
 	}
 
+	void Unbind() const {
+		glUseProgram(0);
+	}
+
 	void SetUBool(const std::string& name, const bool value) const {
-		assert(isCompiled && "Shader: Can't set uniform for not compiled shader.");
 		glUniform1i(glGetUniformLocation(id, name.c_str()), (int)value);
 	}
 
 	void SetUInt(const std::string& name, const int value) const {
-		assert(isCompiled && "Shader: Can't set uniform for not compiled shader.");
 		glUniform1i(glGetUniformLocation(id, name.c_str()), value);
 	}
 
 	void SetUFloat(const std::string& name, const float value) const {
-		assert(isCompiled && "Shader: Can't set uniform for not compiled shader.");
 		glUniform1f(glGetUniformLocation(id, name.c_str()), value);
 	}
 
 	void SetUMat4(const std::string& name, const glm::mat4& value) const {
-		assert(isCompiled && "Shader: Can't set uniform for not compiled shader.");
 		glUniformMatrix4fv(glGetUniformLocation(id, name.c_str()), 1, GL_FALSE, &value[0][0]);
 	}
 
 	void SetUVec3(const std::string& name, const glm::vec3& value) const {
-		assert(isCompiled && "Shader: Can't set uniform for not compiled shader.");
 		glUniform3fv(glGetUniformLocation(id, name.c_str()), 1, &value[0]);
 	}
 
 	void SetUVec2(const std::string& name, const glm::vec2& value) const {
-		assert(isCompiled && "Shader: Can't set uniform for not compiled shader.");
 		glUniform2fv(glGetUniformLocation(id, name.c_str()), 1, &value[0]);
 	}
 
 	void SetUMat4v(const std::string& name, const GLsizei size, const glm::mat4* values) const {
-		assert(isCompiled && "Shader: Can't set uniform for not compiled shader.");
 		glUniformMatrix4fv(glGetUniformLocation(id, name.c_str()), size, GL_FALSE, glm::value_ptr(values[0]));
 	}
 
-	void Compile(const std::string& name, const std::string& vertPath, const std::string& fragPath, const std::string& geomPath = "") {
+private:
+	GLuint id;
+	GLuint unit;
+	std::string vertPath;
+	std::string fragPath;
+	std::string geomPath;
+
+	bool isCompiled = false;
+
+	void Compile() {
 		std::string vertCode = ReadShaderFile(vertPath);
 		std::string fragCode = ReadShaderFile(fragPath);
 
@@ -73,12 +78,9 @@ struct Shader {
 		if (geomShader > 0)
 			glDeleteShader(geomShader);
 
-		this->name = name;
 		this->id = programID;
 		this->isCompiled = true;
 	}
-
-private:
 
 	GLuint LinkProgram(const GLuint vertexShader, const GLuint fragShader, const GLuint geomShader) {
 		GLuint programID = glCreateProgram();
