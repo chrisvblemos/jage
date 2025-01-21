@@ -163,7 +163,7 @@ void Engine::Init() {
 	Entity pointLight = world.CreateEntity();
 	glm::vec3 pos = glm::vec3(0.0f, 12.0f, 0.0f);
 	glm::vec3 color = glm::vec3(0.5f, 0.1f, 0.05f);
-	float intensity = 2.0f;
+	float intensity = 20.0f;
 	float radius = 1000000.0f * Utils::RandomFloat();
 	world.AddComponent(pointLight, Transform{ pos });
 	world.AddComponent(pointLight, PointLight{ pos, color, intensity, radius });
