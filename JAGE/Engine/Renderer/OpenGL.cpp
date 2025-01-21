@@ -65,6 +65,8 @@ bool OpenGL::Initialize() {
 }
 
 void OpenGL::InitShadowMap() {
+	float borderColor[] = {1.0f, 1.0f, 1.0f, 1.0f};
+
 	// directional and spot lights
 	shadowMapFBO = FrameBuffer(SHADOW_MAP_RESOLUTION, SHADOW_MAP_RESOLUTION);
 	directionalLightShadowMap = Texture2D("dir_shadow_map", GL_DEPTH_COMPONENT32F, SHADOW_MAP_RESOLUTION, SHADOW_MAP_RESOLUTION);
@@ -72,7 +74,6 @@ void OpenGL::InitShadowMap() {
 	directionalLightShadowMap.SetParam(GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	directionalLightShadowMap.SetParam(GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
 	directionalLightShadowMap.SetParam(GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
-	float borderColor[] = {1.0f, 1.0f, 1.0f, 1.0f};
 	directionalLightShadowMap.SetParams(GL_TEXTURE_BORDER_COLOR, borderColor);
 
 	shadowMapFBO.AttachDepthTex2D(directionalLightShadowMap.GetID());
@@ -87,6 +88,7 @@ void OpenGL::InitShadowMap() {
 	BIND(Shader, pointShadowMapShader); // we bind here to tell open gl that we are using a geometry shader
 	pointShadowFBO = FrameBuffer(SCR_WIDTH, SCR_HEIGHT);
 	pointShadowCubemapArray = TextureCubeMapArray("point_shadow_cubemap_array", GL_DEPTH_COMPONENT32F, SHADOW_MAP_RESOLUTION, SHADOW_MAP_RESOLUTION, 6 * MAX_POINT_LIGHTS, 1);
+	pointShadowCubemapArray.SetParams(GL_TEXTURE_BORDER_COLOR, borderColor);
 	pointShadowFBO.AttachDepthCubeMapTex(pointShadowCubemapArray.GetID());
 	pointShadowFBO.DisableColorBuffer();
 
@@ -169,13 +171,13 @@ glm::mat4 OpenGL::CalculateModelMatrix(const glm::vec3 &position, const glm::qua
 
 void OpenGL::UploadSceneLightData() {
 	SceneLightData sceneLightData;
-	sceneLightData.mHasDirectionalLight = directionalLight != nullptr;
+	sceneLightData.mHasDirectionalLight = static_cast<GLuint>(directionalLight != nullptr);
 	sceneLightData.mDirectionalLightColor = directionalLight? directionalLight->color : glm::vec3(1.0f);
 	sceneLightData.mDirectionalLightDirection = directionalLight? directionalLight->direction : glm::vec3(1.0f);
 	sceneLightData.mDirectionalLightIntensity = directionalLight? directionalLight->intensity : 1.0f;
 	sceneLightData.mDirectionalLightMatrix = directionalLight? directionalLight->LightSpaceMatrix(currentActiveCamera->position) : glm::mat4(1.0f);
 	sceneLightData.mAmbientLightColor = glm::vec3(1.0f);
-	sceneLightData.mAmbientLightIntensity = 0.1f;
+	sceneLightData.mAmbientLightIntensity = .1f;
 	sceneLightData.mPointLightsCount = static_cast<GLsizei>(pointLightDataArray.size());
 
 	sceneLightDataUBO.UpdateData(0, sizeof(SceneLightData), &sceneLightData);
@@ -199,6 +201,7 @@ void OpenGL::PointShadowMapPass() {
 	BIND(FrameBuffer, pointShadowFBO);
 	pointShadowFBO.SetViewport();
 
+	glClear(GL_DEPTH_BUFFER_BIT);
 	glEnable(GL_DEPTH_TEST);
 	glCullFace(GL_FRONT);
 
@@ -211,7 +214,7 @@ void OpenGL::PointShadowMapPass() {
 	// we re-draw the scene for each of the faces
 	// of the cube map depth texture
 	for (unsigned int i = 0; i < pointLightsCount; i++) {
-		glClear(GL_DEPTH_BUFFER_BIT);
+		
 		PointLightData& lightData = pointLightDataArray[i];
 		lightData.shadowCubeMapIndex = i;
 		
@@ -221,22 +224,24 @@ void OpenGL::PointShadowMapPass() {
 		std::vector <glm::mat4> views;
 		glm::vec3 cameraPos = currentActiveCamera->position;
 		views.push_back(projection *
-			glm::lookAt(lightData.mPosition, cameraPos + glm::vec3(1.0, 0.0, 0.0), glm::vec3(0.0, -1.0, 0.0)));
+			glm::lookAt(lightData.mPosition, lightData.mPosition + glm::vec3(1.0, 0.0, 0.0), glm::vec3(0.0, -1.0, 0.0)));
 		views.push_back(projection *
-			glm::lookAt(lightData.mPosition, cameraPos + glm::vec3(-1.0, 0.0, 0.0), glm::vec3(0.0, -1.0, 0.0)));
+			glm::lookAt(lightData.mPosition, lightData.mPosition + glm::vec3(-1.0, 0.0, 0.0), glm::vec3(0.0, -1.0, 0.0)));
 		views.push_back(projection *
-			glm::lookAt(lightData.mPosition, cameraPos + glm::vec3(0.0, 1.0, 0.0), glm::vec3(0.0, 0.0, 1.0)));
+			glm::lookAt(lightData.mPosition, lightData.mPosition + glm::vec3(0.0, 1.0, 0.0), glm::vec3(0.0, 0.0, 1.0)));
 		views.push_back(projection *
-			glm::lookAt(lightData.mPosition, cameraPos + glm::vec3(0.0, -1.0, 0.0), glm::vec3(0.0, 0.0, -1.0)));
+			glm::lookAt(lightData.mPosition, lightData.mPosition + glm::vec3(0.0, -1.0, 0.0), glm::vec3(0.0, 0.0, -1.0)));
 		views.push_back(projection *
-			glm::lookAt(lightData.mPosition, cameraPos + glm::vec3(0.0, 0.0, 1.0), glm::vec3(0.0, -1.0, 0.0)));
+			glm::lookAt(lightData.mPosition, lightData.mPosition + glm::vec3(0.0, 0.0, 1.0), glm::vec3(0.0, -1.0, 0.0)));
 		views.push_back(projection *
-			glm::lookAt(lightData.mPosition, cameraPos + glm::vec3(0.0, 0.0, -1.0), glm::vec3(0.0, -1.0, 0.0)));
+			glm::lookAt(lightData.mPosition, lightData.mPosition + glm::vec3(0.0, 0.0, -1.0), glm::vec3(0.0, -1.0, 0.0)));
 
 		pointShadowMapShader.SetUMat4v("uCubeMapMatrices", views.size(), views.data());
 		pointShadowMapShader.SetUVec3("uLightPos", lightData.mPosition);
 		pointShadowMapShader.SetUFloat("uLightFarPlane", lightData.shadowFarPlane);
-		pointShadowMapShader.SetUInt("uBaseLayerOffset", 6 * i);
+		pointShadowMapShader.SetUInt("uBaseLayerOffset", 6*i);
+
+		pointLightDataArraySSBO.UpdateData(lightData.dataArrayIndex * sizeof(PointLightData) + offsetof(PointLightData, shadowCubeMapIndex), sizeof(GLuint), &lightData.shadowCubeMapIndex);
 
 		glMultiDrawElementsIndirect(GL_TRIANGLES, GL_UNSIGNED_INT, nullptr, meshDrawCmdDataArray.size(), sizeof(MeshDrawCmdData));
 	}

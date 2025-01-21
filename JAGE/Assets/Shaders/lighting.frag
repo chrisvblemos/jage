@@ -10,24 +10,25 @@ layout (binding = 3) uniform sampler2D gNormal;
 layout (binding = 4) uniform sampler2D gAlbedoSpec;
 
 const float SHININESS = 32.0;
+const int POISSON_SAMPLES = 16;
 
-const vec2 POISSON_DISK_16[16] = vec2[](
-        vec2(0.45185273, 0.26027307),
-        vec2(0.65157867, 0.06379210),
-        vec2(0.34067438, 0.88627897),
-        vec2(0.24379788, 0.70906218),
-        vec2(0.77983632, 0.11903441),
-        vec2(0.07128592, 0.46912458),
-        vec2(0.73672142, 0.85098227),
-        vec2(0.84263736, 0.56780259),
-        vec2(0.95098022, 0.65227214),
-        vec2(0.93549333, 0.33306261),
-        vec2(0.75305322, 0.75939346),
-        vec2(0.59904599, 0.57617012),
-        vec2(0.14080315, 0.69091085),
-        vec2(0.74251429, 0.53334101),
-        vec2(0.63054442, 0.89339291),
-        vec2(0.61337256, 0.74964296)
+const vec3 POISSON_SPHERE_16[16] = vec3[](
+    vec3( 0.0000,  0.0000,  1.0000),
+    vec3(-0.3680,  0.3370,  0.8667),
+    vec3( 0.0590, -0.6770,  0.7333),
+    vec3( 0.4864,  0.6344,  0.6000),
+    vec3(-0.8700, -0.1530,  0.4667),
+    vec3( 0.7900, -0.5140,  0.3333),
+    vec3(-0.2530,  0.9460,  0.2000),
+    vec3(-0.4730, -0.8780,  0.0667),
+    vec3( 0.9370,  0.3410, -0.0667),
+    vec3(-0.9050,  0.3750, -0.2000),
+    vec3( 0.3930, -0.8570, -0.3333),
+    vec3( 0.2650,  0.8430, -0.4667),
+    vec3(-0.6930, -0.4000, -0.6000),
+    vec3( 0.6650, -0.1410, -0.7333),
+    vec3(-0.2870,  0.4090, -0.8667),
+    vec3( 0.0000,  0.0000, -1.0000)
 );
 
 struct PointLightData {
@@ -38,6 +39,9 @@ struct PointLightData {
     float shadowFarPlane;
     int shadowCubemapIndex;
     float dataArrayIndex;
+    float constant;
+    float linear;
+    float quadratic;
 };
 
 layout(std430, binding = 4) readonly buffer PointLightDataArray {
@@ -82,10 +86,13 @@ void main() {
             vec3 pointLightDir = normalize(pointLight.position - FragPos);
             float distanceToLight = length(pointLight.position - FragPos);
 
-            // attenuates the light intensity smoothly up to lightRadius
-            float attenuation = 1.0 / (1.0 + distanceToLight * distanceToLight / (pointLight.radius * pointLight.radius));
-            attenuation *= clamp(1.0 - pow(distanceToLight / pointLight.radius, 4), 0.0, 1.0);
+            float attenuation = 1.0 / (pointLight.constant + pointLight.linear * distanceToLight + pointLight.quadratic * distanceToLight * distanceToLight);
             float attenuatedIntensity = pointLight.intensity * attenuation;
+
+            // attenuates the light intensity smoothly up to lightRadius
+//            float attenuation = 1.0 / (1.0 + distanceToLight * distanceToLight / (pointLight.radius * pointLight.radius));
+//            attenuation *= clamp(1.0 - pow(distanceToLight / pointLight.radius, 4), 0.0, 1.0);
+//            float attenuatedIntensity = pointLight.intensity * attenuation;
 
             vec3 pointLightResult = GetLight(
                 pointLight.color, 
@@ -157,12 +164,24 @@ float GetRandomPoissonIndex(vec4 seed4) {
 
 float GetPointLightDataShadow(int i, vec3 fragPos, vec3 lightPos, float farPlane) {
     vec3 fragToLight = fragPos - lightPos;
-    float closestDepth = texture(shadowCubemapArray, vec4(fragToLight, i)).r;
-    closestDepth *= farPlane;
+//    float closestDepth = texture(shadowCubemapArray, vec4(fragToLight, i)).r;
+//    closestDepth *= farPlane;
 
     float currentDepth = length(fragToLight);
     float bias = 0.05;
-    float shadow = currentDepth - bias > closestDepth? 1.0 : 0.0;
+    float diskRadius = (1.0 + currentDepth / farPlane) / 25.0;
+
+    float shadow = 0;
+    for (int j = 0; j < POISSON_SAMPLES; j++) {
+        vec3 nudgedDir = normalize(fragToLight + POISSON_SPHERE_16[j] * diskRadius);
+        float closestDepth = texture(shadowCubemapArray, vec4(nudgedDir, i)).r;
+        closestDepth *= farPlane;
+
+        if (currentDepth - bias > closestDepth)
+            shadow += 1.0;
+    }
+
+    shadow /= float(POISSON_SAMPLES); // average out result
 
     return shadow;
 };
@@ -188,7 +207,7 @@ float GetDirectLightShadow(vec3 fragPos, float bias) {
             float nSampledShadow = 0.0;
             for (int i = 0; i < 16; i++) {
                 int index = int(16.0 * GetRandomPoissonIndex(vec4(fragPos * 1000.0, i))) % 16;
-                float poissonDepth = texture(directionalLightShadowMap, projCoords.xy + vec2(x, y) * texelSize + POISSON_DISK_16[index]/1600.0).r;
+                float poissonDepth = texture(directionalLightShadowMap, projCoords.xy + vec2(x, y) * texelSize + POISSON_SPHERE_16[index].xy/1600.0).r;
                 nSampledShadow += currentDepth - bias > poissonDepth? 1.0 : 0.0;
             };
 

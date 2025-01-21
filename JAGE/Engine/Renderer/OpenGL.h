@@ -41,6 +41,8 @@ struct StaticMeshRenderer;
 #define MAX_POINT_LIGHTS 128
 #define MAX_TEXTURES 10000
 
+#define SHADOW_MAP_RESOLUTION 512
+ 
 struct MeshDrawCmdData {
 	GLuint count = 0;				// n of indices to draw for each instance
 	GLuint instanceCount = 0;		// n of instances to draw
@@ -64,14 +66,15 @@ struct MeshMetaData {
 };
 
 struct SceneLightData {
-	uint32_t mHasDirectionalLight;
+	GLuint mHasDirectionalLight;
 	float padding1[3];
     glm::vec3 mDirectionalLightDirection;
 	float padding2;
     glm::vec3 mDirectionalLightColor;
     float mDirectionalLightIntensity;
     glm::mat4 mDirectionalLightMatrix;
-	uint32_t mPointLightsCount;
+	GLuint mPointLightsCount;
+	float padding3[3];
     glm::vec3 mAmbientLightColor;
     float mAmbientLightIntensity;
 };
@@ -83,9 +86,12 @@ struct PointLightData {
 	float mIntensity;
 	float shadowFarPlane;
 	float shadowNearPlane;
-	uint32_t shadowCubeMapIndex;
-	uint32_t dataArrayIndex;
-	float padding[2];
+	GLuint shadowCubeMapIndex;
+	GLuint dataArrayIndex;
+	float constant = 1.0f;
+	float linear = 0.7f;
+	float quadratic = 1.8f;
+	float padding[3];
 };
 
 struct CameraData {
@@ -114,8 +120,6 @@ const GLuint quadIndices[] = {
 class OpenGL {
 private:
 	OpenGL() = default;
-
-	uint32_t SHADOW_MAP_RESOLUTION = 512;
 
 	Shader lightingShader;
 	Shader screenShader;
