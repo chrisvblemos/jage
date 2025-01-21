@@ -160,23 +160,23 @@ void Engine::Init() {
 		cubeTransforms.push_back(&world.GetComponent<Transform>(cube));
 	}
 
-	//int nPointLights = 32;
-	//for (unsigned int i = 0; i < nPointLights; i++) {
-	//	Entity pointLight = world.CreateEntity();
-	//	glm::vec3 randomPos = Utils::RandomPointInSphere(8.0f);
-	//	glm::vec3 randomColor = glm::vec3(Utils::RandomFloat(), Utils::RandomFloat(), Utils::RandomFloat());
-	//	float randomIntensity = Utils::RandomFloat();
-	//	float randomRadius = 10.0f * Utils::RandomFloat();
-	//	world.AddComponent(pointLight, Transform{ randomPos });
-	//	world.AddComponent(pointLight, PointLight{ randomPos, randomColor, randomIntensity, randomRadius });
-	//}
+	int nPointLights = 3;
+	for (unsigned int i = 0; i < nPointLights; i++) {
+		Entity pointLight = world.CreateEntity();
+		glm::vec3 randomPos = Utils::RandomPointInSphere(15.0f);
+		glm::vec3 randomColor = glm::vec3(Utils::RandomFloat(), Utils::RandomFloat(), Utils::RandomFloat());
+		float randomIntensity = Utils::RandomFloat() * 6.0f;
+		float randomRadius = 1000.0f * Utils::RandomFloat();
+		world.AddComponent(pointLight, Transform{ randomPos });
+		world.AddComponent(pointLight, PointLight{ randomPos, randomColor, randomIntensity, randomRadius });
+	}
 
 	// the sun
 	Entity sun = world.CreateEntity();
 	world.AddComponent(sun, Transform{});
 	world.AddComponent(sun, DirectionalLight{});
 	DirectionalLight& sunDirLight = world.GetComponent<DirectionalLight>(sun);
-	sunDirLight.intensity = 0.7f;
+	sunDirLight.intensity = 0.0f;
 
 	Editor editor = Editor();
 

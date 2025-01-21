@@ -43,15 +43,6 @@ public:
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	}
 
-	void ActiveAndBindDepthAttachment(const GLuint i) {
-		if (depthTextAttachment == 0) {
-			LOG(LogGeneric, LOG_CRITICAL, std::format("Failed to active and bind texture depth attachment for framebuffer."));
-		}
-
-		glActiveTexture(GL_TEXTURE0 + i);
-		glBindTexture(GL_TEXTURE_2D, depthTextAttachment);
-	}
-
 	void CreateRenderBuffer() {
 		glCreateRenderbuffers(1, &rbo);
 		glNamedRenderbufferStorage(rbo, GL_DEPTH24_STENCIL8, width, height);
@@ -67,8 +58,8 @@ public:
 	}
 
 	void AttachDepthTex2D(const GLuint texture) {
-		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_TEXTURE_2D, texture, 0);
-		this->depthTextAttachment = texture;
+		glNamedFramebufferTexture(id, GL_DEPTH_ATTACHMENT, texture, 0);
+		depthTextAttachment = texture;
 	}
 
 	void AttachDepthCubeMapTex(const GLuint texture) {

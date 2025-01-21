@@ -67,26 +67,33 @@ bool OpenGL::Initialize() {
 void OpenGL::InitShadowMap() {
 	// directional and spot lights
 	shadowMapFBO = FrameBuffer(SHADOW_MAP_RESOLUTION, SHADOW_MAP_RESOLUTION);
-	shadowMapFBO.CreateTextDepthAttachment(GL_DEPTH_COMPONENT32F);
+	directionalLightShadowMap = Texture2D("dir_shadow_map", GL_DEPTH_COMPONENT32F, SHADOW_MAP_RESOLUTION, SHADOW_MAP_RESOLUTION);
+	directionalLightShadowMap.SetParam(GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	directionalLightShadowMap.SetParam(GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	directionalLightShadowMap.SetParam(GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+	directionalLightShadowMap.SetParam(GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+	float borderColor[] = {1.0f, 1.0f, 1.0f, 1.0f};
+	directionalLightShadowMap.SetParams(GL_TEXTURE_BORDER_COLOR, borderColor);
+
+	shadowMapFBO.AttachDepthTex2D(directionalLightShadowMap.GetID());
 	shadowMapFBO.DisableColorBuffer();
 
 	if (!shadowMapFBO.CheckComplete()) {
-		LOG(LogOpenGL, LOG_CRITICAL, "Shadow map framebuffer is incomplete.");
+		LOG(LogOpenGL, LOG_CRITICAL, "Shadow map frame buffer is incomplete.");
 		return;
 	}
 		
 	// point shadow map
-	//BIND(Shader, pointShadowMapShader); // we bind here to tell open gl that we are using a geometry shader
-	//pointShadowCubemapArray = TextureCubeMapArray(GL_DEPTH_COMPONENT32F, SHADOW_MAP_RESOLUTION, SHADOW_MAP_RESOLUTION, 6);
-	//pointShadowFBO = FrameBuffer(SCR_WIDTH, SCR_HEIGHT);
-	//pointShadowFBO.AttachDepthCubeMapTex(pointShadowCubemapArray.GetID());
-	//pointShadowFBO.DisableColorBuffer();
-	//pointShadowMapShader.SetUFloat()
+	BIND(Shader, pointShadowMapShader); // we bind here to tell open gl that we are using a geometry shader
+	pointShadowFBO = FrameBuffer(SCR_WIDTH, SCR_HEIGHT);
+	pointShadowCubemapArray = TextureCubeMapArray("point_shadow_cubemap_array", GL_DEPTH_COMPONENT32F, SHADOW_MAP_RESOLUTION, SHADOW_MAP_RESOLUTION, 6 * MAX_POINT_LIGHTS, 1);
+	pointShadowFBO.AttachDepthCubeMapTex(pointShadowCubemapArray.GetID());
+	pointShadowFBO.DisableColorBuffer();
 
-	//if (!pointShadowFBO.CheckComplete()) {
-	//	LOG(LogOpenGL, LOG_CRITICAL, "Point shadow map frame buffer is incomplete.");
-	//	return;
-	//}
+	if (!pointShadowFBO.CheckComplete()) {
+		LOG(LogOpenGL, LOG_CRITICAL, "Point shadow map frame buffer is incomplete.");
+		return;
+	}
 }
 
 void OpenGL::InitGBuffer() {
@@ -172,29 +179,6 @@ void OpenGL::UploadSceneLightData() {
 	sceneLightData.mPointLightsCount = static_cast<GLsizei>(pointLightDataArray.size());
 
 	sceneLightDataUBO.UpdateData(0, sizeof(SceneLightData), &sceneLightData);
-
-	//PointLightsDataArray pointLightsDataArray;
-	//for (int i = 0; i < pointLights.size(); i++) {
-	//	PointLight* light = pointLights[i];
-	//	if (light == nullptr) {
-	//		continue;
-	//	}
-
-	//	PointLightData pointLightData;
-	//	pointLightData.mColor = light->color;
-	//	pointLightData.mIntensity = light->intensity;
-	//	pointLightData.mPosition = light->position;
-	//	pointLightData.mRadius = light->radius;
-	//	pointLightData.shadowFarPlane = light->shadowMapFarPlane;
-	//	pointLightData.shadowCubeMapIndex = light->glShadowMapIndex;
-
-	//	pointLightsDataArray.mPointLights[i] = pointLightData;
-	//}
-
-	//pointLightDataArraySSBO.Bind();
-	// TODO fix me to use offsets correctly
-	//pointLightDataArraySSBO.BufferSubData(pointLights.size() * sizeof(PointLightData), &pointLightsDataArray.mPointLights);
-	//pointLightDataArraySSBO.Unbind();
 }
 
 void OpenGL::UploadCameraData() {
@@ -209,53 +193,56 @@ void OpenGL::UploadCameraData() {
 }
 
 void OpenGL::PointShadowMapPass() {
-	//if (pointLights.empty()) {
-	//	return;
-	//}
+	if (pointLightDataArray.empty())
+		return;
 
-	//pointShadowFBO.Bind();
-	//pointShadowFBO.SetViewport();
+	BIND(FrameBuffer, pointShadowFBO);
+	pointShadowFBO.SetViewport();
 
-	//glEnable(GL_DEPTH_TEST);
-	//glEnable(GL_TEXTURE_CUBE_MAP_ARRAY);
-	//glCullFace(GL_FRONT);
+	glEnable(GL_DEPTH_TEST);
+	glCullFace(GL_FRONT);
 
-	//Shader pointShadowShader = mCompiledShaders[SHADER_POINT_SHADOW_MAP];
-	//pointShadowShader.Bind();
+	size_t pointLightsCount = pointLightDataArray.size();
 
-	//size_t pointLightsCount = pointLights.size();
-	//pointShadowCubemapArray.Bind();
-	//pointShadowCubemapArray.Allocate(GL_DEPTH_COMPONENT32F, SHADOW_MAP_RESOLUTION, SHADOW_MAP_RESOLUTION, 6 * pointLightsCount);
+	BIND(Shader, pointShadowMapShader);
+	BIND(VertexArray, meshVAO);
+	BIND(DrawIndirectBuffer, meshDIB);
 
+	// we re-draw the scene for each of the faces
+	// of the cube map depth texture
+	for (unsigned int i = 0; i < pointLightsCount; i++) {
+		glClear(GL_DEPTH_BUFFER_BIT);
+		PointLightData& lightData = pointLightDataArray[i];
+		lightData.shadowCubeMapIndex = i;
+		
+		glm::mat4 projection = glm::perspective(glm::radians(90.0f), 1.0f, lightData.shadowNearPlane, lightData.shadowFarPlane);
 
-	//{
-	//	BIND(FrameBuffer, pointShadowFBO);
+		// generate 6 shadow maps, for each cube face
+		std::vector <glm::mat4> views;
+		glm::vec3 cameraPos = currentActiveCamera->position;
+		views.push_back(projection *
+			glm::lookAt(lightData.mPosition, cameraPos + glm::vec3(1.0, 0.0, 0.0), glm::vec3(0.0, -1.0, 0.0)));
+		views.push_back(projection *
+			glm::lookAt(lightData.mPosition, cameraPos + glm::vec3(-1.0, 0.0, 0.0), glm::vec3(0.0, -1.0, 0.0)));
+		views.push_back(projection *
+			glm::lookAt(lightData.mPosition, cameraPos + glm::vec3(0.0, 1.0, 0.0), glm::vec3(0.0, 0.0, 1.0)));
+		views.push_back(projection *
+			glm::lookAt(lightData.mPosition, cameraPos + glm::vec3(0.0, -1.0, 0.0), glm::vec3(0.0, 0.0, -1.0)));
+		views.push_back(projection *
+			glm::lookAt(lightData.mPosition, cameraPos + glm::vec3(0.0, 0.0, 1.0), glm::vec3(0.0, -1.0, 0.0)));
+		views.push_back(projection *
+			glm::lookAt(lightData.mPosition, cameraPos + glm::vec3(0.0, 0.0, -1.0), glm::vec3(0.0, -1.0, 0.0)));
 
+		pointShadowMapShader.SetUMat4v("uCubeMapMatrices", views.size(), views.data());
+		pointShadowMapShader.SetUVec3("uLightPos", lightData.mPosition);
+		pointShadowMapShader.SetUFloat("uLightFarPlane", lightData.shadowFarPlane);
+		pointShadowMapShader.SetUInt("uBaseLayerOffset", 6 * i);
 
-	//	BIND(VertexArray, meshVAO);
-	//	BIND(Buffer, meshDIB);
-	//	BIND(ShaderBuffer, meshSSBO);
+		glMultiDrawElementsIndirect(GL_TRIANGLES, GL_UNSIGNED_INT, nullptr, meshDrawCmdDataArray.size(), sizeof(MeshDrawCmdData));
+	}
 
-	//	for (unsigned int i = 0; i < pointLightsCount; i++) {
-	//		glClear(GL_DEPTH_BUFFER_BIT);
-	//		PointLight* pointLight = pointLights[i];
-	//		pointLight->glShadowMapIndex = i;
-
-	//		std::vector<glm::mat4> cubemapViews = pointLight->GetCubemapLightSpaceMatrices(currentActiveCamera->position);
-	//		pointShadowShader.SetUMat4v("uCubeMapMatrices", cubemapViews.size(), cubemapViews.data());
-
-	//		pointShadowCubemapArray.SetLevelParameters(i);
-	//		glMultiDrawElementsIndirect(GL_TRIANGLES, GL_UNSIGNED_INT, nullptr, meshDrawCmdDataArray.size(), sizeof(MeshDrawCmdData));
-	//	}
-	//}
-
-	//
-
-	//glCullFace(GL_BACK);
-	//glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);
-
-	//pointShadowCubemapArray.Unbind();
-	//pointShadowFBO.Unbind();
+	glCullFace(GL_BACK);
+	glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);
 }
 
 void OpenGL::ShadowMapPass() {
@@ -284,6 +271,8 @@ void OpenGL::ShadowMapPass() {
 void OpenGL::LightingPass() {
 	BIND(Shader, lightingShader);
 	BIND(VertexArray, screenQuadVAO);
+	BIND_TEX(TextureCubeMapArray, pointShadowCubemapArray, 0);
+	BIND_TEX(Texture2D, directionalLightShadowMap, 1);
 	BIND_TEX(Texture2D, gPosition, 2);
 	BIND_TEX(Texture2D, gNormal, 3);
 	BIND_TEX(Texture2D, gAlbedoSpec, 4);
@@ -349,6 +338,29 @@ void OpenGL::UpsertMeshEntity(const Entity entity, const std::vector<const Mesh*
 		instance.model = model;
 		instance.inverseModel = inverseModel;
 	}	
+}
+
+void OpenGL::RegisterPointLight(const Entity entity, const PointLight* light) {
+	if (light == nullptr) {
+		LOG(LogOpenGL, LOG_WARNING, "Failed to register point light. Light is null.");
+		return;
+	}
+
+	auto [it, inserted] = entToPointLightData.try_emplace(entity);
+
+	it->second.mColor = light->color;
+	it->second.mIntensity = light->intensity;
+	it->second.mPosition = light->position;
+	it->second.mRadius = light->radius;
+	it->second.shadowFarPlane = light->shadowMapFarPlane;
+
+	if (inserted) {
+		it->second.dataArrayIndex = pointLightDataArray.size();
+		pointLightDataArray.push_back(it->second);
+	}
+
+	pointLightDataArraySSBO.UpdateData(it->second.dataArrayIndex * sizeof(PointLightData), sizeof(PointLightData), &it->second);
+	// pointShadowCubemapArray.Allocate(GL_DEPTH_COMPONENT32F, SHADOW_MAP_RESOLUTION, SHADOW_MAP_RESOLUTION, 6 ^ pointLightDataArray.size());
 }
 
 void OpenGL::RegisterMesh(const Mesh* mesh) {

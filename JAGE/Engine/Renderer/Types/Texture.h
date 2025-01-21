@@ -132,7 +132,7 @@ public:
 			width,
 			height), depth(depth), levels(levels) {
 
-		if (depth % 6 == 0) {
+		if (depth % 6 != 0) {
 			LOG(LogOpenGL, LOG_CRITICAL, "Failed to generate texture cubemap array. Depth isn't a multiple of 6.");
 			return;
 		}
@@ -143,7 +143,8 @@ public:
 		glTextureParameteri(id, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 		glTextureParameteri(id, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 		glTextureParameteri(id, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
-		glTextureStorage3D(id, 1, internalFormat, width, height, depth);
+
+		Allocate(internalFormat, width, height, depth);
 	};
 
 	void Bind() override {
@@ -154,6 +155,15 @@ public:
 	void Unbind() override {
 		glBindTexture(GL_TEXTURE_CUBE_MAP_ARRAY, 0);
 		isBound = false;
+	}
+
+	void Allocate(const GLenum internalFormat, const GLuint width, const GLuint height, const GLuint depth) {
+		glTextureStorage3D(id, 1, internalFormat, width, height, depth);
+
+		this->internalFormat = internalFormat;
+		this->width = width;
+		this->height = height;
+		this->depth = depth;
 	}
 
 	void SetSubImage(const GLint level, const GLsizei width, const GLsizei height, 

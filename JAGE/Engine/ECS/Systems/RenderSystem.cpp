@@ -24,18 +24,19 @@ void RenderSystem::Update(float dt) {
 	assert(mActiveCamera != nullptr && "RenderSystem: No active camera detected.");
 	assert(mRenderApi != nullptr && "RenderSystem: No renderer set.");
 
-	Signature staticMeshSignature = World::Get().MakeSignature<StaticMeshRenderer>();
-	Signature directionalLightSignature = World::Get().MakeSignature<DirectionalLight>();
-	Signature pointLightSignature = World::Get().MakeSignature<PointLight>();
+	World& world = World::Get();
+	Signature staticMeshSignature = world.MakeSignature<StaticMeshRenderer>();
+	Signature directionalLightSignature = world.MakeSignature<DirectionalLight>();
+	Signature pointLightSignature = world.MakeSignature<PointLight>();
 
-	// buffer mesh data
+
 	for (const Entity& entity : mEntities) {
-		Transform& transform = World::Get().GetComponent<Transform>(entity);
-		Signature entitySignature = World::Get().GetEntitySignature(entity);
+		Transform& transform = world.GetComponent<Transform>(entity);
+		Signature entitySignature = world.GetEntitySignature(entity);
 
 		if ((entitySignature & staticMeshSignature) == staticMeshSignature) {
 
-			StaticMeshRenderer& staticMeshRenderer = World::Get().GetComponent<StaticMeshRenderer>(entity);
+			StaticMeshRenderer& staticMeshRenderer = world.GetComponent<StaticMeshRenderer>(entity);
 
 			std::vector<const Mesh*> meshes;
 			auto& assetManager = AssetManager::Get();
@@ -48,16 +49,22 @@ void RenderSystem::Update(float dt) {
 		}
 
 		if ((entitySignature & directionalLightSignature) == directionalLightSignature) {
-			DirectionalLight& dirLight = World::Get().GetComponent<DirectionalLight>(entity);
+			DirectionalLight& dirLight = world.GetComponent<DirectionalLight>(entity);
 			mRenderApi->RegisterDirectionalLight(&dirLight);
+		}
+
+		if ((entitySignature & pointLightSignature) == pointLightSignature) {
+			PointLight& pointLight = world.GetComponent<PointLight>(entity);
+			mRenderApi->RegisterPointLight(entity, &pointLight);
 		}
 	}
 
 	mRenderApi->UploadCameraData();
 	mRenderApi->BatchMeshInstData();
 	mRenderApi->GeometryPass();
-	// mRenderApi->ShadowMapPass();
-	// mRenderApi->UploadSceneLightData();
-	// mRenderApi->LightingPass();
-	mRenderApi->DebugGbuffer(2);
+	mRenderApi->PointShadowMapPass();
+	mRenderApi->ShadowMapPass();
+	mRenderApi->UploadSceneLightData();
+	mRenderApi->LightingPass();
+	// mRenderApi->DebugGbuffer(2);
 }
