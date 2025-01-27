@@ -33,6 +33,7 @@ struct StaticMeshRenderer;
 #define SHADER_GBUFFER 3
 #define SHADER_SHADOW_MAP 4
 #define SHADER_POINT_SHADOW_MAP 5
+#define SHADER_CHEBYSEV_SHADOW_MAP 6
 
 // MESHES
 #define MAX_MESHES 10000
@@ -126,6 +127,7 @@ private:
 	Shader gBufferShader;
 	Shader shadowMapShader;
 	Shader pointShadowMapShader;
+	Shader chebysevShadowMapShader;
 
 	UniformBuffer sceneLightDataUBO;
 	UniformBuffer cameraDataUBO;

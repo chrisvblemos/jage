@@ -23,6 +23,7 @@ bool OpenGL::Initialize() {
 	gBufferShader = Shader("Assets/Shaders/gbuffer.vert", "Assets/Shaders/gbuffer.frag");
 	shadowMapShader = Shader("Assets/Shaders/shadow_map.vert", "Assets/Shaders/shadow_map.frag");
 	pointShadowMapShader = Shader("Assets/Shaders/point_shadow_map.vert", "Assets/Shaders/point_shadow_map.frag", "Assets/Shaders/point_shadow_map.geom");
+	chebysevShadowMapShader = Shader("Assets/Shaders/shadow_map_chebysev.vert", "Assets/Shaders/shadow_map_chebysev.frag");
 
 	meshVBO = VertexArrayBuffer(5000 * MAX_MESHES, GL_DYNAMIC_STORAGE_BIT);
 	meshEBO = ElementArrayBuffer(3 * 5000 * MAX_MESHES, GL_DYNAMIC_STORAGE_BIT);
@@ -66,18 +67,22 @@ bool OpenGL::Initialize() {
 
 void OpenGL::InitShadowMap() {
 	float borderColor[] = {1.0f, 1.0f, 1.0f, 1.0f};
+	float invBorderColor[] = { 0.0f, 0.0f, 0.0f, 0.0f };
 
 	// directional and spot lights
 	shadowMapFBO = FrameBuffer(SHADOW_MAP_RESOLUTION, SHADOW_MAP_RESOLUTION);
-	directionalLightShadowMap = Texture2D("dir_shadow_map", GL_DEPTH_COMPONENT32F, SHADOW_MAP_RESOLUTION, SHADOW_MAP_RESOLUTION);
-	directionalLightShadowMap.SetParam(GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-	directionalLightShadowMap.SetParam(GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	directionalLightShadowMap = Texture2D("dir_shadow_map", GL_RGBA32F, SHADOW_MAP_RESOLUTION, SHADOW_MAP_RESOLUTION);
+	directionalLightShadowMap.SetParam(GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	directionalLightShadowMap.SetParam(GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	directionalLightShadowMap.SetParam(GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
 	directionalLightShadowMap.SetParam(GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
-	directionalLightShadowMap.SetParams(GL_TEXTURE_BORDER_COLOR, borderColor);
+	directionalLightShadowMap.SetParams(GL_TEXTURE_BORDER_COLOR, invBorderColor);
 
-	shadowMapFBO.AttachDepthTex2D(directionalLightShadowMap.GetID());
-	shadowMapFBO.DisableColorBuffer();
+	shadowMapFBO.AttachColorTex2D(directionalLightShadowMap.GetID(), 0);
+	shadowMapFBO.CreateRenderBuffer();
+
+	//shadowMapFBO.AttachDepthTex2D(directionalLightShadowMap.GetID());
+	//shadowMapFBO.DisableColorBuffer();
 
 	if (!shadowMapFBO.CheckComplete()) {
 		LOG(LogOpenGL, LOG_CRITICAL, "Shadow map frame buffer is incomplete.");
@@ -255,11 +260,12 @@ void OpenGL::ShadowMapPass() {
 		return;
 	}
 
-	BIND(Shader, shadowMapShader);
+	BIND(Shader, chebysevShadowMapShader);
 	BIND(FrameBuffer, shadowMapFBO);
 	BIND(DrawIndirectBuffer, meshDIB);
 	BIND(VertexArray, meshVAO);
 
+	glClear(GL_COLOR_BUFFER_BIT);
 	glClear(GL_DEPTH_BUFFER_BIT);
 	glEnable(GL_DEPTH_TEST);
 	glCullFace(GL_FRONT);

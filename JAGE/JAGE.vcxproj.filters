@@ -1935,6 +1935,8 @@
     </None>
     <None Include="ThirdParty\imgui\imgui.natstepfilter" />
     <None Include="imgui.ini" />
+    <None Include="Assets\Shaders\shadow_map_chebysev.frag" />
+    <None Include="Assets\Shaders\shadow_map_chebysev.vert" />
   </ItemGroup>
   <ItemGroup>
     <Natvis Include="ThirdParty\imgui\imgui.natvis" />

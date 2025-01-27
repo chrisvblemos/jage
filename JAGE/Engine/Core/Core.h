@@ -41,11 +41,11 @@
 
 #define SCR_WIDTH 1920
 #define SCR_HEIGHT 1080
+#define MAX_ENTITIES 100000
+#define MAX_COMPONENTS 32
+
 
 namespace Constants {
-	constexpr uint32_t MAX_ENTITIES = 100000;
-	constexpr uint32_t MAX_COMPONENTS = 32;
-
 	constexpr glm::vec3 NULL_VECTOR3 = glm::vec3(0.0f);
 	constexpr glm::vec2 NULL_VECTOR2 = glm::vec2(0.0f);
 
@@ -63,7 +63,7 @@ using EntityId = int32_t;
 using AssetId = int32_t;
 using Entity = uint32_t;
 using ComponentType = uint8_t;
-using Signature = std::bitset<Constants::MAX_COMPONENTS>;
+using Signature = std::bitset<MAX_COMPONENTS>;
 
 using Vector3 = glm::vec3;
 using Vector2 = glm::vec2;

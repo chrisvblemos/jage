@@ -77,6 +77,8 @@ vec3 GetLight(vec3 lightColor, float lightIntensity, vec3 lightDir, vec3 viewDir
 float GetDirectLightShadow(vec3 fragPos, float bias);
 float GetPointLightDataShadow(int i, vec3 fragPos, vec3 lightPos, float farPlane);
 float GetRandomPoissonIndex(vec4 seed4);
+float ChebysevUpperBound(vec4 moments, float currentDepth);
+float GetChebysevShadow(vec3 fragPos);
 
 void main() {
 	vec3 FragPos = texture(gPosition, TexCoords).rgb;       // gPosition texture
@@ -131,10 +133,10 @@ void main() {
             Specular
         );
 
-        float shadowBias = max(0.05 * (1.0 - dot(Normal, lightDir)), 0.005);
-        float shadow = GetDirectLightShadow(FragPos, shadowBias);
-
-        lightingResult += (1.0 - shadow) * directionalLighting; // only apply shadow to the directional light for now, point & spot lights later
+        // float shadowBias = max(0.05 * (1.0 - dot(Normal, lightDir)), 0.005);
+        // float shadow = GetDirectLightShadow(FragPos, shadowBias);
+        float chebysev_shadow = GetChebysevShadow(FragPos);
+        lightingResult += (1-chebysev_shadow) * directionalLighting; // only apply shadow to the directional light for now, point & spot lights later
     };
 
     // ambient light
@@ -144,6 +146,7 @@ void main() {
 
     vec3 result = lightingResult * Albedo;
     FragColor = vec4(result, 1.0);
+    
 };
 
 vec3 GetLight(vec3 lightColor, float lightIntensity, vec3 lightDir, vec3 viewDir, vec3 normal, float specular) {
@@ -220,5 +223,65 @@ float GetDirectLightShadow(vec3 fragPos, float bias) {
     
     shadow /= 9.0; // take the average from the 9 sampled points around it
 
+    return shadow;
+};
+
+float ChebysevUpperBound(vec4 moments, float currentDepth) {
+    float mean = moments.r;
+    float variance = max(moments.g - mean * mean, 0.01);
+    float skewness = moments.b - 3.0 * mean * variance - mean * mean * mean;
+    float kurtosis = moments.a - 4.0 * mean * skewness - 6.0 * mean * mean * variance - mean * mean * mean * mean;
+
+    float mD = currentDepth - mean;
+    float mD_2 = mD * mD;
+
+    float p = variance / (variance + mD_2);
+    
+    float correction = 1.0;
+    if (skewness > 0)
+        correction -= skewness * 0.1;
+
+    if (kurtosis > 0)
+        correction *= 1.0 / (1.0 + kurtosis * 0.01);
+
+    p = clamp(correction * p, 0, 1);
+    p = smoothstep(0, 1, p);
+    return p;
+};
+
+float GetChebysevShadow(vec3 fragPos) {
+    vec4 fragPosLightSpace = directionalLightMatrix * vec4(fragPos, 1.0);
+    vec3 projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;
+    projCoords = projCoords * 0.5 + 0.5;
+    float currentDepth = projCoords.z;
+    int n_samples = 16;
+    float bias = 0.1;
+
+    vec2 texelSize = 1 / vec2(textureSize(directionalLightShadowMap, 0)); // Shadow map texel size
+    float shadow = 0;
+    for(int x = -1; x <= 1; ++x) {
+        for(int y = -1; y < 1; ++y) {
+            
+            // poisson sampling
+            float nSampledShadow = 0.0;
+            for (int i = 0; i < n_samples; i++) {
+                int index = int(n_samples * GetRandomPoissonIndex(vec4(fragPos * 1000.0, i))) % n_samples;
+                vec4 moments = texture(directionalLightShadowMap, projCoords.xy + vec2(x, y) * texelSize + POISSON_SPHERE_16[index].xy/200.0);
+
+                float shadow_p = ChebysevUpperBound(moments, currentDepth + 0.005); 
+                if (currentDepth < moments.x)
+                    nSampledShadow += 1.0;
+
+                if (shadow_p > 0.5)
+                    nSampledShadow += 1.0;
+                else
+                    nSampledShadow += 0;
+            };
+
+            shadow += nSampledShadow / n_samples;
+        };
+    };
+
+    shadow /= 9;
     return shadow;
 };

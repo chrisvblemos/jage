@@ -160,20 +160,20 @@ void Engine::Init() {
 		cubeTransforms.push_back(&world.GetComponent<Transform>(cube));
 	}
 
-	Entity pointLight = world.CreateEntity();
-	glm::vec3 pos = glm::vec3(0.0f, 12.0f, 0.0f);
-	glm::vec3 color = glm::vec3(0.5f, 0.1f, 0.05f);
-	float intensity = 20.0f;
-	float radius = 1000000.0f * Utils::RandomFloat();
-	world.AddComponent(pointLight, Transform{ pos });
-	world.AddComponent(pointLight, PointLight{ pos, color, intensity, radius });
+	//Entity pointLight = world.CreateEntity();
+	//glm::vec3 pos = glm::vec3(0.0f, 12.0f, 0.0f);
+	//glm::vec3 color = glm::vec3(0.5f, 0.1f, 0.05f);
+	//float intensity = 20.0f;
+	//float radius = 1000000.0f * Utils::RandomFloat();
+	//world.AddComponent(pointLight, Transform{ pos });
+	//world.AddComponent(pointLight, PointLight{ pos, color, intensity, radius });
 
 	// the sun
 	Entity sun = world.CreateEntity();
 	world.AddComponent(sun, Transform{});
 	world.AddComponent(sun, DirectionalLight{});
 	DirectionalLight& sunDirLight = world.GetComponent<DirectionalLight>(sun);
-	sunDirLight.intensity = 0.0f;
+	sunDirLight.intensity = 0.5f;
 
 	Editor editor = Editor();
 

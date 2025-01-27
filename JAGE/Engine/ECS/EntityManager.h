@@ -6,12 +6,13 @@
 class EntityManager {
 public:
 	EntityManager() {
-		for (Entity entity = 0; entity < Constants::MAX_ENTITIES; entity++) {
+		for (Entity entity = 0; entity < MAX_ENTITIES; entity++) {
 			mAvailableEntities.push(entity);
 		}
 	}
 
-	const std::string& GetEntityName(const Entity entity) const {
+
+	std::string GetEntityName(const Entity entity) const {
 		auto it = nameMap.find(entity);
 		if (it != nameMap.end())
 			return it->second;
@@ -24,7 +25,7 @@ public:
 	}
 
 	Entity CreateEntity(const std::string& name = "Entity") {
-		assert(mLivingEntityCount < Constants::MAX_ENTITIES && "EntityManager: Max limit reached for created entities.");
+		assert(mLivingEntityCount < MAX_ENTITIES && "EntityManager: Max limit reached for created entities.");
 
 		Entity entity = mAvailableEntities.front();
 		mAvailableEntities.pop();
@@ -39,7 +40,7 @@ public:
 	}
 
 	void DestroyEntity(const Entity entity) {
-		assert(entity < Constants::MAX_ENTITIES && "EntityManager: Entity out of range");
+		assert(entity < MAX_ENTITIES && "EntityManager: Entity out of range");
 
 		// handle freeing entity name
 		const std::string& name = nameMap[entity];
@@ -56,13 +57,13 @@ public:
 	}
 
 	void SetSignature(const Entity entity, const Signature signature) {
-		assert(entity < Constants::MAX_ENTITIES && "EntityManager: Entity out of range");
+		assert(entity < MAX_ENTITIES && "EntityManager: Entity out of range");
 
 		mSignatures[entity] = signature;
 	}
 
 	Signature GetSignature(const Entity entity) const {
-		assert(entity < Constants::MAX_ENTITIES && "EntityManager: Entity out of range");
+		assert(entity < MAX_ENTITIES && "EntityManager: Entity out of range");
 	
 		return mSignatures[entity];
 	}
@@ -74,7 +75,7 @@ private:
 	std::set<Entity> activeEntities;
 	std::queue<Entity> mAvailableEntities{};
 
-	std::array<Signature, Constants::MAX_ENTITIES> mSignatures{};
+	std::array<Signature, MAX_ENTITIES> mSignatures{};
 	uint32_t mLivingEntityCount{};
 
 	std::string GenerateUniqueEntityName(const std::string& baseName) {
