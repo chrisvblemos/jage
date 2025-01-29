@@ -174,6 +174,7 @@ void Engine::Init() {
 	world.AddComponent(sun, DirectionalLight{});
 	DirectionalLight& sunDirLight = world.GetComponent<DirectionalLight>(sun);
 	sunDirLight.intensity = 0.5f;
+	sunDirLight.orthoProjSizes = glm::vec4(5);
 
 	Editor editor = Editor();
 

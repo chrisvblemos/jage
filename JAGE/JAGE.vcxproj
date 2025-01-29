@@ -693,6 +693,8 @@ xcopy /E /I /Y "$(ProjectDir)Assets\Meshes\*" "$(TargetDir)Assets\Meshes\"</Comm
     <None Include="Assets\Shaders\shadow_map_chebysev.frag" />
     <None Include="Assets\Shaders\shadow_map_chebysev.vert" />
     <None Include="Assets\Shaders\shadow_map_geometry.vert.glsl" />
+    <None Include="Assets\Shaders\shadow_map_hblur.frag" />
+    <None Include="Assets\Shaders\shadow_map_vblur.frag" />
     <None Include="Assets\Shaders\static_geometry.vert.glsl" />
     <None Include="Assets\Shaders\blit.frag.glsl" />
     <None Include="Assets\Shaders\blit.vert.glsl" />

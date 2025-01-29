@@ -77,7 +77,7 @@ vec3 GetLight(vec3 lightColor, float lightIntensity, vec3 lightDir, vec3 viewDir
 float GetDirectLightShadow(vec3 fragPos, float bias);
 float GetPointLightDataShadow(int i, vec3 fragPos, vec3 lightPos, float farPlane);
 float GetRandomPoissonIndex(vec4 seed4);
-float ChebysevUpperBound(vec4 moments, float currentDepth);
+float ChebysevShadowProb(vec4 moments, float currentDepth);
 float GetChebysevShadow(vec3 fragPos);
 
 void main() {
@@ -226,7 +226,7 @@ float GetDirectLightShadow(vec3 fragPos, float bias) {
     return shadow;
 };
 
-float ChebysevUpperBound(vec4 moments, float currentDepth) {
+float ChebysevShadowProb(vec4 moments, float currentDepth) {
     float mean = moments.r;
     float variance = max(moments.g - mean * mean, 0.01);
     float skewness = moments.b - 3.0 * mean * variance - mean * mean * mean;
@@ -255,7 +255,7 @@ float GetChebysevShadow(vec3 fragPos) {
     projCoords = projCoords * 0.5 + 0.5;
     float currentDepth = projCoords.z;
     int n_samples = 16;
-    float bias = 0.1;
+    float bias = 0.005;
 
     vec2 texelSize = 1 / vec2(textureSize(directionalLightShadowMap, 0)); // Shadow map texel size
     float shadow = 0;
@@ -266,13 +266,13 @@ float GetChebysevShadow(vec3 fragPos) {
             float nSampledShadow = 0.0;
             for (int i = 0; i < n_samples; i++) {
                 int index = int(n_samples * GetRandomPoissonIndex(vec4(fragPos * 1000.0, i))) % n_samples;
-                vec4 moments = texture(directionalLightShadowMap, projCoords.xy + vec2(x, y) * texelSize + POISSON_SPHERE_16[index].xy/200.0);
+                vec4 moments = texture(directionalLightShadowMap, projCoords.xy + vec2(x, y) * texelSize + POISSON_SPHERE_16[index].xy/800.0);
 
-                float shadow_p = ChebysevUpperBound(moments, currentDepth + 0.005); 
+                float shadow_p = ChebysevShadowProb(moments, currentDepth + bias); 
                 if (currentDepth < moments.x)
                     nSampledShadow += 1.0;
 
-                if (shadow_p > 0.5)
+                if (shadow_p >= 0.5)
                     nSampledShadow += 1.0;
                 else
                     nSampledShadow += 0;

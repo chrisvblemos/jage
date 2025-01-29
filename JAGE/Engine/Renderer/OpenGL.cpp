@@ -24,6 +24,8 @@ bool OpenGL::Initialize() {
 	shadowMapShader = Shader("Assets/Shaders/shadow_map.vert", "Assets/Shaders/shadow_map.frag");
 	pointShadowMapShader = Shader("Assets/Shaders/point_shadow_map.vert", "Assets/Shaders/point_shadow_map.frag", "Assets/Shaders/point_shadow_map.geom");
 	chebysevShadowMapShader = Shader("Assets/Shaders/shadow_map_chebysev.vert", "Assets/Shaders/shadow_map_chebysev.frag");
+	hBlurShadowMapShader = Shader("Assets/Shaders/screen.vert", "Assets/Shaders/shadow_map_hblur.frag");
+	vBlurShadowMapShader = Shader("Assets/Shaders/screen.vert", "Assets/Shaders/shadow_map_vblur.frag");
 
 	meshVBO = VertexArrayBuffer(5000 * MAX_MESHES, GL_DYNAMIC_STORAGE_BIT);
 	meshEBO = ElementArrayBuffer(3 * 5000 * MAX_MESHES, GL_DYNAMIC_STORAGE_BIT);
@@ -101,6 +103,40 @@ void OpenGL::InitShadowMap() {
 		LOG(LogOpenGL, LOG_CRITICAL, "Point shadow map frame buffer is incomplete.");
 		return;
 	}
+
+	// Gaussian blur on shadows
+	vBlurShadowMapTex2D = Texture2D("vBlurShadowMapTex2D", GL_RGB16F, SHADOW_MAP_RESOLUTION, SHADOW_MAP_RESOLUTION);
+	vBlurShadowMapTex2D.SetParam(GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	vBlurShadowMapTex2D.SetParam(GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	vBlurShadowMapTex2D.SetParam(GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+	vBlurShadowMapTex2D.SetParam(GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+	vBlurShadowMapTex2D.SetParams(GL_TEXTURE_BORDER_COLOR, invBorderColor);
+
+	vBlurShadowMapFBO = FrameBuffer(SHADOW_MAP_RESOLUTION, SHADOW_MAP_RESOLUTION);
+	vBlurShadowMapFBO.CreateRenderBuffer();
+	vBlurShadowMapFBO.AttachColorTex2D(vBlurShadowMapTex2D.GetID(), 0);
+
+	hBlurShadowMapTex2D = Texture2D("hBlurShadowMapTex2D", GL_RGB16F, SHADOW_MAP_RESOLUTION, SHADOW_MAP_RESOLUTION);
+	hBlurShadowMapTex2D.SetParam(GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	hBlurShadowMapTex2D.SetParam(GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	hBlurShadowMapTex2D.SetParam(GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+	hBlurShadowMapTex2D.SetParam(GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+	hBlurShadowMapTex2D.SetParams(GL_TEXTURE_BORDER_COLOR, invBorderColor);
+
+	hBlurShadowMapFBO = FrameBuffer(SHADOW_MAP_RESOLUTION, SHADOW_MAP_RESOLUTION);
+	hBlurShadowMapFBO.CreateRenderBuffer();
+	hBlurShadowMapFBO.AttachColorTex2D(hBlurShadowMapTex2D.GetID(), 0);
+
+	if (!hBlurShadowMapFBO.CheckComplete()) {
+		LOG(LogOpenGL, LOG_CRITICAL, "Horizontal pass shadow map blur buffer is incomplete.");
+		return;
+	}
+	
+	if (!vBlurShadowMapFBO.CheckComplete()) {
+		LOG(LogOpenGL, LOG_CRITICAL, "Vertical pass shadow map blur buffer is incomplete.");
+		return;
+	}
+
 }
 
 void OpenGL::InitGBuffer() {
@@ -260,30 +296,63 @@ void OpenGL::ShadowMapPass() {
 		return;
 	}
 
-	BIND(Shader, chebysevShadowMapShader);
-	BIND(FrameBuffer, shadowMapFBO);
-	BIND(DrawIndirectBuffer, meshDIB);
-	BIND(VertexArray, meshVAO);
+	{
+		BIND(Shader, chebysevShadowMapShader);
+		BIND(FrameBuffer, shadowMapFBO);
+		BIND(DrawIndirectBuffer, meshDIB);
+		BIND(VertexArray, meshVAO);
 
-	glClear(GL_COLOR_BUFFER_BIT);
-	glClear(GL_DEPTH_BUFFER_BIT);
-	glEnable(GL_DEPTH_TEST);
-	glCullFace(GL_FRONT);
+		glClear(GL_COLOR_BUFFER_BIT);
+		glClear(GL_DEPTH_BUFFER_BIT);
+		glEnable(GL_DEPTH_TEST);
+		glCullFace(GL_FRONT);
 
-	shadowMapFBO.SetViewport();
-	shadowMapShader.SetUMat4("uLightSpaceMatrix", directionalLight->LightSpaceMatrix(currentActiveCamera->position));
+		shadowMapFBO.SetViewport();
+		shadowMapShader.SetUMat4("uLightSpaceMatrix", directionalLight->LightSpaceMatrix(currentActiveCamera->position));
+
+		glMultiDrawElementsIndirect(GL_TRIANGLES, GL_UNSIGNED_INT, nullptr, meshDrawCmdDataArray.size(), sizeof(MeshDrawCmdData));
+
+		glCullFace(GL_BACK);
+		glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);
+	}
 	
-	glMultiDrawElementsIndirect(GL_TRIANGLES, GL_UNSIGNED_INT, nullptr, meshDrawCmdDataArray.size(), sizeof(MeshDrawCmdData));
-	
-	glCullFace(GL_BACK);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	glDisable(GL_DEPTH_TEST);
+
+	{
+		float blurScale = 2.0f;
+		BIND(VertexArray, screenQuadVAO);
+
+		{
+			BIND(FrameBuffer, hBlurShadowMapFBO);
+			BIND(Shader, hBlurShadowMapShader);
+			BIND_TEX(Texture2D, directionalLightShadowMap, 0);
+
+			hBlurShadowMapFBO.SetViewport();
+			hBlurShadowMapShader.SetUFloat("blurScale", blurScale);
+			glDrawArrays(GL_TRIANGLES, 0, 6);
+		}
+
+		{
+			BIND(FrameBuffer, vBlurShadowMapFBO);
+			BIND(Shader, vBlurShadowMapShader);
+			BIND_TEX(Texture2D, hBlurShadowMapTex2D, 0);
+
+			vBlurShadowMapFBO.SetViewport();
+			hBlurShadowMapShader.SetUFloat("blurScale", blurScale);
+			glDrawArrays(GL_TRIANGLES, 0, 6);
+		}
+	}
+
 	glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);
+	glEnable(GL_DEPTH_TEST);
 }
 
 void OpenGL::LightingPass() {
 	BIND(Shader, lightingShader);
 	BIND(VertexArray, screenQuadVAO);
 	BIND_TEX(TextureCubeMapArray, pointShadowCubemapArray, 0);
-	BIND_TEX(Texture2D, directionalLightShadowMap, 1);
+	BIND_TEX(Texture2D, vBlurShadowMapTex2D, 1);
 	BIND_TEX(Texture2D, gPosition, 2);
 	BIND_TEX(Texture2D, gNormal, 3);
 	BIND_TEX(Texture2D, gAlbedoSpec, 4);

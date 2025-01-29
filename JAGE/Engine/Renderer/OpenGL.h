@@ -42,7 +42,8 @@ struct StaticMeshRenderer;
 #define MAX_POINT_LIGHTS 128
 #define MAX_TEXTURES 10000
 
-#define SHADOW_MAP_RESOLUTION 1024
+#define SHADOW_MAP_RESOLUTION 512
+#define SHADOW_MAP_N_CASCADES 4
  
 struct MeshDrawCmdData {
 	GLuint count = 0;				// n of indices to draw for each instance
@@ -128,6 +129,8 @@ private:
 	Shader shadowMapShader;
 	Shader pointShadowMapShader;
 	Shader chebysevShadowMapShader;
+	Shader hBlurShadowMapShader;
+	Shader vBlurShadowMapShader;
 
 	UniformBuffer sceneLightDataUBO;
 	UniformBuffer cameraDataUBO;
@@ -151,6 +154,9 @@ private:
 	FrameBuffer gBuffer;
 	FrameBuffer shadowMapFBO;
 	FrameBuffer pointShadowFBO;
+	FrameBuffer hBlurShadowMapFBO;
+	FrameBuffer vBlurShadowMapFBO;
+	FrameBuffer cascadeShadowMapFBOs[SHADOW_MAP_N_CASCADES];
 	
 	Texture2D screenTextureID;
 	Texture2D gPosition;
@@ -159,6 +165,8 @@ private:
 	Texture2D gShadowMap;
 	Texture2D gDepth;
 	Texture2D directionalLightShadowMap;
+	Texture2D vBlurShadowMapTex2D;
+	Texture2D hBlurShadowMapTex2D;
 
 	TextureCubeMapArray pointShadowCubemapArray;
 
