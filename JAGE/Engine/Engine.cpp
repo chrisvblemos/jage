@@ -128,6 +128,7 @@ void Engine::Init() {
 	world.AddComponent(player, PlayerMovement{});
 	Camera& playerCamera = world.GetComponent<Camera>(player);
 	playerCamera.mFOV = 60.0f;
+	playerCamera.mFarClipPlane = 500.0f;
 	renderSystem->SetActiveCamera(&playerCamera);
 
 	// white ground

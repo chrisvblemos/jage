@@ -26,6 +26,7 @@ bool OpenGL::Initialize() {
 	chebysevShadowMapShader = Shader("Assets/Shaders/shadow_map_chebysev.vert", "Assets/Shaders/shadow_map_chebysev.frag");
 	hBlurShadowMapShader = Shader("Assets/Shaders/screen.vert", "Assets/Shaders/shadow_map_hblur.frag");
 	vBlurShadowMapShader = Shader("Assets/Shaders/screen.vert", "Assets/Shaders/shadow_map_vblur.frag");
+	csmShadowMapShader = Shader("Assets/Shaders/csm_shadow_map.vert", "Assets/Shaders/csm_shadow_map.frag", "Assets/Shaders/csm_shadow_map.geom");
 
 	meshVBO = VertexArrayBuffer(5000 * MAX_MESHES, GL_DYNAMIC_STORAGE_BIT);
 	meshEBO = ElementArrayBuffer(3 * 5000 * MAX_MESHES, GL_DYNAMIC_STORAGE_BIT);
@@ -37,6 +38,7 @@ bool OpenGL::Initialize() {
 	
 	cameraDataUBO = UniformBuffer(UBO_CAMERA_DATA, sizeof(CameraData));
 	sceneLightDataUBO = UniformBuffer(UBO_SCENE_LIGHT_DATA, sizeof(SceneLightData), GL_DYNAMIC_STORAGE_BIT);
+	cascadeDataUBO = UniformBuffer(UBO_SHADOW_CASCADE_DATA, SHADOW_MAP_MAX_CASCADES * sizeof(CascadeData), GL_DYNAMIC_STORAGE_BIT);
 
 	meshVAO = VertexArray();
 	std::vector<VertexAttrib> meshVAOAttribs = {
@@ -93,7 +95,7 @@ void OpenGL::InitShadowMap() {
 		
 	// point shadow map
 	BIND(Shader, pointShadowMapShader); // we bind here to tell open gl that we are using a geometry shader
-	pointShadowFBO = FrameBuffer(SCR_WIDTH, SCR_HEIGHT);
+	pointShadowFBO = FrameBuffer(SHADOW_MAP_RESOLUTION, SHADOW_MAP_RESOLUTION);
 	pointShadowCubemapArray = TextureCubeMapArray("point_shadow_cubemap_array", GL_DEPTH_COMPONENT32F, SHADOW_MAP_RESOLUTION, SHADOW_MAP_RESOLUTION, 6 * MAX_POINT_LIGHTS, 1);
 	pointShadowCubemapArray.SetParams(GL_TEXTURE_BORDER_COLOR, borderColor);
 	pointShadowFBO.AttachDepthCubeMapTex(pointShadowCubemapArray.GetID());
@@ -124,8 +126,8 @@ void OpenGL::InitShadowMap() {
 	hBlurShadowMapTex2D.SetParams(GL_TEXTURE_BORDER_COLOR, invBorderColor);
 
 	hBlurShadowMapFBO = FrameBuffer(SHADOW_MAP_RESOLUTION, SHADOW_MAP_RESOLUTION);
-	hBlurShadowMapFBO.CreateRenderBuffer();
 	hBlurShadowMapFBO.AttachColorTex2D(hBlurShadowMapTex2D.GetID(), 0);
+	hBlurShadowMapFBO.CreateRenderBuffer();
 
 	if (!hBlurShadowMapFBO.CheckComplete()) {
 		LOG(LogOpenGL, LOG_CRITICAL, "Horizontal pass shadow map blur buffer is incomplete.");
@@ -137,6 +139,31 @@ void OpenGL::InitShadowMap() {
 		return;
 	}
 
+	// CSM Shadow Maps
+	csmShadowMapTex2DArray = Texture2DArray("csm_shadow_map_tex2DArray", GL_RG32F, SHADOW_MAP_RESOLUTION, SHADOW_MAP_RESOLUTION, SHADOW_MAP_N_CASCADES);
+	csmShadowMapTex2DArray.SetParam(GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	csmShadowMapTex2DArray.SetParam(GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	csmShadowMapTex2DArray.SetParam(GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+	csmShadowMapTex2DArray.SetParam(GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+	csmShadowMapTex2DArray.SetParams(GL_TEXTURE_BORDER_COLOR, borderColor);
+
+	Texture2DArray csmShadowMapDepthTex2DArray = Texture2DArray("csm_shadow_map_depth_tex2DArray", GL_DEPTH_COMPONENT32F, SHADOW_MAP_RESOLUTION, SHADOW_MAP_RESOLUTION, SHADOW_MAP_N_CASCADES);
+	csmShadowMapDepthTex2DArray.SetParam(GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	csmShadowMapDepthTex2DArray.SetParam(GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	csmShadowMapDepthTex2DArray.SetParam(GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+	csmShadowMapDepthTex2DArray.SetParam(GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+	csmShadowMapDepthTex2DArray.SetParams(GL_TEXTURE_BORDER_COLOR, borderColor);
+
+	BIND(Shader, csmShadowMapShader); // we bind here to tell open gl that we are using a geometry shader
+	csmShadowMapFBO = FrameBuffer(SHADOW_MAP_RESOLUTION, SHADOW_MAP_RESOLUTION);
+	csmShadowMapFBO.AttachDepthTex2D(csmShadowMapDepthTex2DArray.GetID());
+	csmShadowMapFBO.AttachColorTex2D(csmShadowMapTex2DArray.GetID(), 0);
+	csmShadowMapFBO.DrawBuffer(0);
+
+	if (!csmShadowMapFBO.CheckComplete()) {
+		LOG(LogOpenGL, LOG_CRITICAL, "CSM shadow map frame buffer is incomplete.");
+		return;
+	}
 }
 
 void OpenGL::InitGBuffer() {
@@ -291,10 +318,94 @@ void OpenGL::PointShadowMapPass() {
 	glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);
 }
 
-void OpenGL::ShadowMapPass() {
-	if (directionalLight == nullptr) {
-		return;
+void OpenGL::RegisterCamera(Camera* camera) {
+	if (camera != nullptr) {
+		currentActiveCamera = camera;
+
+		// allocate and clear data if any
+		cascadeDataArray.clear();
+		cascadeDataArray = std::vector<CascadeData>(SHADOW_MAP_N_CASCADES);
+
+		//cascadeDataArray[0].nearPlane = camera->mNearClipPlane;
+		//cascadeDataArray[0].farPlane = camera->mFarClipPlane / 50.0f;
+
+		//cascadeDataArray[1].nearPlane = cascadeDataArray[0].farPlane;
+		//cascadeDataArray[1].farPlane = camera->mFarClipPlane / 25.0f;
+
+		//cascadeDataArray[2].nearPlane = cascadeDataArray[1].farPlane;
+		//cascadeDataArray[2].farPlane = camera->mFarClipPlane / 10.0f;
+
+		//cascadeDataArray[3].nearPlane = cascadeDataArray[2].farPlane;
+		//cascadeDataArray[3].farPlane = camera->mFarClipPlane;
+
+		for (int i = 0; i < SHADOW_MAP_N_CASCADES; i++) {
+			
+			// store cascade splits for this camera frustum
+			// for i-th cascade split
+			// near plane is given by cascadeSplitNearFarPlaneArray[i]
+			// far plane is given by cascadeSplitNearFarPlaneArray[i+1]
+			// cascadeSplitNearFarPlaneArray.size() == SHADOW_MAP_N_CASCADES + 1
+			//const float cameraClipRange = (currentActiveCamera->mFarClipPlane - currentActiveCamera->mNearClipPlane);
+			//const float cascadePlaneStep = cameraClipRange / SHADOW_MAP_N_CASCADES;
+			//cascadeDataArray[i].nearPlane = i * cascadePlaneStep > 0 ? i * cascadePlaneStep : camera->mNearClipPlane;
+			//cascadeDataArray[i].farPlane = i + 1 > SHADOW_MAP_N_CASCADES? camera->mFarClipPlane : (i + 1) * cascadePlaneStep;
+
+			const float fractionNear = static_cast<float>(i) / static_cast<float>(SHADOW_MAP_N_CASCADES);
+			const float fractionFar = static_cast<float>(i + 1) / static_cast<float>(SHADOW_MAP_N_CASCADES);
+
+			const float cameraClipRange = camera->mFarClipPlane - camera->mNearClipPlane;
+			const float cameraClipRatio = camera->mFarClipPlane / camera->mNearClipPlane;
+
+			const float uniformNear = camera->mNearClipPlane + cameraClipRange * fractionNear;
+			const float uniformFar = camera->mNearClipPlane + cameraClipRange * fractionFar;
+
+			const float logNear = camera->mNearClipPlane * std::pow(cameraClipRatio, fractionNear);
+			const float logFar = camera->mNearClipPlane * std::pow(cameraClipRatio, fractionFar);
+
+			const float blend = 0.1f;
+			cascadeDataArray[i].nearPlane = blend * uniformNear + (1.f - blend) * logNear;
+			cascadeDataArray[i].farPlane = blend * uniformFar + (1.f - blend) * logFar;
+		}
+
+		cascadeDataArray[0].nearPlane = camera->mNearClipPlane;
+		cascadeDataArray[SHADOW_MAP_N_CASCADES - 1].farPlane = camera->mFarClipPlane;
 	}
+}
+
+void OpenGL::CSMShadowMapPass() {
+	if (directionalLight == nullptr) return;
+
+	for (int i = 0; i < SHADOW_MAP_N_CASCADES; i++) {
+		const float cascadeNearPlane = cascadeDataArray[i].nearPlane;
+		const float cascadeFarPlane = cascadeDataArray[i].farPlane;
+
+		const std::vector<glm::vec4> corners = GLUtils::GetFrustumCornersWorldSpace(currentActiveCamera->mFOV, currentActiveCamera->mAspectRatio, cascadeNearPlane, cascadeFarPlane, currentActiveCamera->ViewMatrix());
+		const glm::mat4 view = GLUtils::GetLightViewMatrix(directionalLight->direction, corners);
+		const glm::mat4 lightSpaceMatrix = GLUtils::GetLightSpaceMatrix(view, corners);
+		cascadeDataArray[i].lightSpaceMatrix = lightSpaceMatrix;
+	}
+
+	cascadeDataUBO.UpdateData(0, cascadeDataArray.size() * sizeof(CascadeData), cascadeDataArray.data());
+
+	BIND(Shader, csmShadowMapShader);
+	BIND(FrameBuffer, csmShadowMapFBO);
+	BIND(DrawIndirectBuffer, meshDIB);
+	BIND(VertexArray, meshVAO);
+
+	csmShadowMapFBO.SetViewport();
+
+	glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
+	glEnable(GL_DEPTH_TEST);
+	glCullFace(GL_FRONT);
+
+	glMultiDrawElementsIndirect(GL_TRIANGLES, GL_UNSIGNED_INT, nullptr, meshDrawCmdDataArray.size(), sizeof(MeshDrawCmdData));
+
+	glCullFace(GL_BACK);
+	glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);
+}
+
+void OpenGL::ShadowMapPass() {
+	if (directionalLight == nullptr) return;
 
 	{
 		BIND(Shader, chebysevShadowMapShader);
@@ -302,8 +413,7 @@ void OpenGL::ShadowMapPass() {
 		BIND(DrawIndirectBuffer, meshDIB);
 		BIND(VertexArray, meshVAO);
 
-		glClear(GL_COLOR_BUFFER_BIT);
-		glClear(GL_DEPTH_BUFFER_BIT);
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		glEnable(GL_DEPTH_TEST);
 		glCullFace(GL_FRONT);
 
@@ -352,15 +462,18 @@ void OpenGL::LightingPass() {
 	BIND(Shader, lightingShader);
 	BIND(VertexArray, screenQuadVAO);
 	BIND_TEX(TextureCubeMapArray, pointShadowCubemapArray, 0);
-	BIND_TEX(Texture2D, vBlurShadowMapTex2D, 1);
+	BIND_TEX(Texture2DArray, csmShadowMapTex2DArray, 1);
 	BIND_TEX(Texture2D, gPosition, 2);
 	BIND_TEX(Texture2D, gNormal, 3);
 	BIND_TEX(Texture2D, gAlbedoSpec, 4);
 
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	lightingShader.SetUInt("cascadeCount", cascadeDataArray.size());
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	glDisable(GL_DEPTH_TEST);
+
 	glDrawArrays(GL_TRIANGLES, 0, 6);
+	
 	glEnable(GL_DEPTH_TEST);
 }
 

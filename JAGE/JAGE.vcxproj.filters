@@ -1939,6 +1939,9 @@
     <None Include="Assets\Shaders\shadow_map_chebysev.vert" />
     <None Include="Assets\Shaders\shadow_map_hblur.frag" />
     <None Include="Assets\Shaders\shadow_map_vblur.frag" />
+    <None Include="Assets\Shaders\csm_shadow_map.frag" />
+    <None Include="Assets\Shaders\csm_shadow_map.vert" />
+    <None Include="Assets\Shaders\csm_shadow_map.geom" />
   </ItemGroup>
   <ItemGroup>
     <Natvis Include="ThirdParty\imgui\imgui.natvis" />

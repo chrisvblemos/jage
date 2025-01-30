@@ -26,14 +26,7 @@ struct StaticMeshRenderer;
 #define UBO_SCENE_LIGHT_DATA 5
 #define SSBO_TEXTURE_HANDLERS 6
 #define SSBO_MESH_INDIRECT_DRAW_COMMAND 7
-
-// SHADERS
-#define SHADER_LIGHTING 1
-#define SHADER_SCREEN 2
-#define SHADER_GBUFFER 3
-#define SHADER_SHADOW_MAP 4
-#define SHADER_POINT_SHADOW_MAP 5
-#define SHADER_CHEBYSEV_SHADOW_MAP 6
+#define UBO_SHADOW_CASCADE_DATA 8
 
 // MESHES
 #define MAX_MESHES 10000
@@ -42,15 +35,23 @@ struct StaticMeshRenderer;
 #define MAX_POINT_LIGHTS 128
 #define MAX_TEXTURES 10000
 
-#define SHADOW_MAP_RESOLUTION 512
+#define SHADOW_MAP_RESOLUTION 1024
 #define SHADOW_MAP_N_CASCADES 4
+#define SHADOW_MAP_MAX_CASCADES 16
  
+struct CascadeData {
+	glm::mat4 lightSpaceMatrix = glm::mat4(1.0f);
+	float	  farPlane  = 0.0f;
+	float	  nearPlane = 0.0f;
+	float	  padding[2];
+};
+
 struct MeshDrawCmdData {
-	GLuint count = 0;				// n of indices to draw for each instance
-	GLuint instanceCount = 0;		// n of instances to draw
-	GLuint firstIndex = 0;			// index of start of indices
-	GLuint baseVertex = 0;			// index of start of vertex
-	GLuint baseInstance = 0;			// index of first instance
+	GLuint count         = 0;	// n of indices to draw for each instance
+	GLuint instanceCount = 0;	// n of instances to draw
+	GLuint firstIndex    = 0;	// index of start of indices
+	GLuint baseVertex    = 0;	// index of start of vertex
+	GLuint baseInstance  = 0;	// index of first instance
 
 	GLint diffTexHndlrIndex = -1;
 	GLint specTexHndlrIndex = -1;
@@ -68,32 +69,32 @@ struct MeshMetaData {
 };
 
 struct SceneLightData {
-	GLuint mHasDirectionalLight;
-	float padding1[3];
+	GLuint	  mHasDirectionalLight;
+	float	  padding1[3];
     glm::vec3 mDirectionalLightDirection;
-	float padding2;
+	float	  padding2;
     glm::vec3 mDirectionalLightColor;
-    float mDirectionalLightIntensity;
+    float	  mDirectionalLightIntensity;
     glm::mat4 mDirectionalLightMatrix;
-	GLuint mPointLightsCount;
-	float padding3[3];
+	GLuint	  mPointLightsCount;
+	float	  padding3[3];
     glm::vec3 mAmbientLightColor;
-    float mAmbientLightIntensity;
+    float	  mAmbientLightIntensity;
 };
 
 struct PointLightData {
 	glm::vec3 mPosition;
-	float mRadius;
+	float	  mRadius;
 	glm::vec3 mColor;
-	float mIntensity;
-	float shadowFarPlane;
-	float shadowNearPlane;
-	GLuint shadowCubeMapIndex;
-	GLuint dataArrayIndex;
-	float constant = 1.0f;
-	float linear = 0.7f;
-	float quadratic = 1.8f;
-	float padding[3];
+	float	  mIntensity;
+	float	  shadowFarPlane;
+	float	  shadowNearPlane;
+	GLuint	  shadowCubeMapIndex;
+	GLuint	  dataArrayIndex;
+	float	  constant = 1.0f;
+	float	  linear = 0.7f;
+	float	  quadratic = 1.8f;
+	float	  padding[3];
 };
 
 struct CameraData {
@@ -131,9 +132,11 @@ private:
 	Shader chebysevShadowMapShader;
 	Shader hBlurShadowMapShader;
 	Shader vBlurShadowMapShader;
+	Shader csmShadowMapShader;
 
 	UniformBuffer sceneLightDataUBO;
 	UniformBuffer cameraDataUBO;
+	UniformBuffer cascadeDataUBO;
 
 	DrawIndirectBuffer meshDIB;
 
@@ -156,7 +159,7 @@ private:
 	FrameBuffer pointShadowFBO;
 	FrameBuffer hBlurShadowMapFBO;
 	FrameBuffer vBlurShadowMapFBO;
-	FrameBuffer cascadeShadowMapFBOs[SHADOW_MAP_N_CASCADES];
+	FrameBuffer csmShadowMapFBO;
 	
 	Texture2D screenTextureID;
 	Texture2D gPosition;
@@ -167,12 +170,15 @@ private:
 	Texture2D directionalLightShadowMap;
 	Texture2D vBlurShadowMapTex2D;
 	Texture2D hBlurShadowMapTex2D;
+	Texture2DArray csmShadowMapTex2DArray;
 
 	TextureCubeMapArray pointShadowCubemapArray;
 
 	// CPU data
 	DirectionalLight* directionalLight;
 	Camera* currentActiveCamera;
+
+	std::vector<CascadeData> cascadeDataArray;
 	
 	std::unordered_map<uint32_t, Shader> mCompiledShaders;
 	std::unordered_map<AssetId, std::unordered_map<Entity, uint32_t>> assToEntMeshInstIndexes;
@@ -210,11 +216,7 @@ public:
 		directionalLight = light;
 	};
 
-	void RegisterCamera(Camera* camera) {
-		if (camera != nullptr) {
-			currentActiveCamera = camera;
-		}
-	}
+	void RegisterCamera(Camera* camera);
 
 	void RegisterPointLight(const Entity entity, const PointLight* light);
 	void UploadSceneLightData();
@@ -230,6 +232,7 @@ public:
 	void GeometryPass();
 	void ShadowMapPass();
 	void PointShadowMapPass();
+	void CSMShadowMapPass();
 	void LightingPass();
 
 	void DebugGbuffer(uint32_t layer = 0);

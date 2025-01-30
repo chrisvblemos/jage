@@ -229,3 +229,32 @@ public:
 	}
 
 };
+
+class Texture2DArray : public TextureBase {
+public:
+	Texture2DArray() = default;
+
+	Texture2DArray(
+		const std::string name,
+		const GLenum internalFormat,
+		const GLuint width,
+		const GLuint height,
+		const GLsizei depth)
+		: TextureBase(name, internalFormat, width, height), depth(depth) {
+		glCreateTextures(GL_TEXTURE_2D_ARRAY, 1, &id);
+		glTextureStorage3D(id, 1, internalFormat, width, height, depth);
+	}
+
+	void Bind() override {
+		glBindTexture(GL_TEXTURE_2D_ARRAY, id);
+	}
+
+	void Unbind() override {
+		glBindTexture(GL_TEXTURE_2D_ARRAY, 0);
+	}
+
+	GLuint GetDepth() const { return depth; }
+
+private:
+	GLsizei depth;
+};

@@ -654,6 +654,9 @@ xcopy /E /I /Y "$(ProjectDir)Assets\Meshes\*" "$(TargetDir)Assets\Meshes\"</Comm
     <None Include="Assets\Meshes\SurvivalGuitarBackpack\backpack.mtl">
       <FileType>Document</FileType>
     </None>
+    <None Include="Assets\Shaders\csm_shadow_map.frag" />
+    <None Include="Assets\Shaders\csm_shadow_map.geom" />
+    <None Include="Assets\Shaders\csm_shadow_map.vert" />
     <None Include="Assets\Shaders\gbuffer.frag">
       <FileType>Document</FileType>
     </None>
