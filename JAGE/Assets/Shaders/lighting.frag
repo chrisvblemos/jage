@@ -22,35 +22,37 @@ void main() {
     vec3  camToFragDir   = normalize(viewPos.xyz - WorldFragPos);    // direction from camera to fragment
     vec3  lightingResult = vec3(0.0, 0.0, 0.0);                      // result of lighting calculations
 
-//    if (pointLightsCount > 0) {
-//	    for (int i = 0; i < pointLightsCount; ++i) {
-//            PointLightData pointLight   = pointLights[i];
-//            vec3  pointLightDir         = normalize(pointLight.position - WorldFragPos);
-//            float distanceToLight       = length(pointLight.position - WorldFragPos);
-//            float attenuation           = 1.0 / (pointLight.constant + 
-//                                                    pointLight.linear * distanceToLight + 
-//                                                    pointLight.quadratic * distanceToLight * distanceToLight);
-//            float attenuatedIntensity   = pointLight.intensity * attenuation;
-//
-//            vec3 pointLightResult = GetLight(
-//                pointLight.color, 
-//                attenuatedIntensity, 
-//                pointLightDir, 
-//                camToFragDir, 
-//                WorldNormal, 
-//                Specular
-//            );
-//
-//            float shadow = GetPointLightDataShadow(
-//                pointLight.shadowCubemapIndex, 
-//                WorldFragPos, 
-//                pointLight.position, 
-//                pointLight.shadowFarPlane
-//            );
-//            
-//		    lightingResult += (1.0 - shadow) * pointLightResult;
-//	    };
-//    };
+    if (pointLightsCount > 0) {
+	    for (int i = 0; i < pointLightsCount; ++i) {
+            PointLightData pointLight   = pointLights[i];
+            vec3  pointLightDir         = normalize(pointLight.position - WorldFragPos);
+            float distanceToLight       = length(pointLight.position - WorldFragPos);
+            float attenuation           = 1.0 / (pointLight.constant + 
+                                                    pointLight.linear * distanceToLight + 
+                                                    pointLight.quadratic * distanceToLight * distanceToLight);
+            float attenuatedIntensity   = pointLight.intensity * attenuation;
+
+            vec3 pointLightResult = GetLight(
+                pointLight.color, 
+                attenuatedIntensity, 
+                pointLightDir, 
+                camToFragDir, 
+                WorldNormal, 
+                Specular
+            );
+
+            float shadow = GetPointLightDataShadow(
+                shadowCubemapArray,
+                pointLight.shadowCubemapIndex, 
+                WorldFragPos, 
+                pointLight.position, 
+                pointLight.shadowFarPlane,
+                viewPos.xyz
+            );
+            
+		    lightingResult += (1.0 - shadow) * pointLightResult;
+	    };
+    };
 
     if (hasDirectionalLight) {
         vec3 lightDir = normalize(directionalLightDirection);

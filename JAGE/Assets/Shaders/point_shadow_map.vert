@@ -3,16 +3,7 @@
 
 layout (location = 0) in vec3 aPos;
 
-struct MeshInstanceData {
-	mat4 model;
-	mat4 inverseModel;
-};
-
-layout(std430, binding = 2) readonly buffer MeshInstanceDataArray {
-    MeshInstanceData meshInstancesDataArray[];
-};
-
-//uniform mat4 uModel;
+#include "meshes.glsl"
 
 void main() {
 	uint instanceIndex = gl_InstanceID + gl_BaseInstanceARB;

@@ -133,28 +133,6 @@ float GetRandomPoissonIndex(vec4 seed4) {
     return fract(sin(dot_product) * 43758.5453);
 };
 
-float GetPointLightDataShadow(samplerCubeArray shadowCubemap, int i, vec3 worldFragPos, vec3 lightPos, float farPlane, vec3 viewPos) {
-    float shadow        = 0.0;
-    float bias          = 0.05; 
-    float samples       = 20.0;
-    vec3  fragToLight   = worldFragPos - lightPos;
-    float currentDepth  = length(fragToLight);
-    float viewDistance  = length(viewPos - worldFragPos);
-    float diskRadius    = (1.0 + (viewDistance / farPlane)) / 25.0;
-
-    for(int j = 0; j < samples; ++j)
-    {
-        vec3 nudge = fragToLight + sampleOffsetDirections[j] * diskRadius;
-        float closestDepth = texture(shadowCubemap, vec4(nudge, i)).r;
-        closestDepth *= farPlane;   // undo mapping [0;1]
-        if(currentDepth - bias > closestDepth)
-            shadow += 1.0;
-    }
-
-    shadow /= float(samples);  
-    return shadow;
-};
-
 float LinearStep(float low, float high, float v) {
     return clamp((v - low)/(high-low), 0.0, 1.0);
 }
@@ -168,6 +146,31 @@ float ChebysevShadowProb(vec2 moments, float currentDepth) {
     return min(max(p, p_max), 1.0);
 };
 
+float GetPointLightDataShadow(samplerCubeArray shadowCubemap, int i, vec3 worldFragPos, vec3 lightPos, float farPlane, vec3 viewPos) {
+    float shadow        = 0.0;
+    float bias          = 0.05; 
+    // float samples       = 16.0;
+    vec3  fragToLight   = worldFragPos - lightPos;
+    float currentDepth  = length(fragToLight);
+    float viewDistance  = length(viewPos - worldFragPos);
+    float diskRadius    = (1.0 + (viewDistance / farPlane)) / 25.0;
+
+    for(int j = 0; j < SHADOW_POISSON_SAMPLES; ++j)
+    {
+        int index = int(SHADOW_POISSON_SAMPLES * GetRandomPoissonIndex(vec4(worldFragPos * 1000.0, i))) % SHADOW_POISSON_SAMPLES;
+        vec3 nudge = fragToLight + POISSON_SPHERE_16[index] * diskRadius;
+        float closestDepth = texture(shadowCubemap, vec4(nudge, i)).r;
+        closestDepth *= farPlane;   // undo mapping [0;1]
+        if (currentDepth >= farPlane) return 0.0;
+        if(currentDepth - bias > closestDepth)
+            shadow += 1.0;
+    }
+
+    shadow /= SHADOW_POISSON_SAMPLES;  
+    return shadow;
+};
+
+
 float SampleVarianceShadowMap(sampler2DArray shadowMapArray, vec3 worldFragPos, vec3 lightDir, vec3 normal, int cascadeLayer, mat4 cascadeLightSpaceMatrix, float cascadeFarPlane) {
     
     int layer = cascadeLayer;
@@ -178,33 +181,19 @@ float SampleVarianceShadowMap(sampler2DArray shadowMapArray, vec3 worldFragPos, 
     float currentDepth           = projCoords.z;
     vec2  texelSize              = 1 / vec2(textureSize(shadowMapArray, 0));
 
-    normal = normalize(normal);
-    float bias = max(SHADOW_MAX_BIAS * (1.0 - dot(normal, lightDir)), SHADOW_MIN_BIAS);
-          bias *= 1 / (cascadeFarPlane * 0.5);
-
     if (currentDepth >= 1.0) return 0.0; // no shadow outside the far plane
 
-    float shadow = 0;
-    for(int x = -1; x <= 1; ++x) {
-        for(int y = -1; y < 1; ++y) {
+    // poisson sampling
+    float shadow = 0.0;
+    for (int i = 0; i < SHADOW_POISSON_SAMPLES; i++) {
+        int index = int(SHADOW_POISSON_SAMPLES * GetRandomPoissonIndex(vec4(worldFragPos * 1000.0, i))) % SHADOW_POISSON_SAMPLES;
+        vec2 poissonOffset =  POISSON_SPHERE_16[index].xy * texelSize;
+        vec2 moments = texture(shadowMapArray, vec3(projCoords.xy + poissonOffset, layer)).rg;
 
-            // poisson sampling
-            float nSampledShadow = 0.0;
-            for (int i = 0; i < SHADOW_POISSON_SAMPLES; i++) {
-                int index = int(SHADOW_POISSON_SAMPLES * GetRandomPoissonIndex(vec4(worldFragPos * 1000.0, i))) % SHADOW_POISSON_SAMPLES;
-                vec2 PCFoffset =  vec2(x, y) * texelSize;
-                vec2 poissonOffset =  POISSON_SPHERE_16[index].xy * texelSize;
-                vec2 moments = texture(shadowMapArray, vec3(projCoords.xy + poissonOffset + PCFoffset, layer)).rg;
-
-                nSampledShadow += ChebysevShadowProb(moments, currentDepth + bias); 
-            };
-
-            shadow += nSampledShadow;
-        };
+        shadow += ChebysevShadowProb(moments, currentDepth); 
     };
 
-    shadow /= (9 * SHADOW_POISSON_SAMPLES);
-    return shadow;
+    return clamp(shadow /= SHADOW_POISSON_SAMPLES, 0.0, 0.3);
 };
 
 in  vec2  TexCoords;
@@ -224,35 +213,37 @@ void main() {
     vec3  camToFragDir   = normalize(viewPos.xyz - WorldFragPos);    // direction from camera to fragment
     vec3  lightingResult = vec3(0.0, 0.0, 0.0);                      // result of lighting calculations
 
-//    if (pointLightsCount > 0) {
-//	    for (int i = 0; i < pointLightsCount; ++i) {
-//            PointLightData pointLight   = pointLights[i];
-//            vec3  pointLightDir         = normalize(pointLight.position - WorldFragPos);
-//            float distanceToLight       = length(pointLight.position - WorldFragPos);
-//            float attenuation           = 1.0 / (pointLight.constant + 
-//                                                    pointLight.linear * distanceToLight + 
-//                                                    pointLight.quadratic * distanceToLight * distanceToLight);
-//            float attenuatedIntensity   = pointLight.intensity * attenuation;
-//
-//            vec3 pointLightResult = GetLight(
-//                pointLight.color, 
-//                attenuatedIntensity, 
-//                pointLightDir, 
-//                camToFragDir, 
-//                WorldNormal, 
-//                Specular
-//            );
-//
-//            float shadow = GetPointLightDataShadow(
-//                pointLight.shadowCubemapIndex, 
-//                WorldFragPos, 
-//                pointLight.position, 
-//                pointLight.shadowFarPlane
-//            );
-//            
-//		    lightingResult += (1.0 - shadow) * pointLightResult;
-//	    };
-//    };
+    if (pointLightsCount > 0) {
+	    for (int i = 0; i < pointLightsCount; ++i) {
+            PointLightData pointLight   = pointLights[i];
+            vec3  pointLightDir         = normalize(pointLight.position - WorldFragPos);
+            float distanceToLight       = length(pointLight.position - WorldFragPos);
+            float attenuation           = 1.0 / (pointLight.constant + 
+                                                    pointLight.linear * distanceToLight + 
+                                                    pointLight.quadratic * distanceToLight * distanceToLight);
+            float attenuatedIntensity   = pointLight.intensity * attenuation;
+
+            vec3 pointLightResult = GetLight(
+                pointLight.color, 
+                attenuatedIntensity, 
+                pointLightDir, 
+                camToFragDir, 
+                WorldNormal, 
+                Specular
+            );
+
+            float shadow = GetPointLightDataShadow(
+                shadowCubemapArray,
+                pointLight.shadowCubemapIndex, 
+                WorldFragPos, 
+                pointLight.position, 
+                pointLight.shadowFarPlane,
+                viewPos.xyz
+            );
+            
+		    lightingResult += (1.0 - shadow) * pointLightResult;
+	    };
+    };
 
     if (hasDirectionalLight) {
         vec3 lightDir = normalize(directionalLightDirection);

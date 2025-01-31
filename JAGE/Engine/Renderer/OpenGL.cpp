@@ -76,27 +76,7 @@ bool OpenGL::Initialize() {
 void OpenGL::InitShadowMap() {
 	float borderColor[] = {1.0f, 1.0f, 1.0f, 1.0f};
 	float invBorderColor[] = { 0.0f, 0.0f, 0.0f, 0.0f };
-
-	// directional and spot lights
-	shadowMapFBO = FrameBuffer(SHADOW_MAP_RESOLUTION, SHADOW_MAP_RESOLUTION);
-	directionalLightShadowMap = Texture2D("dir_shadow_map", GL_RGBA32F, SHADOW_MAP_RESOLUTION, SHADOW_MAP_RESOLUTION);
-	directionalLightShadowMap.SetParam(GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	directionalLightShadowMap.SetParam(GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	directionalLightShadowMap.SetParam(GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
-	directionalLightShadowMap.SetParam(GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
-	directionalLightShadowMap.SetParams(GL_TEXTURE_BORDER_COLOR, invBorderColor);
-
-	shadowMapFBO.AttachColorTex2D(directionalLightShadowMap.GetID(), 0);
-	shadowMapFBO.CreateRenderBuffer();
-
-	//shadowMapFBO.AttachDepthTex2D(directionalLightShadowMap.GetID());
-	//shadowMapFBO.DisableColorBuffer();
-
-	if (!shadowMapFBO.CheckComplete()) {
-		LOG(LogOpenGL, LOG_CRITICAL, "Shadow map frame buffer is incomplete.");
-		return;
-	}
-		
+	
 	// point shadow map
 	BIND(Shader, pointShadowMapShader); // we bind here to tell open gl that we are using a geometry shader
 	pointShadowFBO = FrameBuffer(SHADOW_MAP_RESOLUTION, SHADOW_MAP_RESOLUTION);
@@ -326,34 +306,11 @@ void OpenGL::RegisterCamera(Camera* camera) {
 	if (camera != nullptr) {
 		currentActiveCamera = camera;
 
-		// allocate and clear data if any
 		cascadeDataArray.clear();
 		cascadeDataArray = std::vector<CascadeData>(SHADOW_MAP_N_CASCADES);
 
-		//cascadeDataArray[0].nearPlane = camera->mNearClipPlane;
-		//cascadeDataArray[0].farPlane = camera->mFarClipPlane / 50.0f;
-
-		//cascadeDataArray[1].nearPlane = cascadeDataArray[0].farPlane;
-		//cascadeDataArray[1].farPlane = camera->mFarClipPlane / 25.0f;
-
-		//cascadeDataArray[2].nearPlane = cascadeDataArray[1].farPlane;
-		//cascadeDataArray[2].farPlane = camera->mFarClipPlane / 10.0f;
-
-		//cascadeDataArray[3].nearPlane = cascadeDataArray[2].farPlane;
-		//cascadeDataArray[3].farPlane = camera->mFarClipPlane;
-
 		for (int i = 0; i < SHADOW_MAP_N_CASCADES; i++) {
 			
-			// store cascade splits for this camera frustum
-			// for i-th cascade split
-			// near plane is given by cascadeSplitNearFarPlaneArray[i]
-			// far plane is given by cascadeSplitNearFarPlaneArray[i+1]
-			// cascadeSplitNearFarPlaneArray.size() == SHADOW_MAP_N_CASCADES + 1
-			//const float cameraClipRange = (currentActiveCamera->mFarClipPlane - currentActiveCamera->mNearClipPlane);
-			//const float cascadePlaneStep = cameraClipRange / SHADOW_MAP_N_CASCADES;
-			//cascadeDataArray[i].nearPlane = i * cascadePlaneStep > 0 ? i * cascadePlaneStep : camera->mNearClipPlane;
-			//cascadeDataArray[i].farPlane = i + 1 > SHADOW_MAP_N_CASCADES? camera->mFarClipPlane : (i + 1) * cascadePlaneStep;
-
 			const float fractionNear = static_cast<float>(i) / static_cast<float>(SHADOW_MAP_N_CASCADES);
 			const float fractionFar = static_cast<float>(i + 1) / static_cast<float>(SHADOW_MAP_N_CASCADES);
 
@@ -406,60 +363,6 @@ void OpenGL::CSMShadowMapPass() {
 
 	glCullFace(GL_BACK);
 	glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);
-}
-
-void OpenGL::ShadowMapPass() {
-	if (directionalLight == nullptr) return;
-
-	{
-		BIND(Shader, chebysevShadowMapShader);
-		BIND(FrameBuffer, shadowMapFBO);
-		BIND(DrawIndirectBuffer, meshDIB);
-		BIND(VertexArray, meshVAO);
-
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-		glEnable(GL_DEPTH_TEST);
-		glCullFace(GL_FRONT);
-
-		shadowMapFBO.SetViewport();
-		shadowMapShader.SetUMat4("uLightSpaceMatrix", directionalLight->LightSpaceMatrix(currentActiveCamera->position));
-
-		glMultiDrawElementsIndirect(GL_TRIANGLES, GL_UNSIGNED_INT, nullptr, meshDrawCmdDataArray.size(), sizeof(MeshDrawCmdData));
-
-		glCullFace(GL_BACK);
-		glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);
-	}
-	
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-	glDisable(GL_DEPTH_TEST);
-
-	{
-		float blurScale = 2.0f;
-		BIND(VertexArray, screenQuadVAO);
-
-		{
-			BIND(FrameBuffer, hBlurShadowMapFBO);
-			BIND(Shader, hBlurShadowMapShader);
-			BIND_TEX(Texture2D, directionalLightShadowMap, 0);
-
-			hBlurShadowMapFBO.SetViewport();
-			hBlurShadowMapShader.SetUFloat("blurScale", blurScale);
-			glDrawArrays(GL_TRIANGLES, 0, 6);
-		}
-
-		{
-			BIND(FrameBuffer, vBlurShadowMapFBO);
-			BIND(Shader, vBlurShadowMapShader);
-			BIND_TEX(Texture2D, hBlurShadowMapTex2D, 0);
-
-			vBlurShadowMapFBO.SetViewport();
-			hBlurShadowMapShader.SetUFloat("blurScale", blurScale);
-			glDrawArrays(GL_TRIANGLES, 0, 6);
-		}
-	}
-
-	glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);
-	glEnable(GL_DEPTH_TEST);
 }
 
 void OpenGL::LightingPass() {
