@@ -6,8 +6,8 @@
 class Shader {
 public:
     Shader() = default;
-	Shader(const std::string& vertPath, const std::string& fragPath, const std::string& geomPath = "")
-		:	vertPath(vertPath), fragPath(fragPath), geomPath(geomPath) {
+	Shader(const std::string& vertCode, const std::string& fragCode, const std::string& geomCode = "")
+		: vertCode(vertCode), fragCode(fragCode), geomCode(geomCode) {
 		Compile();
 	}
 
@@ -52,31 +52,22 @@ public:
 private:
 	GLuint id;
 	GLuint unit;
-	std::string vertPath;
-	std::string fragPath;
-	std::string geomPath;
+	std::string vertCode;
+	std::string fragCode;
+	std::string geomCode;
 
 	bool isCompiled = false;
 
 	void Compile() {
-		std::string vertCode = ReadShaderFile(vertPath);
-		std::string fragCode = ReadShaderFile(fragPath);
-
 		GLuint vertShader = CompileCode(vertCode, GL_VERTEX_SHADER);
 		GLuint fragShader = CompileCode(fragCode, GL_FRAGMENT_SHADER);
 
 		GLuint geomShader = 0;
-		if (!geomPath.empty()) {
-			std::string geomCode = ReadShaderFile(geomPath);
+		if (!geomCode.empty()) {
 			geomShader = CompileCode(geomCode, GL_GEOMETRY_SHADER);
 		}
 
 		GLuint programID = LinkProgram(vertShader, fragShader, geomShader);
-		glDeleteShader(vertShader);
-		glDeleteShader(fragShader);
-
-		if (geomShader > 0)
-			glDeleteShader(geomShader);
 
 		this->id = programID;
 		this->isCompiled = true;
@@ -98,7 +89,8 @@ private:
 		if (!success) {
 			char infoLog[512];
 			glGetProgramInfoLog(programID, 512, nullptr, infoLog);
-			throw std::runtime_error("Shader: Program Linking Error: " + std::string(infoLog));
+			LOG(LogOpenGL, LOG_CRITICAL, std::format("Shader program link failed. Code: {} \n Info: {}", vertCode + fragCode + geomCode, infoLog));
+			//throw std::runtime_error("Shader: Program Linking Error: " + std::string(infoLog));
 		}
 
 		glDeleteShader(vertexShader);
@@ -112,7 +104,7 @@ private:
 
 	std::string ReadShaderFile(const std::string& path) {
 		std::ifstream file(path);
-		if (!file.is_open()) throw std::runtime_error("Shader: Failed to open code file: " + path);
+		if (!file.is_open()) LOG(LogOpenGL, LOG_CRITICAL, std::format("Failed to open shader file at {}", path));
 		std::stringstream buffer;
 		buffer << file.rdbuf();
 		return buffer.str();

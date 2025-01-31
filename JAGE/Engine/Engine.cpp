@@ -18,6 +18,7 @@
 #include <Core/Types/MeshModel.h>
 #include <LogDisplay.h>
 #include <Editor/Editor.h>
+#include <Renderer/ShaderPreProcessor.h>
 #include "Engine.h"
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);

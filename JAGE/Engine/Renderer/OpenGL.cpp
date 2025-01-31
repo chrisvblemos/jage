@@ -11,6 +11,7 @@
 #include <Utils.h>
 #include <LogDisplay.h>
 
+#include "ShaderPreProcessor.h"
 #include "OpenGLUtils.h"
 #include "OpenGL.h"
 
@@ -18,15 +19,18 @@ bool OpenGL::Initialize() {
 
 	EnableOpenGLDebugOutput();
 
-	lightingShader = Shader("Assets/Shaders/lighting.vert", "Assets/Shaders/lighting.frag");
-	screenShader = Shader("Assets/Shaders/screen.vert", "Assets/Shaders/screen.frag");
-	gBufferShader = Shader("Assets/Shaders/gbuffer.vert", "Assets/Shaders/gbuffer.frag");
-	shadowMapShader = Shader("Assets/Shaders/shadow_map.vert", "Assets/Shaders/shadow_map.frag");
-	pointShadowMapShader = Shader("Assets/Shaders/point_shadow_map.vert", "Assets/Shaders/point_shadow_map.frag", "Assets/Shaders/point_shadow_map.geom");
-	chebysevShadowMapShader = Shader("Assets/Shaders/shadow_map_chebysev.vert", "Assets/Shaders/shadow_map_chebysev.frag");
-	hBlurShadowMapShader = Shader("Assets/Shaders/screen.vert", "Assets/Shaders/shadow_map_hblur.frag");
-	vBlurShadowMapShader = Shader("Assets/Shaders/screen.vert", "Assets/Shaders/shadow_map_vblur.frag");
-	csmShadowMapShader = Shader("Assets/Shaders/csm_shadow_map.vert", "Assets/Shaders/csm_shadow_map.frag", "Assets/Shaders/csm_shadow_map.geom");
+	ShaderPreProcessor spp = ShaderPreProcessor();
+	spp.Initialize();
+	
+	lightingShader = Shader(spp.GetCodeStr("lighting.vert"), spp.GetCodeStr("lighting.frag"));
+	screenShader = Shader(spp.GetCodeStr("screen.vert"), spp.GetCodeStr("screen.frag"));
+	gBufferShader = Shader(spp.GetCodeStr("gbuffer.vert"), spp.GetCodeStr("gbuffer.frag"));
+	shadowMapShader = Shader(spp.GetCodeStr("shadow_map.vert"), spp.GetCodeStr("shadow_map.frag"));
+	pointShadowMapShader = Shader(spp.GetCodeStr("point_shadow_map.vert"), spp.GetCodeStr("point_shadow_map.frag"), spp.GetCodeStr("point_shadow_map.geom"));
+	chebysevShadowMapShader = Shader(spp.GetCodeStr("vsm.vert"), spp.GetCodeStr("vsm.frag"));
+	hBlurShadowMapShader = Shader(spp.GetCodeStr("screen.vert"), spp.GetCodeStr("gaussian_blur_h.frag"));
+	vBlurShadowMapShader = Shader(spp.GetCodeStr("screen.vert"), spp.GetCodeStr("gaussian_blur_v.frag"));
+	csmShadowMapShader = Shader(spp.GetCodeStr("csm.vert"), spp.GetCodeStr("csm.frag"), spp.GetCodeStr("csm.geom"));
 
 	meshVBO = VertexArrayBuffer(5000 * MAX_MESHES, GL_DYNAMIC_STORAGE_BIT);
 	meshEBO = ElementArrayBuffer(3 * 5000 * MAX_MESHES, GL_DYNAMIC_STORAGE_BIT);

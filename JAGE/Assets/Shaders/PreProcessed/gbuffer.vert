@@ -1,8 +1,37 @@
 #version 460 core
 #extension GL_ARB_shader_draw_parameters : enable
 
-#include "camera.glsl"
-#include "meshes.glsl"
+
+layout (std140, binding = 1) uniform CameraData {
+	vec4 viewPos;
+	mat4 projection;
+	mat4 view;
+};
+
+struct DrawMeshCommandData {
+	uint count;
+	uint instanceCount;
+	uint firstIndex;
+	uint baseVertex;
+	uint baseInstance;
+
+	int diffTexHndlrIndex;
+	int specTexHndlrIndex;
+	int normTexHndlrIndex;
+};
+
+struct MeshInstanceData {
+	mat4 model;
+	mat4 inverseModel;
+};
+
+layout(std430, binding = 2) readonly buffer MeshInstanceDataArray {
+    MeshInstanceData meshInstancesDataArray[];
+};
+
+layout(std430, binding = 7) readonly buffer DrawCmdsDataArray {
+    DrawMeshCommandData drawCmdsDataArray[];
+};
 
 out vec3 FragPos;
 out vec3 Normal;
