@@ -69,7 +69,7 @@ void main() {
         int cascadeLayer = GetCascadeLayer(WorldFragPos, view);
         mat4 cascadeLightMatrix = cascades[cascadeLayer].lightSpaceMatrix;
         float cascadeFarPlane = cascades[cascadeLayer].farPlane;
-        float shadow = SampleVarianceShadowMap(shadowMapArray, WorldFragPos, lightDir, WorldNormal, cascadeLayer, cascadeLightMatrix, cascadeFarPlane);
+        float shadow = SampleVarianceShadowMap(shadowMapArray, WorldFragPos, lightDir, cascadeLayer, cascadeLightMatrix, cascadeFarPlane);
         lightingResult += (1.0 - shadow) * directionalLighting;
     };
 

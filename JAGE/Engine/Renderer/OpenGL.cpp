@@ -25,12 +25,11 @@ bool OpenGL::Initialize() {
 	lightingShader = Shader(spp.GetCodeStr("lighting.vert"), spp.GetCodeStr("lighting.frag"));
 	screenShader = Shader(spp.GetCodeStr("screen.vert"), spp.GetCodeStr("screen.frag"));
 	gBufferShader = Shader(spp.GetCodeStr("gbuffer.vert"), spp.GetCodeStr("gbuffer.frag"));
-	shadowMapShader = Shader(spp.GetCodeStr("shadow_map.vert"), spp.GetCodeStr("shadow_map.frag"));
-	pointShadowMapShader = Shader(spp.GetCodeStr("point_shadow_map.vert"), spp.GetCodeStr("point_shadow_map.frag"), spp.GetCodeStr("point_shadow_map.geom"));
-	chebysevShadowMapShader = Shader(spp.GetCodeStr("vsm.vert"), spp.GetCodeStr("vsm.frag"));
+	pointLightShadowMapShader = Shader(spp.GetCodeStr("point_shadow_map.vert"), spp.GetCodeStr("point_shadow_map.frag"), spp.GetCodeStr("point_shadow_map.geom"));
+	varianceShadowMapShader = Shader(spp.GetCodeStr("vsm.vert"), spp.GetCodeStr("vsm.frag"));
 	hBlurShadowMapShader = Shader(spp.GetCodeStr("screen.vert"), spp.GetCodeStr("gaussian_blur_h.frag"));
 	vBlurShadowMapShader = Shader(spp.GetCodeStr("screen.vert"), spp.GetCodeStr("gaussian_blur_v.frag"));
-	csmShadowMapShader = Shader(spp.GetCodeStr("csm.vert"), spp.GetCodeStr("csm.frag"), spp.GetCodeStr("csm.geom"));
+	shadowMapShader = Shader(spp.GetCodeStr("csm.vert"), spp.GetCodeStr("csm.frag"), spp.GetCodeStr("csm.geom"));
 
 	meshVBO = VertexArrayBuffer(5000 * MAX_MESHES, GL_DYNAMIC_STORAGE_BIT);
 	meshEBO = ElementArrayBuffer(3 * 5000 * MAX_MESHES, GL_DYNAMIC_STORAGE_BIT);
@@ -65,7 +64,7 @@ bool OpenGL::Initialize() {
 	};
 	screenQuadVAO.Configure(screenQuadVBO.GetID(), 4 * sizeof(float), screenQuadEBO.GetID(), screenVAOAttribs);
 
-	InitShadowMap();
+	InitShadowMapFBOs();
 	InitGBuffer();
 
 	glEnable(GL_CULL_FACE);
@@ -73,20 +72,20 @@ bool OpenGL::Initialize() {
 	return true;
 }
 
-void OpenGL::InitShadowMap() {
+void OpenGL::InitShadowMapFBOs() {
 	float borderColor[] = {1.0f, 1.0f, 1.0f, 1.0f};
 	float invBorderColor[] = { 0.0f, 0.0f, 0.0f, 0.0f };
 	
 	// point shadow map
-	BIND(Shader, pointShadowMapShader); // we bind here to tell open gl that we are using a geometry shader
+	BIND(Shader, pointLightShadowMapShader); // we bind here to tell open gl that we are using a geometry shader
 	pointShadowFBO = FrameBuffer(SHADOW_MAP_RESOLUTION, SHADOW_MAP_RESOLUTION);
-	pointShadowCubemapArray = TextureCubeMapArray("point_shadow_cubemap_array", GL_DEPTH_COMPONENT32F, SHADOW_MAP_RESOLUTION, SHADOW_MAP_RESOLUTION, 6 * MAX_POINT_LIGHTS, 1);
+	pointShadowCubemapArray = TextureCubeMapArray("point_light_shadow_cubemap_array", GL_DEPTH_COMPONENT32F, SHADOW_MAP_RESOLUTION, SHADOW_MAP_RESOLUTION, 6 * MAX_POINT_LIGHTS, 1);
 	pointShadowCubemapArray.SetParams(GL_TEXTURE_BORDER_COLOR, borderColor);
 	pointShadowFBO.AttachDepthCubeMapTex(pointShadowCubemapArray.GetID());
 	pointShadowFBO.DisableColorBuffer();
 
 	if (!pointShadowFBO.CheckComplete()) {
-		LOG(LogOpenGL, LOG_CRITICAL, "Point shadow map frame buffer is incomplete.");
+		LOG(LogOpenGL, LOG_CRITICAL, "Point light shadow map frame buffer is incomplete.");
 		return;
 	}
 
@@ -124,28 +123,28 @@ void OpenGL::InitShadowMap() {
 	}
 
 	// CSM Shadow Maps
-	csmShadowMapTex2DArray = Texture2DArray("csm_shadow_map_tex2DArray", GL_RG32F, SHADOW_MAP_RESOLUTION, SHADOW_MAP_RESOLUTION, SHADOW_MAP_N_CASCADES);
-	csmShadowMapTex2DArray.SetParam(GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	csmShadowMapTex2DArray.SetParam(GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	csmShadowMapTex2DArray.SetParam(GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
-	csmShadowMapTex2DArray.SetParam(GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
-	csmShadowMapTex2DArray.SetParams(GL_TEXTURE_BORDER_COLOR, borderColor);
+	shadowMapTex2DArray = Texture2DArray("shadow_map_tex2d", GL_RG32F, SHADOW_MAP_RESOLUTION, SHADOW_MAP_RESOLUTION, SHADOW_MAP_N_CASCADES);
+	shadowMapTex2DArray.SetParam(GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	shadowMapTex2DArray.SetParam(GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	shadowMapTex2DArray.SetParam(GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+	shadowMapTex2DArray.SetParam(GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+	shadowMapTex2DArray.SetParams(GL_TEXTURE_BORDER_COLOR, borderColor);
 
-	Texture2DArray csmShadowMapDepthTex2DArray = Texture2DArray("csm_shadow_map_depth_tex2DArray", GL_DEPTH_COMPONENT32F, SHADOW_MAP_RESOLUTION, SHADOW_MAP_RESOLUTION, SHADOW_MAP_N_CASCADES);
-	csmShadowMapDepthTex2DArray.SetParam(GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	csmShadowMapDepthTex2DArray.SetParam(GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-	csmShadowMapDepthTex2DArray.SetParam(GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
-	csmShadowMapDepthTex2DArray.SetParam(GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
-	csmShadowMapDepthTex2DArray.SetParams(GL_TEXTURE_BORDER_COLOR, borderColor);
+	Texture2DArray shadowMapDepthTex2DArray = Texture2DArray("shadow_map_depth_tex2darray", GL_DEPTH_COMPONENT32F, SHADOW_MAP_RESOLUTION, SHADOW_MAP_RESOLUTION, SHADOW_MAP_N_CASCADES);
+	shadowMapDepthTex2DArray.SetParam(GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	shadowMapDepthTex2DArray.SetParam(GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	shadowMapDepthTex2DArray.SetParam(GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+	shadowMapDepthTex2DArray.SetParam(GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+	shadowMapDepthTex2DArray.SetParams(GL_TEXTURE_BORDER_COLOR, borderColor);
 
-	BIND(Shader, csmShadowMapShader); // we bind here to tell open gl that we are using a geometry shader
-	csmShadowMapFBO = FrameBuffer(SHADOW_MAP_RESOLUTION, SHADOW_MAP_RESOLUTION);
-	csmShadowMapFBO.AttachDepthTex2D(csmShadowMapDepthTex2DArray.GetID());
-	csmShadowMapFBO.AttachColorTex2D(csmShadowMapTex2DArray.GetID(), 0);
-	csmShadowMapFBO.DrawBuffer(0);
+	BIND(Shader, shadowMapShader); // we bind here to tell open gl that we are using a geometry shader
+	shadowMapFBO = FrameBuffer(SHADOW_MAP_RESOLUTION, SHADOW_MAP_RESOLUTION);
+	shadowMapFBO.AttachDepthTex2D(shadowMapDepthTex2DArray.GetID());
+	shadowMapFBO.AttachColorTex2D(shadowMapTex2DArray.GetID(), 0);
+	shadowMapFBO.DrawBuffer(0);
 
-	if (!csmShadowMapFBO.CheckComplete()) {
-		LOG(LogOpenGL, LOG_CRITICAL, "CSM shadow map frame buffer is incomplete.");
+	if (!shadowMapFBO.CheckComplete()) {
+		LOG(LogOpenGL, LOG_CRITICAL, "Shadow map frame buffer is incomplete.");
 		return;
 	}
 }
@@ -246,7 +245,7 @@ void OpenGL::UploadCameraData() {
 	cameraDataUBO.UpdateData(0, sizeof(CameraData), &cameraData);
 }
 
-void OpenGL::PointShadowMapPass() {
+void OpenGL::PointLightShadowMapPass() {
 	if (pointLightDataArray.empty())
 		return;
 
@@ -259,7 +258,7 @@ void OpenGL::PointShadowMapPass() {
 
 	size_t pointLightsCount = pointLightDataArray.size();
 
-	BIND(Shader, pointShadowMapShader);
+	BIND(Shader, pointLightShadowMapShader);
 	BIND(VertexArray, meshVAO);
 	BIND(DrawIndirectBuffer, meshDIB);
 
@@ -288,10 +287,10 @@ void OpenGL::PointShadowMapPass() {
 		views.push_back(projection *
 			glm::lookAt(lightData.mPosition, lightData.mPosition + glm::vec3(0.0, 0.0, -1.0), glm::vec3(0.0, -1.0, 0.0)));
 
-		pointShadowMapShader.SetUMat4v("uCubeMapMatrices", views.size(), views.data());
-		pointShadowMapShader.SetUVec3("uLightPos", lightData.mPosition);
-		pointShadowMapShader.SetUFloat("uLightFarPlane", lightData.shadowFarPlane);
-		pointShadowMapShader.SetUInt("uBaseLayerOffset", 6*i);
+		pointLightShadowMapShader.SetUMat4v("uCubeMapMatrices", views.size(), views.data());
+		pointLightShadowMapShader.SetUVec3("uLightPos", lightData.mPosition);
+		pointLightShadowMapShader.SetUFloat("uLightFarPlane", lightData.shadowFarPlane);
+		pointLightShadowMapShader.SetUInt("uBaseLayerOffset", 6*i);
 
 		pointLightDataArraySSBO.UpdateData(lightData.dataArrayIndex * sizeof(PointLightData) + offsetof(PointLightData, shadowCubeMapIndex), sizeof(GLuint), &lightData.shadowCubeMapIndex);
 
@@ -333,7 +332,7 @@ void OpenGL::RegisterCamera(Camera* camera) {
 	}
 }
 
-void OpenGL::CSMShadowMapPass() {
+void OpenGL::ShadowMapPass() {
 	if (directionalLight == nullptr) return;
 
 	for (int i = 0; i < SHADOW_MAP_N_CASCADES; i++) {
@@ -348,12 +347,12 @@ void OpenGL::CSMShadowMapPass() {
 
 	cascadeDataUBO.UpdateData(0, cascadeDataArray.size() * sizeof(CascadeData), cascadeDataArray.data());
 
-	BIND(Shader, csmShadowMapShader);
-	BIND(FrameBuffer, csmShadowMapFBO);
+	BIND(Shader, shadowMapShader);
+	BIND(FrameBuffer, shadowMapFBO);
 	BIND(DrawIndirectBuffer, meshDIB);
 	BIND(VertexArray, meshVAO);
 
-	csmShadowMapFBO.SetViewport();
+	shadowMapFBO.SetViewport();
 
 	glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
 	glEnable(GL_DEPTH_TEST);
@@ -369,7 +368,7 @@ void OpenGL::LightingPass() {
 	BIND(Shader, lightingShader);
 	BIND(VertexArray, screenQuadVAO);
 	BIND_TEX(TextureCubeMapArray, pointShadowCubemapArray, 0);
-	BIND_TEX(Texture2DArray, csmShadowMapTex2DArray, 1);
+	BIND_TEX(Texture2DArray, shadowMapTex2DArray, 1);
 	BIND_TEX(Texture2D, gPosition, 2);
 	BIND_TEX(Texture2D, gNormal, 3);
 	BIND_TEX(Texture2D, gAlbedoSpec, 4);
@@ -400,9 +399,6 @@ void OpenGL::DebugGbuffer(uint32_t layer) {
 	}
 	else if (layer == 2) {
 		textToUse = gAlbedoSpec;
-	}
-	else if (layer == 3) {
-		textToUse = directionalLightShadowMap;
 	}
 	else {
 		LOG(LogOpenGL, LOG_WARNING, "Debug mode for gBuffer failed. Invalid layer.");

@@ -127,12 +127,11 @@ private:
 	Shader lightingShader;
 	Shader screenShader;
 	Shader gBufferShader;
-	Shader shadowMapShader;
-	Shader pointShadowMapShader;
-	Shader chebysevShadowMapShader;
+	Shader pointLightShadowMapShader;
+	Shader varianceShadowMapShader;
 	Shader hBlurShadowMapShader;
 	Shader vBlurShadowMapShader;
-	Shader csmShadowMapShader;
+	Shader shadowMapShader;
 
 	UniformBuffer sceneLightDataUBO;
 	UniformBuffer cameraDataUBO;
@@ -159,18 +158,15 @@ private:
 	FrameBuffer pointShadowFBO;
 	FrameBuffer hBlurShadowMapFBO;
 	FrameBuffer vBlurShadowMapFBO;
-	FrameBuffer csmShadowMapFBO;
 	
 	Texture2D screenTextureID;
 	Texture2D gPosition;
 	Texture2D gNormal;
 	Texture2D gAlbedoSpec;
-	Texture2D gShadowMap;
 	Texture2D gDepth;
-	Texture2D directionalLightShadowMap;
 	Texture2D vBlurShadowMapTex2D;
 	Texture2D hBlurShadowMapTex2D;
-	Texture2DArray csmShadowMapTex2DArray;
+	Texture2DArray shadowMapTex2DArray;
 
 	TextureCubeMapArray pointShadowCubemapArray;
 
@@ -180,7 +176,6 @@ private:
 
 	std::vector<CascadeData> cascadeDataArray;
 	
-	std::unordered_map<uint32_t, Shader> mCompiledShaders;
 	std::unordered_map<AssetId, std::unordered_map<Entity, uint32_t>> assToEntMeshInstIndexes;
 	std::unordered_map<AssetId, MeshMetaData> assToMesh;
 	std::unordered_map<AssetId, std::vector<MeshInstanceData>> assToMeshInsts;
@@ -196,7 +191,7 @@ private:
 	std::vector<GLuint64> tex2DHndlrDataArray;
 
 	void InitGBuffer();
-	void InitShadowMap();
+	void InitShadowMapFBOs();
 
 	glm::mat4 CalculateModelMatrix(const glm::vec3& position, const glm::quat& rotation, const glm::vec3& scale);
 
@@ -231,8 +226,7 @@ public:
 	// Passes
 	void GeometryPass();
 	void ShadowMapPass();
-	void PointShadowMapPass();
-	void CSMShadowMapPass();
+	void PointLightShadowMapPass();
 	void LightingPass();
 
 	void DebugGbuffer(uint32_t layer = 0);

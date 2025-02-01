@@ -115,7 +115,7 @@ float GetPointLightDataShadow(samplerCubeArray shadowCubemap, int i, vec3 worldF
 };
 
 
-float SampleVarianceShadowMap(sampler2DArray shadowMapArray, vec3 worldFragPos, vec3 lightDir, vec3 normal, int cascadeLayer, mat4 cascadeLightSpaceMatrix, float cascadeFarPlane) {
+float SampleVarianceShadowMap(sampler2DArray shadowMapArray, vec3 worldFragPos, vec3 lightDir, int cascadeLayer, mat4 cascadeLightSpaceMatrix, float cascadeFarPlane) {
     
     int layer = cascadeLayer;
     

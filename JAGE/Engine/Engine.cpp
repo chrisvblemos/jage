@@ -195,9 +195,10 @@ void Engine::Init() {
 		lastFrame = currentFrame;
 
 		// rotate cubes around origin
-		//for (Transform* cubeTransform : cubeTransforms) {
-		//	cubeTransform->rotation = cubeTransform->rotation * glm::angleAxis(0.1f * dt, cubeTransform->Up());
-		//}
+		for (Transform* cubeTransform : cubeTransforms) {
+			cubeTransform->position = cubeTransform->position * glm::angleAxis(0.4f * dt, glm::vec3{ 0.0f, 1.0f, 0.0f });
+			cubeTransform->rotation = cubeTransform->rotation * glm::angleAxis(0.1f * dt, cubeTransform->Up());
+		}
 
 		playerSystem->Update(dt);
 		renderSystem->Update(dt);
