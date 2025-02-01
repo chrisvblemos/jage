@@ -95,6 +95,8 @@ void Engine::Init() {
 	MeshModel& DefaultPlane = AssetLoader::Get().LoadMeshModelFromFile("Assets/Meshes/default_plane.obj");
 	MeshModel& DefaultCube = AssetLoader::Get().LoadMeshModelFromFile("Assets/Meshes/default_cube.obj");
 	MeshModel& backpackModel = AssetLoader::Get().LoadMeshModelFromFile("Assets/Meshes/SurvivalGuitarBackpack/backpack.obj");
+
+	Texture& gaussianNoiseTex = AssetLoader::Get().LoadTextureFromFile("Assets/Textures/Noises/gaussian_noise.png");
 	
 	// register components
 	world.RegisterComponent<Transform>();
@@ -171,12 +173,12 @@ void Engine::Init() {
 	world.AddComponent(pointLight, PointLight{ pos, color, intensity, radius });
 
 	// the sun
-	//Entity sun = world.CreateEntity();
-	//world.AddComponent(sun, Transform{});
-	//world.AddComponent(sun, DirectionalLight{});
-	//DirectionalLight& sunDirLight = world.GetComponent<DirectionalLight>(sun);
-	//sunDirLight.intensity = 0.2f;
-	//sunDirLight.orthoProjSizes = glm::vec4(5);
+	Entity sun = world.CreateEntity();
+	world.AddComponent(sun, Transform{});
+	world.AddComponent(sun, DirectionalLight{});
+	DirectionalLight& sunDirLight = world.GetComponent<DirectionalLight>(sun);
+	sunDirLight.intensity = 0.2f;
+	sunDirLight.orthoProjSizes = glm::vec4(5);
 
 	Editor editor = Editor();
 

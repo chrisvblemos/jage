@@ -27,6 +27,7 @@ struct StaticMeshRenderer;
 #define SSBO_TEXTURE_HANDLERS 6
 #define SSBO_MESH_INDIRECT_DRAW_COMMAND 7
 #define UBO_SHADOW_CASCADE_DATA 8
+#define UBO_SSAO_SETTINGS_DATA 9
 
 // MESHES
 #define MAX_MESHES 10000
@@ -38,6 +39,20 @@ struct StaticMeshRenderer;
 #define SHADOW_MAP_RESOLUTION 1024
 #define SHADOW_MAP_N_CASCADES 4
 #define SHADOW_MAP_MAX_CASCADES 16
+
+#define SSAO_KERNEL_SIZE 64
+#define SSAO_RADIUS 0.5f
+#define SSAO_BIAS 0.025f
+
+struct SSAOSettingsData {
+	GLuint kernelSize = SSAO_KERNEL_SIZE;
+	float radius = SSAO_RADIUS;
+	float padding0[2];
+	glm::vec4 samples[SSAO_KERNEL_SIZE];
+	glm::vec2 noiseScale;
+	float bias = SSAO_BIAS;
+	float padding1;
+};
  
 struct CascadeData {
 	glm::mat4 lightSpaceMatrix = glm::mat4(1.0f);
@@ -132,10 +147,12 @@ private:
 	Shader hBlurShadowMapShader;
 	Shader vBlurShadowMapShader;
 	Shader shadowMapShader;
+	Shader ssaoShader;
 
 	UniformBuffer sceneLightDataUBO;
 	UniformBuffer cameraDataUBO;
 	UniformBuffer cascadeDataUBO;
+	UniformBuffer ssaoSettingsDataUBO;
 
 	DrawIndirectBuffer meshDIB;
 
@@ -153,19 +170,22 @@ private:
 	ShaderStorageBuffer pointLightDataArraySSBO;
 
 	FrameBuffer screenFBO;
-	FrameBuffer gBuffer;
+	FrameBuffer gBufferFBO;
 	FrameBuffer shadowMapFBO;
 	FrameBuffer pointShadowFBO;
 	FrameBuffer hBlurShadowMapFBO;
 	FrameBuffer vBlurShadowMapFBO;
-	
+	FrameBuffer ssaoFBO;
+
 	Texture2D screenTextureID;
 	Texture2D gPosition;
 	Texture2D gNormal;
 	Texture2D gAlbedoSpec;
+	Texture2D gSSAO;
 	Texture2D gDepth;
 	Texture2D vBlurShadowMapTex2D;
 	Texture2D hBlurShadowMapTex2D;
+	Texture2D ssaoNoiseTex2D;
 	Texture2DArray shadowMapTex2DArray;
 
 	TextureCubeMapArray pointShadowCubemapArray;
@@ -207,6 +227,7 @@ public:
 
 	bool Initialize();
 
+	void InitSSAOUniformBuffer();
 	void RegisterDirectionalLight(DirectionalLight* light) {
 		directionalLight = light;
 	};
@@ -225,6 +246,7 @@ public:
 	
 	// Passes
 	void GeometryPass();
+	void SSAOPass();
 	void ShadowMapPass();
 	void PointLightShadowMapPass();
 	void LightingPass();

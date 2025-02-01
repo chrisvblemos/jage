@@ -62,10 +62,10 @@ void RenderSystem::Update(float dt) {
 	mRenderApi->UploadCameraData();
 	mRenderApi->BatchMeshInstData();
 	mRenderApi->GeometryPass();
+	mRenderApi->SSAOPass();
 	mRenderApi->PointLightShadowMapPass();
 	mRenderApi->ShadowMapPass();
-	// mRenderApi->ShadowMapPass();
 	mRenderApi->UploadSceneLightData();
 	mRenderApi->LightingPass();
-	// mRenderApi->DebugGbuffer(2);
+	mRenderApi->DebugGbuffer(3);
 }

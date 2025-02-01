@@ -1442,6 +1442,9 @@
     <ClInclude Include="Engine\Renderer\ShaderPreProcessor.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="Engine\Defaults\Textures.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="Assets\Shaders\static_geometry.vert.glsl">
@@ -1952,6 +1955,8 @@
     <None Include="Assets\Shaders\csm.glsl" />
     <None Include="Assets\Shaders\gaussian_blur.glsl" />
     <None Include="Assets\Shaders\lighting.glsl" />
+    <None Include="Assets\Shaders\ssao.frag" />
+    <None Include="Assets\Shaders\ssao.vert" />
   </ItemGroup>
   <ItemGroup>
     <Natvis Include="ThirdParty\imgui\imgui.natvis" />

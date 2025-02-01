@@ -206,6 +206,7 @@ xcopy /E /I /Y "$(ProjectDir)Assets\Meshes\*" "$(TargetDir)Assets\Meshes\"</Comm
     <ClInclude Include="Engine\Core\Types\MeshModel.h" />
     <ClInclude Include="Engine\Core\Types\Mesh.h" />
     <ClInclude Include="Engine\Core\Types\Texture.h" />
+    <ClInclude Include="Engine\Defaults\Textures.h" />
     <ClInclude Include="Engine\ECS\ComponentArray.h" />
     <ClInclude Include="Engine\ECS\ComponentManager.h" />
     <ClInclude Include="Engine\ECS\Components\Camera.h" />
@@ -700,6 +701,8 @@ xcopy /E /I /Y "$(ProjectDir)Assets\Meshes\*" "$(TargetDir)Assets\Meshes\"</Comm
     <None Include="Assets\Shaders\shadow_map.vert">
       <FileType>Document</FileType>
     </None>
+    <None Include="Assets\Shaders\ssao.frag" />
+    <None Include="Assets\Shaders\ssao.vert" />
     <None Include="Assets\Shaders\vsm.frag" />
     <None Include="Assets\Shaders\vsm.vert" />
     <None Include="Assets\Shaders\shadow_map_geometry.vert.glsl" />

@@ -79,8 +79,13 @@ void EnableOpenGLDebugOutput() {
 }
 
 namespace GLUtils {
+	float lerp(float a, float b, float f)
+	{
+		return a + f * (b - a);
+	}
+
 	/* Projection matrix uses camera fov and aspect ratio, and the near and far plane
-of the frustum in question. The view matrix is the camera's view matrix as usual. */
+	of the frustum in question. The view matrix is the camera's view matrix as usual. */
 	std::vector<glm::vec4> GetFrustumCornersWorldSpace(const float fov, const float aspectRatio, const float nearPlane, const float farPlane, const glm::mat4& view) {
 		const glm::mat4 proj = glm::perspective(glm::radians(fov), aspectRatio, nearPlane, farPlane);
 		const auto inv = glm::inverse(proj * view);
