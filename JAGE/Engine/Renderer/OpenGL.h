@@ -41,8 +41,9 @@ struct StaticMeshRenderer;
 #define SHADOW_MAP_MAX_CASCADES 16
 
 #define SSAO_KERNEL_SIZE 64
-#define SSAO_RADIUS 0.5f
+#define SSAO_RADIUS 1.8f
 #define SSAO_BIAS 0.025f
+#define SSAO_POWER .5f
 
 struct SSAOSettingsData {
 	GLuint kernelSize = SSAO_KERNEL_SIZE;
@@ -51,7 +52,7 @@ struct SSAOSettingsData {
 	glm::vec4 samples[SSAO_KERNEL_SIZE];
 	glm::vec2 noiseScale;
 	float bias = SSAO_BIAS;
-	float padding1;
+	float power = SSAO_POWER;
 };
  
 struct CascadeData {
@@ -148,6 +149,7 @@ private:
 	Shader vBlurShadowMapShader;
 	Shader shadowMapShader;
 	Shader ssaoShader;
+	Shader ssaoBlurShader;
 
 	UniformBuffer sceneLightDataUBO;
 	UniformBuffer cameraDataUBO;
@@ -176,6 +178,7 @@ private:
 	FrameBuffer hBlurShadowMapFBO;
 	FrameBuffer vBlurShadowMapFBO;
 	FrameBuffer ssaoFBO;
+	FrameBuffer ssaoBlurFBO;
 
 	Texture2D screenTextureID;
 	Texture2D gPosition;
@@ -183,9 +186,12 @@ private:
 	Texture2D gAlbedoSpec;
 	Texture2D gSSAO;
 	Texture2D gDepth;
+	Texture2D gViewPosition;
+	Texture2D gViewNormal;
 	Texture2D vBlurShadowMapTex2D;
 	Texture2D hBlurShadowMapTex2D;
 	Texture2D ssaoNoiseTex2D;
+	Texture2D ssaoBlurredTex2D;
 	Texture2DArray shadowMapTex2DArray;
 
 	TextureCubeMapArray pointShadowCubemapArray;

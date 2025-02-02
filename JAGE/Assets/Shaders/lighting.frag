@@ -79,7 +79,7 @@ void main() {
     lightingResult      = lightingResult + ambientLight;
     vec3 result         = lightingResult * Albedo;
 
-    FragColor = vec4(ambientLight, 1.0);
+    FragColor = vec4(result, 1.0);
     
 };
 

@@ -32,6 +32,7 @@ bool OpenGL::Initialize() {
 	vBlurShadowMapShader = Shader(spp.GetCodeStr("screen.vert"), spp.GetCodeStr("gaussian_blur_v.frag"));
 	shadowMapShader = Shader(spp.GetCodeStr("csm.vert"), spp.GetCodeStr("csm.frag"), spp.GetCodeStr("csm.geom"));
 	ssaoShader = Shader(spp.GetCodeStr("ssao.vert"), spp.GetCodeStr("ssao.frag"));
+	ssaoBlurShader = Shader(spp.GetCodeStr("ssao.vert"), spp.GetCodeStr("ssao_blur.frag"));
 
 	meshVBO = VertexArrayBuffer(5000 * MAX_MESHES, GL_DYNAMIC_STORAGE_BIT);
 	meshEBO = ElementArrayBuffer(3 * 5000 * MAX_MESHES, GL_DYNAMIC_STORAGE_BIT);
@@ -127,8 +128,8 @@ void OpenGL::InitSSAOUniformBuffer() {
 	gSSAO.SetParam(GL_TEXTURE_WRAP_S, GL_REPEAT);
 	gSSAO.SetParam(GL_TEXTURE_WRAP_T, GL_REPEAT);
 
-	//std::vector<float> noSSAO(SCR_WIDTH * SCR_HEIGHT, 1.0f);
-	//gSSAO.SetSubImage2D(GL_RED, 0, 0, 0, GL_FLOAT, noSSAO.data());
+	std::vector<float> noSSAO(SCR_WIDTH * SCR_HEIGHT, 1.0f);
+	gSSAO.SetSubImage2D(GL_RED, 0, 0, 0, GL_FLOAT, noSSAO.data());
 
 	ssaoFBO = FrameBuffer(SCR_WIDTH, SCR_HEIGHT);
 	ssaoFBO.CreateRenderBuffer();
@@ -137,6 +138,19 @@ void OpenGL::InitSSAOUniformBuffer() {
 
 	if (!ssaoFBO.CheckComplete()) {
 		LOG(LogOpenGL, LOG_CRITICAL, "SSAO frame buffer is incomplete.");
+	}
+
+	ssaoBlurredTex2D = Texture2D("gSSAO_blurred_tex2d", GL_R16F, SCR_WIDTH, SCR_HEIGHT);
+	ssaoBlurredTex2D.SetParam(GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	ssaoBlurredTex2D.SetParam(GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
+	ssaoBlurFBO = FrameBuffer(SCR_WIDTH, SCR_HEIGHT);
+	ssaoBlurFBO.CreateRenderBuffer();
+	ssaoBlurFBO.AttachColorTex2D(ssaoBlurredTex2D.GetID(), 0);
+	ssaoBlurFBO.DrawColorBuffers();
+
+	if (!ssaoBlurFBO.CheckComplete()) {
+		LOG(LogOpenGL, LOG_CRITICAL, "SSAO Blurred frame buffer is incomplete.");
 	}
 }
 
@@ -221,10 +235,18 @@ void OpenGL::InitGBuffer() {
 	gPosition = Texture2D("gPostition_tex2D", GL_RGBA16F, SCR_WIDTH, SCR_HEIGHT);
 	gPosition.SetParam(GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	gPosition.SetParam(GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	
+	gViewPosition = Texture2D("gViewPosition_tex2D", GL_RGBA16F, SCR_WIDTH, SCR_HEIGHT);
+	gViewPosition.SetParam(GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	gViewPosition.SetParam(GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
 	gNormal = Texture2D("gNormal_tex2D", GL_RGBA16F, SCR_WIDTH, SCR_HEIGHT);
 	gNormal.SetParam(GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	gNormal.SetParam(GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	
+	gViewNormal = Texture2D("gViewNormal_tex2D", GL_RGBA16F, SCR_WIDTH, SCR_HEIGHT);
+	gViewNormal.SetParam(GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	gViewNormal.SetParam(GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
 	gAlbedoSpec = Texture2D("gAlbedoSpec_tex2D", GL_RGBA8, SCR_WIDTH, SCR_HEIGHT);
 	gAlbedoSpec.SetParam(GL_TEXTURE_MIN_FILTER, GL_NEAREST);
@@ -234,6 +256,8 @@ void OpenGL::InitGBuffer() {
 	gBufferFBO.AttachColorTex2D(gPosition.GetID(), 0);
 	gBufferFBO.AttachColorTex2D(gNormal.GetID(), 1);
 	gBufferFBO.AttachColorTex2D(gAlbedoSpec.GetID(), 2);
+	gBufferFBO.AttachColorTex2D(gViewPosition.GetID(), 3);
+	gBufferFBO.AttachColorTex2D(gViewNormal.GetID(), 4);
 	gBufferFBO.DrawColorBuffers();
 	gBufferFBO.CreateRenderBuffer();
 
@@ -440,7 +464,7 @@ void OpenGL::LightingPass() {
 	BIND_TEX(Texture2D, gPosition, 2);
 	BIND_TEX(Texture2D, gNormal, 3);
 	BIND_TEX(Texture2D, gAlbedoSpec, 4);
-	BIND_TEX(Texture2D, gSSAO, 5);
+	BIND_TEX(Texture2D, ssaoBlurredTex2D, 5);
 
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	lightingShader.SetUInt("cascadeCount", static_cast<uint32_t>(cascadeDataArray.size()));
@@ -470,7 +494,7 @@ void OpenGL::DebugGbuffer(uint32_t layer) {
 		tex = gAlbedoSpec;
 	}
 	else if (layer == 3) {
-		tex = gSSAO;
+		tex = ssaoBlurredTex2D;
 	}
 	else {
 		LOG(LogOpenGL, LOG_WARNING, "Debug mode for gBuffer failed. Invalid layer.");
@@ -590,18 +614,36 @@ void OpenGL::GeometryPass() {
 }
 
 void OpenGL::SSAOPass() {
-	BIND_TEX(Texture2D, gPosition, 0);
-	BIND_TEX(Texture2D, gNormal, 1);
-	BIND_TEX(Texture2D, ssaoNoiseTex2D, 2);
-	BIND(Shader, ssaoShader);
-	BIND(FrameBuffer, ssaoFBO);
 	BIND(VertexArray, screenQuadVAO);
 
-	ssaoFBO.SetViewport();
-	glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-	glDisable(GL_DEPTH_TEST);
-	glDrawArrays(GL_TRIANGLES, 0, 6);
-	glEnable(GL_DEPTH_TEST);
-	glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);
+	{
+		BIND_TEX(Texture2D, gViewPosition, 0);
+		BIND_TEX(Texture2D, gViewNormal, 1);
+		BIND_TEX(Texture2D, ssaoNoiseTex2D, 2);
+		BIND(Shader, ssaoShader);
+		BIND(FrameBuffer, ssaoFBO);
+		
+		ssaoFBO.SetViewport();
+		glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+		glDisable(GL_DEPTH_TEST);
+		glDrawArrays(GL_TRIANGLES, 0, 6);
+		glEnable(GL_DEPTH_TEST);
+		glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);
+	}
+
+	{
+		BIND_TEX(Texture2D, gSSAO, 0);
+		BIND(Shader, ssaoBlurShader);
+		BIND(FrameBuffer, ssaoBlurFBO);
+
+		ssaoBlurFBO.SetViewport();
+		glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+		glDisable(GL_DEPTH_TEST);
+		glDrawArrays(GL_TRIANGLES, 0, 6);
+		glEnable(GL_DEPTH_TEST);
+		glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);
+	}
+
 }
