@@ -1,24 +1,25 @@
-<center>
+<p align="center">
 
 ```
 
-     ██╗ █████╗  ██████╗ ███████╗
-     ██║██╔══██╗██╔════╝ ██╔════╝
-     ██║███████║██║  ███╗█████╗  
-██   ██║██╔══██║██║   ██║██╔══╝  
-╚█████╔╝██║  ██║╚██████╔╝███████╗
- ╚════╝ ╚═╝  ╚═╝ ╚═════╝ ╚══════╝
+                                                  ██╗ █████╗  ██████╗ ███████╗
+                                                  ██║██╔══██╗██╔════╝ ██╔════╝
+                                                  ██║███████║██║  ███╗█████╗  
+                                             ██   ██║██╔══██║██║   ██║██╔══╝  
+                                             ╚█████╔╝██║  ██║╚██████╔╝███████╗
+                                              ╚════╝ ╚═╝  ╚═╝ ╚═════╝ ╚══════╝
+                                             (J)ust (A)nother (G)ame (E)ngine
 
-(J)ust (A)nother (G)ame (E)ngine
 
 ```
 
-</center>
+</p>
 
-<figure align = "center">
+<p align="center">
     <img src="cool.png" align="center" alt="scene01" width="600"/>
-    <figcaption><p align="center">Screenshot from 2025-01-21.</p></figcaption>
-</figure>
+     <br>
+    <em>Screenshot from 2025-01-21.</em>
+</p>
 
 
  On its path to be optimized, written by an imbecile. This exists because I want to learn about 3D graphics.
