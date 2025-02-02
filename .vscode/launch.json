@@ -1,17 +1,16 @@
 {
-    "version": "0.2.0",
-    "configurations": [
+  "version": "0.2.0",
+  "configurations": [
       {
-        "name": "Launch Debug",
-        "type": "cppvsdbg",
-        "request": "launch",
-        "program": "${workspaceFolder}/x64/Debug/JAGE.exe",
-        "args": [],
-        "stopAtEntry": false,
-        "cwd": "${workspaceFolder}",
-        "environment": [],
-        "console": "internalConsole"
+          "name": "Run JAGE",
+          "type": "cppvsdbg",          // Use "cppdbg" for the MI debugger on Linux/macOS
+          "request": "launch",
+          "program": "${workspaceFolder}\\JAGE\\x64\\Debug\\JAGE.exe",
+          "args": [],
+          "stopAtEntry": false,
+          "cwd": "${workspaceFolder}\\JAGE\\x64\\Debug",
+          "environment": [],
+          "preLaunchTask": "build"       // This references your build task
       }
-    ]
-  }
-  
+  ]
+}

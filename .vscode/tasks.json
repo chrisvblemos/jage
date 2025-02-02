@@ -7,7 +7,7 @@
         "args": [
           "/C",
           // The path to VsDevCmd.bat depends on the version of Visual Studio you have installed.
-          "\"C:/Program Files/Microsoft Visual Studio/2022/Community/Common7/Tools/VsDevCmd.bat\"",
+          "\"C:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\Common7\\Tools\\VsDevCmd.bat\"",
           "&&"
         ]
       }
@@ -15,11 +15,24 @@
   },
   "tasks": [
     {
+      "label": "copy-resources",
+      "type": "shell",
+      "command": "xcopy",
+      "args": [
+        "${workspaceFolder}\\JAGE\\Assets",
+        "${workspaceFolder}\\JAGE\\x64\\Debug\\Assets",
+        "/E",    // Copies subdirectories, including empty ones
+        "/I",    // Assumes destination is a directory
+        "/Y"     // Suppresses prompting to confirm overwrites
+      ],
+      "problemMatcher": []
+    },
+    {
       "label": "build",
       "type": "shell",
       "command": "msbuild",
       "args": [
-        "${workspaceFolder}/JAGE/JAGE.vcxproj",
+        "${workspaceFolder}\\JAGE\\JAGE.vcxproj",
         "/p:Configuration=Debug",
         "/p:Platform=x64"
       ],
@@ -27,7 +40,16 @@
         "kind": "build",
         "isDefault": true
       },
+      "dependsOn": "copy-resources",
       "problemMatcher": "$msCompile"
+    },
+    {
+      "label": "run",
+      "type": "shell",
+      "command": "${workspaceFolder}\\JAGE\\x64\\Debug\\JAGE.exe",  // adjust path if needed
+      "dependsOn": "build",  // optionally build before running
+      "problemMatcher": []
     }
-  ]
+  ],
+  
 }
