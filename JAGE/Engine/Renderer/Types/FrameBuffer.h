@@ -79,8 +79,8 @@ public:
 
 	void DrawColorBuffers() {
 		std::vector<GLenum> attachments(colorTextAttachments.size());
-		for (size_t i = 0; i < colorTextAttachments.size(); ++i) {
-			attachments[i] = GL_COLOR_ATTACHMENT0 + i;
+		for (uint32_t i = 0; i < colorTextAttachments.size(); ++i) {
+			attachments[i] = GL_COLOR_ATTACHMENT0 + static_cast<GLuint>(i);
 		}
 
 		glNamedFramebufferDrawBuffers(id, static_cast<GLsizei>(attachments.size()), attachments.data());

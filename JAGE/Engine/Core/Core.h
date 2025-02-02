@@ -46,16 +46,16 @@
 
 
 namespace Constants {
-	constexpr glm::vec3 NULL_VECTOR3 = glm::vec3(0.0f);
-	constexpr glm::vec2 NULL_VECTOR2 = glm::vec2(0.0f);
+	inline constexpr glm::vec3 NULL_VECTOR3 = glm::vec3(0.0f);
+	inline constexpr glm::vec2 NULL_VECTOR2 = glm::vec2(0.0f);
 
-	constexpr glm::mat3 IDENTITY_MAT3 = glm::mat3(1.0f);
-	constexpr glm::mat4 IDENTITY_MAT4 = glm::mat4(1.0f);
+	inline constexpr glm::mat3 IDENTITY_MAT3 = glm::mat3(1.0f);
+	inline constexpr glm::mat4 IDENTITY_MAT4 = glm::mat4(1.0f);
 
-	constexpr glm::vec3 WORLD_ORIGIN = glm::vec3(0.0f);
-	constexpr glm::vec3 WORLD_UP = glm::vec3(0.0f, 1.0f, 0.0f);
-	constexpr glm::vec3 WORLD_RIGHT = glm::vec3(1.0f, 0.0f, 0.0f);
-	constexpr glm::vec3 WORLD_FORWARD = glm::vec3(0.0f, 0.0f, -1.0f);
+	inline constexpr glm::vec3 WORLD_ORIGIN = glm::vec3(0.0f);
+	inline constexpr glm::vec3 WORLD_UP = glm::vec3(0.0f, 1.0f, 0.0f);
+	inline constexpr glm::vec3 WORLD_RIGHT = glm::vec3(1.0f, 0.0f, 0.0f);
+	inline constexpr glm::vec3 WORLD_FORWARD = glm::vec3(0.0f, 0.0f, -1.0f);
 }
 
 

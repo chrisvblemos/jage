@@ -270,7 +270,7 @@ void OpenGL::RegisterTexture2D(Texture* texture) {
 	glTex2D.GenerateMipMap();
 	glTex2D.SetSubImage2D(format, 0, 0, 0, GL_UNSIGNED_BYTE, texture->data);
 	glTex2D.MakeResident();
-	glTex2D.SetHandleIndex(tex2DHndlrDataArray.size());
+	glTex2D.SetHandleIndex(static_cast<int32_t>(tex2DHndlrDataArray.size()));
 
 	GLuint64 hndl = glTex2D.GetHandle();
 	textureHndlrsSSBO.UpdateData(tex2DHndlrDataArray.size() * sizeof(GLuint64), sizeof(GLuint64), &hndl);
@@ -355,14 +355,14 @@ void OpenGL::PointLightShadowMapPass() {
 		views.push_back(projection *
 			glm::lookAt(lightData.mPosition, lightData.mPosition + glm::vec3(0.0, 0.0, -1.0), glm::vec3(0.0, -1.0, 0.0)));
 
-		pointLightShadowMapShader.SetUMat4v("uCubeMapMatrices", views.size(), views.data());
+		pointLightShadowMapShader.SetUMat4v("uCubeMapMatrices", static_cast<GLsizei>(views.size()), views.data());
 		pointLightShadowMapShader.SetUVec3("uLightPos", lightData.mPosition);
 		pointLightShadowMapShader.SetUFloat("uLightFarPlane", lightData.shadowFarPlane);
 		pointLightShadowMapShader.SetUInt("uBaseLayerOffset", 6*i);
 
 		pointLightDataArraySSBO.UpdateData(lightData.dataArrayIndex * sizeof(PointLightData) + offsetof(PointLightData, shadowCubeMapIndex), sizeof(GLuint), &lightData.shadowCubeMapIndex);
 
-		glMultiDrawElementsIndirect(GL_TRIANGLES, GL_UNSIGNED_INT, nullptr, meshDrawCmdDataArray.size(), sizeof(MeshDrawCmdData));
+		glMultiDrawElementsIndirect(GL_TRIANGLES, GL_UNSIGNED_INT, nullptr, static_cast<GLsizei>(meshDrawCmdDataArray.size()), sizeof(MeshDrawCmdData));
 	}
 
 	glCullFace(GL_BACK);
@@ -426,7 +426,7 @@ void OpenGL::ShadowMapPass() {
 	glEnable(GL_DEPTH_TEST);
 	glCullFace(GL_FRONT);
 
-	glMultiDrawElementsIndirect(GL_TRIANGLES, GL_UNSIGNED_INT, nullptr, meshDrawCmdDataArray.size(), sizeof(MeshDrawCmdData));
+	glMultiDrawElementsIndirect(GL_TRIANGLES, GL_UNSIGNED_INT, nullptr, static_cast<GLsizei>(meshDrawCmdDataArray.size()), sizeof(MeshDrawCmdData));
 
 	glCullFace(GL_BACK);
 	glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);
@@ -443,7 +443,7 @@ void OpenGL::LightingPass() {
 	BIND_TEX(Texture2D, gSSAO, 5);
 
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
-	lightingShader.SetUInt("cascadeCount", cascadeDataArray.size());
+	lightingShader.SetUInt("cascadeCount", static_cast<uint32_t>(cascadeDataArray.size()));
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	glDisable(GL_DEPTH_TEST);
 
@@ -494,7 +494,7 @@ void OpenGL::UpsertMeshEntity(const Entity entity, const std::vector<const Mesh*
 		}
 
 		auto& meshInstances = assToMeshInsts[mesh->assetId];
-		auto [entInstIt, inserted] = assToEntMeshInstIndexes[mesh->assetId].try_emplace(entity, meshInstances.size());
+		auto [entInstIt, inserted] = assToEntMeshInstIndexes[mesh->assetId].try_emplace(entity, static_cast<uint32_t>(meshInstances.size()));
 
 		if (inserted) {
 			meshInstances.emplace_back();
@@ -522,7 +522,7 @@ void OpenGL::RegisterPointLight(const Entity entity, const PointLight* light) {
 	it->second.shadowFarPlane = light->shadowMapFarPlane;
 
 	if (inserted) {
-		it->second.dataArrayIndex = pointLightDataArray.size();
+		it->second.dataArrayIndex = static_cast<GLuint>(pointLightDataArray.size());
 		pointLightDataArray.push_back(it->second);
 	}
 
@@ -536,15 +536,15 @@ void OpenGL::RegisterMesh(const Mesh* mesh) {
 
 	auto [it, inserted] = assToMesh.try_emplace(mesh->assetId);
 	if (inserted) {
-		it->second.drawCmdIndex = meshDrawCmdDataArray.size();
+		it->second.drawCmdIndex = static_cast<int32_t>(meshDrawCmdDataArray.size());
 
 		meshDrawCmdDataArray.push_back(MeshDrawCmdData());
 		MeshDrawCmdData& cmd = meshDrawCmdDataArray.back();
 
-		cmd.count = indices.size();
+		cmd.count = static_cast<GLuint>(indices.size());
 		cmd.instanceCount = 0;
-		cmd.firstIndex = meshIndexDataArray.size();
-		cmd.baseVertex = meshVertexDataArray.size();
+		cmd.firstIndex = static_cast<GLuint>(meshIndexDataArray.size());
+		cmd.baseVertex = static_cast<GLuint>(meshVertexDataArray.size());
 
 		cmd.diffTexHndlrIndex = mesh->diffuseTexture >= 0 ? assetIDToTex2DMap[mesh->diffuseTexture].GetHandleIndex() : -1;
 		cmd.specTexHndlrIndex = mesh->specularTexture >= 0 ? assetIDToTex2DMap[mesh->specularTexture].GetHandleIndex() : -1;
@@ -566,7 +566,7 @@ void OpenGL::BatchMeshInstData() {
 	for (const auto& it : assToMeshInsts) {
 		MeshMetaData& metaData = assToMesh[it.first];
 		MeshDrawCmdData& cmdData = meshDrawCmdDataArray[metaData.drawCmdIndex];
-		cmdData.baseInstance = meshInstDataArray.size();
+		cmdData.baseInstance = static_cast<GLuint>(meshInstDataArray.size());
 
 		const std::vector<MeshInstanceData>& meshInsts = it.second;
 		meshInstDataArray.insert(meshInstDataArray.end(), meshInsts.begin(), meshInsts.end());
@@ -586,7 +586,7 @@ void OpenGL::GeometryPass() {
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	glEnable(GL_DEPTH_TEST);
 
-	glMultiDrawElementsIndirect(GL_TRIANGLES, GL_UNSIGNED_INT, nullptr, meshDrawCmdDataArray.size(), sizeof(MeshDrawCmdData));
+	glMultiDrawElementsIndirect(GL_TRIANGLES, GL_UNSIGNED_INT, nullptr, static_cast<GLsizei>(meshDrawCmdDataArray.size()), sizeof(MeshDrawCmdData));
 }
 
 void OpenGL::SSAOPass() {

@@ -1,5 +1,5 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
-<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+<?xml version='1.0' encoding='utf-8'?>
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003" DefaultTargets="Build">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|Win32">
       <Configuration>Debug</Configuration>
@@ -194,10 +194,6 @@ xcopy /E /I /Y "$(ProjectDir)Assets\Meshes\*" "$(TargetDir)Assets\Meshes\"</Comm
     <ClCompile Include="ThirdParty\stb\stb_image.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Engine\Assets\AssetLoader.h" />
-    <ClInclude Include="Engine\Assets\Types\Material.h" />
-    <ClInclude Include="Engine\Assets\Types\StaticMesh.h" />
-    <ClInclude Include="Engine\Assets\Types\Texture.h" />
     <ClInclude Include="Engine\Core\AssetLoader.h" />
     <ClInclude Include="Engine\Core\AssetManager.h" />
     <ClInclude Include="Engine\Core\Core.h" />
@@ -215,7 +211,6 @@ xcopy /E /I /Y "$(ProjectDir)Assets\Meshes\*" "$(TargetDir)Assets\Meshes\"</Comm
     <ClInclude Include="Engine\ECS\Components\StaticMeshRenderer.h" />
     <ClInclude Include="Engine\ECS\Components\PlayerMovement.h" />
     <ClInclude Include="Engine\ECS\Components\PointLight.h" />
-    <ClInclude Include="Engine\Core.h" />
     <ClInclude Include="Engine\ECS\Systems\System.h" />
     <ClInclude Include="Engine\Editor\Editor.h" />
     <ClInclude Include="Engine\Editor\Viewers\EntityViewer.h" />
@@ -325,20 +320,6 @@ xcopy /E /I /Y "$(ProjectDir)Assets\Meshes\*" "$(TargetDir)Assets\Meshes\"</Comm
     <ClInclude Include="ThirdParty\assimp\XmlParser.h" />
     <ClInclude Include="ThirdParty\assimp\XMLTools.h" />
     <ClInclude Include="ThirdParty\assimp\ZipArchiveIOSystem.h" />
-    <ClInclude Include="ThirdParty\fmt\args.h" />
-    <ClInclude Include="ThirdParty\fmt\base.h" />
-    <ClInclude Include="ThirdParty\fmt\chrono.h" />
-    <ClInclude Include="ThirdParty\fmt\color.h" />
-    <ClInclude Include="ThirdParty\fmt\compile.h" />
-    <ClInclude Include="ThirdParty\fmt\core.h" />
-    <ClInclude Include="ThirdParty\fmt\format-inl.h" />
-    <ClInclude Include="ThirdParty\fmt\format.h" />
-    <ClInclude Include="ThirdParty\fmt\os.h" />
-    <ClInclude Include="ThirdParty\fmt\ostream.h" />
-    <ClInclude Include="ThirdParty\fmt\printf.h" />
-    <ClInclude Include="ThirdParty\fmt\ranges.h" />
-    <ClInclude Include="ThirdParty\fmt\std.h" />
-    <ClInclude Include="ThirdParty\fmt\xchar.h" />
     <ClInclude Include="ThirdParty\glad\glad.h" />
     <ClInclude Include="ThirdParty\GLFW\glfw3.h" />
     <ClInclude Include="ThirdParty\GLFW\glfw3native.h" />
@@ -643,7 +624,6 @@ xcopy /E /I /Y "$(ProjectDir)Assets\Meshes\*" "$(TargetDir)Assets\Meshes\"</Comm
     <ClInclude Include="ThirdParty\stb\stb_image.h" />
   </ItemGroup>
   <ItemGroup>
-    <None Include=".gitignore" />
     <None Include="Assets\Meshes\AbandonedCottage\cottage.mtl">
       <FileType>Document</FileType>
     </None>
@@ -665,7 +645,6 @@ xcopy /E /I /Y "$(ProjectDir)Assets\Meshes\*" "$(TargetDir)Assets\Meshes\"</Comm
     <None Include="Assets\Shaders\gbuffer.frag">
       <FileType>Document</FileType>
     </None>
-    <None Include="Assets\Shaders\gbuffer.frag.glsl" />
     <None Include="Assets\Shaders\gbuffer.vert">
       <FileType>Document</FileType>
     </None>
@@ -676,9 +655,7 @@ xcopy /E /I /Y "$(ProjectDir)Assets\Meshes\*" "$(TargetDir)Assets\Meshes\"</Comm
     <None Include="Assets\Shaders\lighting.vert">
       <FileType>Document</FileType>
     </None>
-    <None Include="Assets\Shaders\lit_deferred.frag.glsl" />
     <None Include="Assets\Shaders\meshes.glsl" />
-    <None Include="Assets\Shaders\null.frag.glsl" />
     <None Include="Assets\Shaders\point_shadow_map.frag">
       <FileType>Document</FileType>
     </None>
@@ -705,14 +682,9 @@ xcopy /E /I /Y "$(ProjectDir)Assets\Meshes\*" "$(TargetDir)Assets\Meshes\"</Comm
     <None Include="Assets\Shaders\ssao.vert" />
     <None Include="Assets\Shaders\vsm.frag" />
     <None Include="Assets\Shaders\vsm.vert" />
-    <None Include="Assets\Shaders\shadow_map_geometry.vert.glsl" />
     <None Include="Assets\Shaders\gaussian_blur_h.frag" />
     <None Include="Assets\Shaders\gaussian_blur_v.frag" />
-    <None Include="Assets\Shaders\static_geometry.vert.glsl" />
-    <None Include="Assets\Shaders\blit.frag.glsl" />
-    <None Include="Assets\Shaders\blit.vert.glsl" />
     <None Include="Assets\Shaders\camera.glsl" />
-    <None Include="Assets\Shaders\unlit_deferred.frag.glsl" />
     <None Include="imgui.ini" />
     <None Include="ThirdParty\assimp\color4.inl" />
     <None Include="ThirdParty\assimp\material.inl" />

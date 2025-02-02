@@ -14,7 +14,7 @@ Entity World::CreateEntity()
 	return mEntityManager->CreateEntity();
 }
 
-const Signature& World::GetEntitySignature(const Entity entity) const{
+const Signature World::GetEntitySignature(const Entity entity) const{
 	return mEntityManager->GetSignature(entity);
 }
 

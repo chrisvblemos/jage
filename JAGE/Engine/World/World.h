@@ -24,7 +24,7 @@ public:
 	const std::string GetEntityName(const Entity entity) const;
 	const std::vector<Entity> GetEntities() const;
 
-	const Signature& GetEntitySignature(Entity entity) const;
+	const Signature GetEntitySignature(Entity entity) const;
 
 	template<typename T>
 	void RegisterComponent()

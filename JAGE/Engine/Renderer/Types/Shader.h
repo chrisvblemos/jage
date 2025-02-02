@@ -22,10 +22,10 @@ public:
 	}
 
 	void SetUBool(const std::string& name, const bool value) const {
-		glUniform1i(glGetUniformLocation(id, name.c_str()), (int)value);
+		glUniform1i(glGetUniformLocation(id, name.c_str()), static_cast<uint32_t>(value));
 	}
 
-	void SetUInt(const std::string& name, const int value) const {
+	void SetUInt(const std::string& name, const uint32_t value) const {
 		glUniform1i(glGetUniformLocation(id, name.c_str()), value);
 	}
 

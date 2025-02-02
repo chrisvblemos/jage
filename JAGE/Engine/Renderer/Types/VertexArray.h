@@ -21,7 +21,7 @@ public:
 		glCreateVertexArrays(1, &id);
 	}
 	
-	void Configure(const GLuint vbo, const GLsizeiptr stride, const GLuint ebo, const std::vector<VertexAttrib>& attribs) {
+	void Configure(const GLuint vbo, const GLsizei stride, const GLuint ebo, const std::vector<VertexAttrib>& attribs) {
 		glVertexArrayVertexBuffer(id, 0, vbo, 0, stride);
 		glVertexArrayElementBuffer(id, ebo);
 

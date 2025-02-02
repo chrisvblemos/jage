@@ -133,7 +133,7 @@ private:
 			std::filesystem::create_directories(outDir);
 		}
 		catch (const std::filesystem::filesystem_error& e) {
-			LOG(LogOpenGL, LOG_CRITICAL, std::format("Could not create pre processed shader files folder."));
+			LOG(LogOpenGL, LOG_CRITICAL, std::format("Could not create pre processed shader files folder. Error: {}", e.what()));
 		}
 
 		for (const auto& it : procShaders) {
