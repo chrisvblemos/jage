@@ -11,6 +11,7 @@ out vec2 TexCoords;
 out flat int DiffuseTextureHndlrIndex;
 out flat int SpecularTextureHndlrIndex;
 out flat int NormalTextureHndlrIndex;
+out flat int MetallicTextureHndlrIndex;
 
 layout (location = 0) in vec3 aPos;
 layout (location = 1) in vec3 aNormal;
@@ -34,4 +35,5 @@ void main()
 	 DiffuseTextureHndlrIndex = diffTexHndlrIndex;
 	 SpecularTextureHndlrIndex = specTexHndlrIndex;
 	 NormalTextureHndlrIndex = normTexHndlrIndex;
+	 MetallicTextureHndlrIndex = -1;
 }

@@ -122,7 +122,29 @@ private:
 		if (!success) {
 			char infoLog[512];
 			glGetShaderInfoLog(shaderID, 512, nullptr, infoLog);
-			throw std::runtime_error("Shader Compilation Error: " + std::string(infoLog));
+			std::regex lineRegex("\\((\\d+)\\)");
+			std::string infoLogStr = infoLog;
+			std::smatch match;
+			std::string line;
+			std::string errorLine;
+			if (std::regex_search(infoLogStr, match, lineRegex)) {
+				size_t lineNum = std::stoi(match[1]);
+				std::string lineStr;
+				size_t currLine = 0;
+
+				std::istringstream stream(source);
+				while(std::getline(stream, line)) {
+					++currLine;
+					if (currLine == lineNum) {
+						errorLine = line;
+						break;
+					}
+				}
+
+				LOG(LogOpenGL, LOG_CRITICAL, std::format("Failed to compile shader. {} at {}", infoLog, errorLine));
+			}
+
+			LOG(LogOpenGL, LOG_CRITICAL, std::format("Failed to compile shader. InfoLog: {}", type, infoLog));
 		}
 
 		return shaderID;

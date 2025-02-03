@@ -6,23 +6,27 @@
 #include "lighting.glsl"
 
 in  vec2  TexCoords;
-out vec4  FragColor;
+
+layout (location = 0) out vec3 outDiffuse;
 
 layout (binding = 0) uniform samplerCubeArray   shadowCubemapArray;
 layout (binding = 1) uniform sampler2DArray     shadowMapArray;
 layout (binding = 2) uniform sampler2D          gPosition;
 layout (binding = 3) uniform sampler2D          gNormal;
-layout (binding = 4) uniform sampler2D          gAlbedoSpec;
-layout (binding = 5) uniform sampler2D          gSSAO;
+layout (binding = 4) uniform sampler2D          gAlbedo;
+layout (binding = 5) uniform sampler2D          gSpecular;
+layout (binding = 6) uniform sampler2D          gMetallic;
+layout (binding = 7) uniform sampler2D          gSSAO;
 
 void main() {
-	vec3  WorldFragPos   = texture(gPosition, TexCoords).rgb;        // gPosition texture
-	vec3  WorldNormal    = texture(gNormal, TexCoords).rgb;          // gNormal texture
-	vec3  Albedo         = texture(gAlbedoSpec, TexCoords).rgb;      // gAlbedo texture
-	float Specular       = texture(gAlbedoSpec, TexCoords).a;        // gAlbedoSpec texture (stored in alpha of gAlbedo)
+	vec3  WorldFragPos     = texture(gPosition, TexCoords).rgb;
+	vec3  WorldNormal      = texture(gNormal, TexCoords).rgb;
+	vec3  Albedo           = texture(gAlbedo, TexCoords).rgb;
+	float Specular         = texture(gSpecular, TexCoords).a;
+    float Metallic         = texture(gMetallic, TexCoords).r;
     float AmbientOcclusion = texture(gSSAO, TexCoords).r;
-    vec3  camToFragDir   = normalize(viewPos.xyz - WorldFragPos);    // direction from camera to fragment
-    vec3  lightingResult = vec3(0.0, 0.0, 0.0);                      // result of lighting calculations
+    vec3  camToFragDir     = normalize(viewPos.xyz - WorldFragPos);
+    vec3  lightingResult   = vec3(0.0, 0.0, 0.0);
 
     if (pointLightsCount > 0) {
 	    for (int i = 0; i < pointLightsCount; ++i) {
@@ -77,9 +81,6 @@ void main() {
 
     vec3 ambientLight   = ambientLightColor * ambientLightIntensity * AmbientOcclusion;
     lightingResult      = lightingResult + ambientLight;
-    vec3 result         = lightingResult * Albedo;
-
-    FragColor = vec4(result, 1.0);
-    
+    outDiffuse         = lightingResult * Albedo;
 };
 

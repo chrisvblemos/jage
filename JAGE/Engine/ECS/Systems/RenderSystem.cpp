@@ -67,5 +67,7 @@ void RenderSystem::Update(float dt) {
 	mRenderApi->ShadowMapPass();
 	mRenderApi->UploadSceneLightData();
 	mRenderApi->LightingPass();
+	mRenderApi->PostFxPass();
+	mRenderApi->OutputToScreen(SceneTexture::ST_POST_FX);
 	// mRenderApi->DebugGbuffer(3);
 }

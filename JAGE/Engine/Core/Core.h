@@ -19,6 +19,8 @@
 #include <queue>
 #include <format>
 #include <type_traits>
+#include <regex>
+#include <sstream>
 
 #include <glm/glm.hpp>
 #include <glm/common.hpp>

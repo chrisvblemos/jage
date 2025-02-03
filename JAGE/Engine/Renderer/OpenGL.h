@@ -45,6 +45,23 @@ struct StaticMeshRenderer;
 #define SSAO_BIAS 0.025f
 #define SSAO_POWER .5f
 
+#define GAMMA 2.2f
+
+enum SceneTexture : uint32_t {
+	ST_POST_FX,
+	ST_DIFFUSE,
+	ST_SSAO,
+	ST_ALBEDO,
+	ST_SPECULAR,
+	ST_METALLIC,
+	ST_DEPTH,
+	ST_WORLD_NORMAL,
+	ST_WORLD_POSITION,
+	ST_VIEW_POSITION,
+	ST_VIEW_NORMAL,
+	COUNT
+};
+
 struct SSAOSettingsData {
 	GLuint kernelSize = SSAO_KERNEL_SIZE;
 	float radius = SSAO_RADIUS;
@@ -150,7 +167,8 @@ private:
 	Shader shadowMapShader;
 	Shader ssaoShader;
 	Shader ssaoBlurShader;
-
+	Shader postFxShader;
+	
 	UniformBuffer sceneLightDataUBO;
 	UniformBuffer cameraDataUBO;
 	UniformBuffer cascadeDataUBO;
@@ -177,24 +195,33 @@ private:
 	FrameBuffer pointShadowFBO;
 	FrameBuffer hBlurShadowMapFBO;
 	FrameBuffer vBlurShadowMapFBO;
+	FrameBuffer lightingFBO;
+	FrameBuffer postfxFBO;
 	FrameBuffer ssaoFBO;
 	FrameBuffer ssaoBlurFBO;
 
-	Texture2D screenTextureID;
+	/* gBuffer textures */
 	Texture2D gPosition;
 	Texture2D gNormal;
-	Texture2D gAlbedoSpec;
-	Texture2D gSSAO;
-	Texture2D gDepth;
+	Texture2D gAlbedo;
+	Texture2D gSpecular;
+	Texture2D gMetallic;
 	Texture2D gViewPosition;
 	Texture2D gViewNormal;
+	Texture2D gDepth;
+	
+	/* Shadow maps */
+	Texture2DArray shadowMapTex2DArray;
+	TextureCubeMapArray pointShadowCubemapArray;
 	Texture2D vBlurShadowMapTex2D;
 	Texture2D hBlurShadowMapTex2D;
-	Texture2D ssaoNoiseTex2D;
-	Texture2D ssaoBlurredTex2D;
-	Texture2DArray shadowMapTex2DArray;
 
-	TextureCubeMapArray pointShadowCubemapArray;
+	/* Output texts */
+	Texture2D SSAOTex2D;
+	Texture2D SSAONoiseTex2D;
+	Texture2D SSAOBlurTex2D;
+	Texture2D diffuseTex2D;
+	Texture2D postFXTex2D;
 
 	// CPU data
 	DirectionalLight* directionalLight;
@@ -218,6 +245,9 @@ private:
 
 	void InitGBuffer();
 	void InitShadowMapFBOs();
+	void InitLightingFBO();
+    void InitPostFxFBO();
+	void InitSSAOUniformBuffer();
 
 	glm::mat4 CalculateModelMatrix(const glm::vec3& position, const glm::quat& rotation, const glm::vec3& scale);
 
@@ -233,12 +263,12 @@ public:
 
 	bool Initialize();
 
-	void InitSSAOUniformBuffer();
-	void RegisterDirectionalLight(DirectionalLight* light) {
-		directionalLight = light;
-	};
+    void RegisterDirectionalLight(DirectionalLight *light)
+    {
+        directionalLight = light;
+    };
 
-	void RegisterCamera(Camera* camera);
+    void RegisterCamera(Camera* camera);
 
 	void RegisterPointLight(const Entity entity, const PointLight* light);
 	void UploadSceneLightData();
@@ -256,6 +286,9 @@ public:
 	void ShadowMapPass();
 	void PointLightShadowMapPass();
 	void LightingPass();
+	void PostFxPass();
+    void OutputToScreen(const SceneTexture st);
 
-	void DebugGbuffer(uint32_t layer = 0);
+
+    void DebugGbuffer(uint32_t layer = 0);
 };

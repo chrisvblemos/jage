@@ -33,6 +33,7 @@ bool OpenGL::Initialize() {
 	shadowMapShader = Shader(spp.GetCodeStr("csm.vert"), spp.GetCodeStr("csm.frag"), spp.GetCodeStr("csm.geom"));
 	ssaoShader = Shader(spp.GetCodeStr("ssao.vert"), spp.GetCodeStr("ssao.frag"));
 	ssaoBlurShader = Shader(spp.GetCodeStr("ssao.vert"), spp.GetCodeStr("ssao_blur.frag"));
+	postFxShader = Shader(spp.GetCodeStr("screen.vert"), spp.GetCodeStr("post_fx.frag"));
 
 	meshVBO = VertexArrayBuffer(5000 * MAX_MESHES, GL_DYNAMIC_STORAGE_BIT);
 	meshEBO = ElementArrayBuffer(3 * 5000 * MAX_MESHES, GL_DYNAMIC_STORAGE_BIT);
@@ -67,9 +68,11 @@ bool OpenGL::Initialize() {
 	};
 	screenQuadVAO.Configure(screenQuadVBO.GetID(), 4 * sizeof(float), screenQuadEBO.GetID(), screenVAOAttribs);
 
-	InitSSAOUniformBuffer();
-	InitShadowMapFBOs();
 	InitGBuffer();
+	InitShadowMapFBOs();
+	InitLightingFBO();
+	InitPostFxFBO();
+	InitSSAOUniformBuffer();
 
 	glEnable(GL_CULL_FACE);
 
@@ -91,12 +94,12 @@ void OpenGL::InitSSAOUniformBuffer() {
 		ssaoNoise.push_back(noise);
 	}
 
-	ssaoNoiseTex2D = Texture2D("ssao_noise_tex2D", GL_RGBA16F, 4, 4);
-	ssaoNoiseTex2D.SetSubImage2D(GL_RGBA, 0, 0, 0, GL_FLOAT, ssaoNoise.data());
-	ssaoNoiseTex2D.SetParam(GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-	ssaoNoiseTex2D.SetParam(GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	ssaoNoiseTex2D.SetParam(GL_TEXTURE_WRAP_S, GL_REPEAT);
-	ssaoNoiseTex2D.SetParam(GL_TEXTURE_WRAP_T, GL_REPEAT);
+	SSAONoiseTex2D = Texture2D("ssao_noise_tex2D", GL_RGBA16F, 4, 4);
+	SSAONoiseTex2D.SetSubImage2D(GL_RGBA, 0, 0, 0, GL_FLOAT, ssaoNoise.data());
+	SSAONoiseTex2D.SetParam(GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	SSAONoiseTex2D.SetParam(GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	SSAONoiseTex2D.SetParam(GL_TEXTURE_WRAP_S, GL_REPEAT);
+	SSAONoiseTex2D.SetParam(GL_TEXTURE_WRAP_T, GL_REPEAT);
 
 	SSAOSettingsData ssaoSettings;
 	ssaoSettings.noiseScale = glm::vec2{ SCR_WIDTH / 4.0f, SCR_HEIGHT / 4.0f };
@@ -122,35 +125,48 @@ void OpenGL::InitSSAOUniformBuffer() {
 	ssaoSettingsDataUBO = UniformBuffer(UBO_SSAO_SETTINGS_DATA, sizeof(SSAOSettingsData), GL_DYNAMIC_STORAGE_BIT);
 	ssaoSettingsDataUBO.UpdateData(0, sizeof(SSAOSettingsData), &ssaoSettings);
 
-	gSSAO = Texture2D("gSSAO_tex2D", GL_R16F, SCR_WIDTH, SCR_HEIGHT);
-	gSSAO.SetParam(GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	gSSAO.SetParam(GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-	gSSAO.SetParam(GL_TEXTURE_WRAP_S, GL_REPEAT);
-	gSSAO.SetParam(GL_TEXTURE_WRAP_T, GL_REPEAT);
+	SSAOTex2D = Texture2D("gSSAO_tex2D", GL_R16F, SCR_WIDTH, SCR_HEIGHT);
+	SSAOTex2D.SetParam(GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	SSAOTex2D.SetParam(GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	SSAOTex2D.SetParam(GL_TEXTURE_WRAP_S, GL_REPEAT);
+	SSAOTex2D.SetParam(GL_TEXTURE_WRAP_T, GL_REPEAT);
 
 	std::vector<float> noSSAO(SCR_WIDTH * SCR_HEIGHT, 1.0f);
-	gSSAO.SetSubImage2D(GL_RED, 0, 0, 0, GL_FLOAT, noSSAO.data());
+	SSAOTex2D.SetSubImage2D(GL_RED, 0, 0, 0, GL_FLOAT, noSSAO.data());
 
 	ssaoFBO = FrameBuffer(SCR_WIDTH, SCR_HEIGHT);
 	ssaoFBO.CreateRenderBuffer();
-	ssaoFBO.AttachColorTex2D(gSSAO.GetID(), 0);
+	ssaoFBO.AttachColorTex2D(SSAOTex2D.GetID(), 0);
 	ssaoFBO.DrawColorBuffers();
 
 	if (!ssaoFBO.CheckComplete()) {
 		LOG(LogOpenGL, LOG_CRITICAL, "SSAO frame buffer is incomplete.");
 	}
 
-	ssaoBlurredTex2D = Texture2D("gSSAO_blurred_tex2d", GL_R16F, SCR_WIDTH, SCR_HEIGHT);
-	ssaoBlurredTex2D.SetParam(GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	ssaoBlurredTex2D.SetParam(GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	SSAOBlurTex2D = Texture2D("gSSAO_blurred_tex2d", GL_R16F, SCR_WIDTH, SCR_HEIGHT);
+	SSAOBlurTex2D.SetParam(GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	SSAOBlurTex2D.SetParam(GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
 	ssaoBlurFBO = FrameBuffer(SCR_WIDTH, SCR_HEIGHT);
 	ssaoBlurFBO.CreateRenderBuffer();
-	ssaoBlurFBO.AttachColorTex2D(ssaoBlurredTex2D.GetID(), 0);
+	ssaoBlurFBO.AttachColorTex2D(SSAOBlurTex2D.GetID(), 0);
 	ssaoBlurFBO.DrawColorBuffers();
 
 	if (!ssaoBlurFBO.CheckComplete()) {
 		LOG(LogOpenGL, LOG_CRITICAL, "SSAO Blurred frame buffer is incomplete.");
+	}
+}
+
+void OpenGL::InitPostFxFBO() {
+	postFXTex2D = Texture2D("post_fx_tex2d", GL_RGB8, SCR_WIDTH, SCR_HEIGHT);
+	postFXTex2D.SetParam(GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	postFXTex2D.SetParam(GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	postfxFBO = FrameBuffer(SCR_WIDTH, SCR_HEIGHT);
+	postfxFBO.CreateRenderBuffer();
+	postfxFBO.AttachColorTex2D(postFXTex2D.GetID(), 0);
+
+	if (!postfxFBO.CheckComplete()) {
+		LOG(LogOpenGL, LOG_CRITICAL, "Post FX frame buffer is incomplete.");
 	}
 }
 
@@ -231,8 +247,23 @@ void OpenGL::InitShadowMapFBOs() {
 	}
 }
 
+void OpenGL::InitLightingFBO()
+{
+	diffuseTex2D = Texture2D("gDiffuse_tex2D", GL_RGB16F, SCR_WIDTH, SCR_HEIGHT);
+	diffuseTex2D.SetParam(GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	diffuseTex2D.SetParam(GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
+	lightingFBO = FrameBuffer(SCR_WIDTH, SCR_HEIGHT);
+	lightingFBO.CreateRenderBuffer();
+	lightingFBO.AttachColorTex2D(diffuseTex2D.GetID(), 0);
+
+	if (!lightingFBO.CheckComplete()) {
+		LOG(LogOpenGL, LOG_CRITICAL, "Lighting frame buffer is incomplete.");
+	}
+}
+
 void OpenGL::InitGBuffer() {
-	gPosition = Texture2D("gPostition_tex2D", GL_RGBA16F, SCR_WIDTH, SCR_HEIGHT);
+	gPosition = Texture2D("gPosition_tex2D", GL_RGBA16F, SCR_WIDTH, SCR_HEIGHT);
 	gPosition.SetParam(GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	gPosition.SetParam(GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 	
@@ -248,21 +279,31 @@ void OpenGL::InitGBuffer() {
 	gViewNormal.SetParam(GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	gViewNormal.SetParam(GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
-	gAlbedoSpec = Texture2D("gAlbedoSpec_tex2D", GL_RGBA8, SCR_WIDTH, SCR_HEIGHT);
-	gAlbedoSpec.SetParam(GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	gAlbedoSpec.SetParam(GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	gAlbedo = Texture2D("gDiffuse_tex2D", GL_RGB8, SCR_WIDTH, SCR_HEIGHT);
+	gAlbedo.SetParam(GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	gAlbedo.SetParam(GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
+	gSpecular = Texture2D("gSpecular_tex2D", GL_R8, SCR_WIDTH, SCR_HEIGHT);
+	gSpecular.SetParam(GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	gSpecular.SetParam(GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
+	gMetallic = Texture2D("gMetallic_tex2D", GL_R8, SCR_WIDTH, SCR_HEIGHT);
+	gMetallic.SetParam(GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	gMetallic.SetParam(GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
 	gBufferFBO = FrameBuffer(SCR_WIDTH, SCR_HEIGHT);
 	gBufferFBO.AttachColorTex2D(gPosition.GetID(), 0);
 	gBufferFBO.AttachColorTex2D(gNormal.GetID(), 1);
-	gBufferFBO.AttachColorTex2D(gAlbedoSpec.GetID(), 2);
-	gBufferFBO.AttachColorTex2D(gViewPosition.GetID(), 3);
-	gBufferFBO.AttachColorTex2D(gViewNormal.GetID(), 4);
+	gBufferFBO.AttachColorTex2D(gAlbedo.GetID(), 2);
+	gBufferFBO.AttachColorTex2D(gSpecular.GetID(), 3);
+	gBufferFBO.AttachColorTex2D(gMetallic.GetID(), 4);
+	gBufferFBO.AttachColorTex2D(gViewPosition.GetID(), 5);
+	gBufferFBO.AttachColorTex2D(gViewNormal.GetID(), 6);
 	gBufferFBO.DrawColorBuffers();
 	gBufferFBO.CreateRenderBuffer();
 
 	if (!gBufferFBO.CheckComplete()) {
-		throw std::runtime_error("OpenGL: G-buffer frame buffer is not complete!");
+		LOG(LogOpenGL, LOG_CRITICAL, "Gbuffer frame buffer is incomplete.");
 	}
 }
 
@@ -457,53 +498,79 @@ void OpenGL::ShadowMapPass() {
 }
 
 void OpenGL::LightingPass() {
-	BIND(Shader, lightingShader);
-	BIND(VertexArray, screenQuadVAO);
 	BIND_TEX(TextureCubeMapArray, pointShadowCubemapArray, 0);
 	BIND_TEX(Texture2DArray, shadowMapTex2DArray, 1);
 	BIND_TEX(Texture2D, gPosition, 2);
 	BIND_TEX(Texture2D, gNormal, 3);
-	BIND_TEX(Texture2D, gAlbedoSpec, 4);
-	BIND_TEX(Texture2D, ssaoBlurredTex2D, 5);
+	BIND_TEX(Texture2D, gAlbedo, 4);
+	BIND_TEX(Texture2D, gSpecular, 5);
+	BIND_TEX(Texture2D, gMetallic, 6);
+	BIND_TEX(Texture2D, SSAOBlurTex2D, 7);
+	BIND(Shader, lightingShader);
+	BIND(FrameBuffer, lightingFBO);
+	BIND(VertexArray, screenQuadVAO);
 
-	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	lightingFBO.SetViewport();
 	lightingShader.SetUInt("cascadeCount", static_cast<uint32_t>(cascadeDataArray.size()));
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	glDisable(GL_DEPTH_TEST);
-
 	glDrawArrays(GL_TRIANGLES, 0, 6);
-	
 	glEnable(GL_DEPTH_TEST);
 }
 
-void OpenGL::DebugGbuffer(uint32_t layer) {
-	glBindFramebuffer(GL_FRAMEBUFFER, 0);
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+void OpenGL::OutputToScreen(const SceneTexture st) {
+	Texture2D sceneTexture;
+	switch (st) {
+		case SceneTexture::ST_POST_FX:
+			sceneTexture = postFXTex2D;
+			break;
+		case SceneTexture::ST_DIFFUSE:
+			sceneTexture = diffuseTex2D;
+			break;
+		case SceneTexture::ST_ALBEDO:
+			sceneTexture = gAlbedo;
+			break;
+		case SceneTexture::ST_METALLIC:
+			sceneTexture = gMetallic;
+			break;
+		case SceneTexture::ST_SPECULAR:
+			sceneTexture = gSpecular;
+			break;
+		case SceneTexture::ST_WORLD_NORMAL:
+			sceneTexture = gNormal;
+			break;
+		case SceneTexture::ST_WORLD_POSITION:
+			sceneTexture = gPosition;
+			break;
+		case SceneTexture::ST_SSAO:
+			sceneTexture = SSAOTex2D;
+			break;
+		default:
+			LOG(LogOpenGL, LOG_CRITICAL, std::format("Invalid scene texture selected."));
+	}
 
-	BIND(Shader, screenShader);
 	BIND(VertexArray, screenQuadVAO);
-
-	Texture2D& tex = gPosition;
-	if (layer == 0) {
-		// keep gPosiiton as default
-	}
-	else if (layer == 1) {
-		tex = gNormal;
-	}
-	else if (layer == 2) {
-		tex = gAlbedoSpec;
-	}
-	else if (layer == 3) {
-		tex = ssaoBlurredTex2D;
-	}
-	else {
-		LOG(LogOpenGL, LOG_WARNING, "Debug mode for gBuffer failed. Invalid layer.");
-	}
-
-	BIND_TEX(Texture2D, tex, 0);
+	BIND_TEX(Texture2D, sceneTexture, 0);
+	BIND(Shader, screenShader);
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	glDisable(GL_DEPTH_TEST);
-	glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, nullptr);
-	glEnable(GL_DEPTH_TEST);
+	glDrawArrays(GL_TRIANGLES, 0, 6);
+}
+
+void OpenGL::PostFxPass()
+{
+	BIND_TEX(Texture2D, diffuseTex2D, 0);
+	BIND(Shader, postFxShader);
+	BIND(VertexArray, screenQuadVAO);
+	BIND(FrameBuffer, postfxFBO);
+
+	postFxShader.SetUFloat("uGamma", GAMMA);
+	postfxFBO.SetViewport();
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	glDisable(GL_DEPTH_TEST);
+	glDrawArrays(GL_TRIANGLES, 0, 6);
 }
 
 void OpenGL::UpsertMeshEntity(const Entity entity, const std::vector<const Mesh*>& meshes, const Transform& transform) {
@@ -619,7 +686,7 @@ void OpenGL::SSAOPass() {
 	{
 		BIND_TEX(Texture2D, gViewPosition, 0);
 		BIND_TEX(Texture2D, gViewNormal, 1);
-		BIND_TEX(Texture2D, ssaoNoiseTex2D, 2);
+		BIND_TEX(Texture2D, SSAONoiseTex2D, 2);
 		BIND(Shader, ssaoShader);
 		BIND(FrameBuffer, ssaoFBO);
 		
@@ -633,7 +700,7 @@ void OpenGL::SSAOPass() {
 	}
 
 	{
-		BIND_TEX(Texture2D, gSSAO, 0);
+		BIND_TEX(Texture2D, SSAOTex2D, 0);
 		BIND(Shader, ssaoBlurShader);
 		BIND(FrameBuffer, ssaoBlurFBO);
 

@@ -57,6 +57,13 @@ public:
 		colorTextAttachments[attachmentIndex] = texture;
 	}
 
+	void AttachColorTex2Ds(const std::vector<GLuint>& textures) {
+		size_t i = 0;
+		for (const auto& texture : textures) {
+			AttachColorTex2D(texture, static_cast<GLuint>(i));
+		}
+	}
+
 	void AttachDepthTex2D(const GLuint texture) {
 		glNamedFramebufferTexture(id, GL_DEPTH_ATTACHMENT, texture, 0);
 		depthTextAttachment = texture;
