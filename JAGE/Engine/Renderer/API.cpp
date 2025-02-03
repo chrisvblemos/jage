@@ -9,43 +9,56 @@
 #include <ECS/Components/PointLight.h>
 #include <ECS/Components/StaticMeshRenderer.h>
 #include <Core/AssetManager.h>
-#include <Utils.h>
 #include <LogDisplay.h>
-
+#include "Settings.h"
 #include "ShaderPreProcessor.h"
-#include "OpenGLUtils.h"
-#include "OpenGL.h"
+#include "Utils.h"
+#include "API.h"
 
-bool OpenGL::Initialize() {
+void EnableOpenGLDebugOutput();
+
+bool API::Initialize() {
 
 	EnableOpenGLDebugOutput();
-
 	ShaderPreProcessor spp = ShaderPreProcessor();
 	spp.Initialize();
 	
-	lightingShader = Shader(spp.GetCodeStr("lighting.vert"), spp.GetCodeStr("lighting.frag"));
-	screenShader = Shader(spp.GetCodeStr("screen.vert"), spp.GetCodeStr("screen.frag"));
-	gBufferShader = Shader(spp.GetCodeStr("gbuffer.vert"), spp.GetCodeStr("gbuffer.frag"));
-	pointLightShadowMapShader = Shader(spp.GetCodeStr("point_shadow_map.vert"), spp.GetCodeStr("point_shadow_map.frag"), spp.GetCodeStr("point_shadow_map.geom"));
-	varianceShadowMapShader = Shader(spp.GetCodeStr("vsm.vert"), spp.GetCodeStr("vsm.frag"));
-	hBlurShadowMapShader = Shader(spp.GetCodeStr("screen.vert"), spp.GetCodeStr("gaussian_blur_h.frag"));
-	vBlurShadowMapShader = Shader(spp.GetCodeStr("screen.vert"), spp.GetCodeStr("gaussian_blur_v.frag"));
-	shadowMapShader = Shader(spp.GetCodeStr("csm.vert"), spp.GetCodeStr("csm.frag"), spp.GetCodeStr("csm.geom"));
-	ssaoShader = Shader(spp.GetCodeStr("ssao.vert"), spp.GetCodeStr("ssao.frag"));
-	ssaoBlurShader = Shader(spp.GetCodeStr("ssao.vert"), spp.GetCodeStr("ssao_blur.frag"));
-	postFxShader = Shader(spp.GetCodeStr("screen.vert"), spp.GetCodeStr("post_fx.frag"));
+	lightingShader            = Shader(spp.GetCodeStr("lighting.vert"), 
+									   spp.GetCodeStr("lighting.frag"));
+	screenShader              = Shader(spp.GetCodeStr("screen.vert"), 
+						  			   spp.GetCodeStr("screen.frag"));
+	gBufferShader             = Shader(spp.GetCodeStr("gbuffer.vert"),
+						               spp.GetCodeStr("gbuffer.frag"));
+	pointLightShadowMapShader = Shader(spp.GetCodeStr("point_shadow_map.vert"),
+									   spp.GetCodeStr("point_shadow_map.frag"),
+									   spp.GetCodeStr("point_shadow_map.geom"));
+	varianceShadowMapShader   = Shader(spp.GetCodeStr("vsm.vert"),
+									   spp.GetCodeStr("vsm.frag"));
+	hBlurShadowMapShader      = Shader(spp.GetCodeStr("screen.vert"),
+								       spp.GetCodeStr("gaussian_blur_h.frag"));
+	vBlurShadowMapShader      = Shader(spp.GetCodeStr("screen.vert"),
+								       spp.GetCodeStr("gaussian_blur_v.frag"));
+	shadowMapShader           = Shader(spp.GetCodeStr("csm.vert"),
+							           spp.GetCodeStr("csm.frag"),
+							           spp.GetCodeStr("csm.geom"));
+	ssaoShader                = Shader(spp.GetCodeStr("ssao.vert"),
+					                   spp.GetCodeStr("ssao.frag"));
+	ssaoBlurShader            = Shader(spp.GetCodeStr("ssao.vert"),
+							           spp.GetCodeStr("ssao_blur.frag"));
+	postFxShader              = Shader(spp.GetCodeStr("screen.vert"),
+						               spp.GetCodeStr("post_fx.frag"));
 
 	meshVBO = VertexArrayBuffer(5000 * MAX_MESHES, GL_DYNAMIC_STORAGE_BIT);
 	meshEBO = ElementArrayBuffer(3 * 5000 * MAX_MESHES, GL_DYNAMIC_STORAGE_BIT);
 	meshDIB = DrawIndirectBuffer(SSBO_MESH_INDIRECT_DRAW_COMMAND, MAX_MESHES * sizeof(MeshDrawCmdData), GL_DYNAMIC_STORAGE_BIT);
 
-	meshSSBO = ShaderStorageBuffer(SSBO_MESH_INSTANCE_DATA, MAX_MESHES * sizeof(MeshInstanceData));
-	textureHndlrsSSBO = ShaderStorageBuffer(SSBO_TEXTURE_HANDLERS, MAX_TEXTURES * sizeof(GLuint64));
+	meshSSBO                = ShaderStorageBuffer(SSBO_MESH_INSTANCE_DATA, MAX_MESHES * sizeof(MeshInstanceData));
+	textureHndlrsSSBO       = ShaderStorageBuffer(SSBO_TEXTURE_HANDLERS, MAX_TEXTURES * sizeof(GLuint64));
 	pointLightDataArraySSBO = ShaderStorageBuffer(SSBO_POINT_LIGHT_DATA_ARRAY, MAX_POINT_LIGHTS * sizeof(PointLightData));
 	
-	cameraDataUBO = UniformBuffer(UBO_CAMERA_DATA, sizeof(CameraData));
+	cameraDataUBO     = UniformBuffer(UBO_CAMERA_DATA, sizeof(CameraData));
 	sceneLightDataUBO = UniformBuffer(UBO_SCENE_LIGHT_DATA, sizeof(SceneLightData), GL_DYNAMIC_STORAGE_BIT);
-	cascadeDataUBO = UniformBuffer(UBO_SHADOW_CASCADE_DATA, SHADOW_MAP_MAX_CASCADES * sizeof(CascadeData), GL_DYNAMIC_STORAGE_BIT);
+	cascadeDataUBO    = UniformBuffer(UBO_SHADOW_CASCADE_DATA, SHADOW_MAP_MAX_CASCADES * sizeof(CascadeData), GL_DYNAMIC_STORAGE_BIT);
 
 	meshVAO = VertexArray();
 	std::vector<VertexAttrib> meshVAOAttribs = {
@@ -57,8 +70,8 @@ bool OpenGL::Initialize() {
 
 
 	screenQuadVBO = VertexArrayBuffer(sizeof(quadVertices), GL_DYNAMIC_STORAGE_BIT);
-	screenQuadVBO.UpdateData(0, sizeof(quadVertices), quadVertices);
 	screenQuadEBO = ElementArrayBuffer(sizeof(quadIndices), GL_DYNAMIC_STORAGE_BIT);
+	screenQuadVBO.UpdateData(0, sizeof(quadVertices), quadVertices);
 	screenQuadEBO.UpdateData(0, sizeof(quadIndices), quadIndices);
 
 	screenQuadVAO = VertexArray();
@@ -74,12 +87,187 @@ bool OpenGL::Initialize() {
 	InitPostFxFBO();
 	InitSSAOUniformBuffer();
 
-	glEnable(GL_CULL_FACE);
+	SetFaceCullEnabled(true);
+	SetDepthEnabled(true);
 
 	return true;
 }
 
-void OpenGL::InitSSAOUniformBuffer() {
+void APIENTRY GLDebugMessageCallback(GLenum source, GLenum type, GLuint id,
+	GLenum severity, GLsizei length,
+	const GLchar* message, const void* userParam) {
+	const char* sourceStr;
+	const char* typeStr;
+	const char* severityStr;
+
+	// Determine the source of the message
+	switch (source) {
+	case GL_DEBUG_SOURCE_API:             sourceStr = "API"; break;
+	case GL_DEBUG_SOURCE_WINDOW_SYSTEM:   sourceStr = "Window System"; break;
+	case GL_DEBUG_SOURCE_SHADER_COMPILER: sourceStr = "Shader Compiler"; break;
+	case GL_DEBUG_SOURCE_THIRD_PARTY:     sourceStr = "Third Party"; break;
+	case GL_DEBUG_SOURCE_APPLICATION:     sourceStr = "Application"; break;
+	case GL_DEBUG_SOURCE_OTHER:           sourceStr = "Other"; break;
+	default:                              sourceStr = "Unknown"; break;
+	}
+
+	// Determine the type of the message
+	switch (type) {
+	case GL_DEBUG_TYPE_ERROR:               typeStr = "Error"; break;
+	case GL_DEBUG_TYPE_DEPRECATED_BEHAVIOR: typeStr = "Deprecated Behavior"; break;
+	case GL_DEBUG_TYPE_UNDEFINED_BEHAVIOR:  typeStr = "Undefined Behavior"; break;
+	case GL_DEBUG_TYPE_PORTABILITY:         typeStr = "Portability Issue"; break;
+	case GL_DEBUG_TYPE_PERFORMANCE:         typeStr = "Performance Issue"; break;
+	case GL_DEBUG_TYPE_MARKER:              typeStr = "Marker"; break;
+	case GL_DEBUG_TYPE_PUSH_GROUP:          typeStr = "Push Group"; break;
+	case GL_DEBUG_TYPE_POP_GROUP:           typeStr = "Pop Group"; break;
+	case GL_DEBUG_TYPE_OTHER:               typeStr = "Other"; break;
+	default:                                typeStr = "Unknown"; break;
+	}
+
+	// Determine the severity of the message
+	switch (severity) {
+	case GL_DEBUG_SEVERITY_HIGH:         severityStr = "High"; break;
+	case GL_DEBUG_SEVERITY_MEDIUM:       severityStr = "Medium"; break;
+	case GL_DEBUG_SEVERITY_LOW:          severityStr = "Low"; break;
+	case GL_DEBUG_SEVERITY_NOTIFICATION: severityStr = "Notification"; break;
+	default:                             severityStr = "Unknown"; break;
+	}
+
+	std::string msg = std::format("Source: {}, Type: {}, ID: {}, Message: {}", sourceStr, type, id, message);
+
+	// Print debug message
+	//std::cerr << "[OpenGL Debug] Source: " << sourceStr
+	//	<< ", Type: " << typeStr
+	//	<< ", Severity: " << severityStr
+	//	<< ", ID: " << id
+	//	<< ", Message: " << message << std::endl;
+
+	if (type == GL_DEBUG_TYPE_ERROR) {
+		LOG(LogGeneric, LOG_ERROR, msg);
+	}
+	else {
+		LOG(LogGeneric, LOG_VERBOSE, msg);
+	}
+
+#ifdef _DEBUG
+	if (severity == GL_DEBUG_SEVERITY_HIGH) {
+		__debugbreak(); // Break into debugger on high-severity errors (Visual Studio only)
+	}
+#endif
+}
+
+// Initialize OpenGL debug output
+void EnableOpenGLDebugOutput() {
+	glEnable(GL_DEBUG_OUTPUT); // Enable debug output
+	glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS); // Make it synchronous for easier debugging
+	glDebugMessageCallback(GLDebugMessageCallback, nullptr); // Register callback function
+
+	// Optionally control which messages to log (filtering)
+	glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, 0, nullptr, GL_TRUE);
+}
+
+/* Projection matrix uses camera fov and aspect ratio, and the near and far plane
+of the frustum in question. The view matrix is the camera's view matrix as usual. */
+std::vector<glm::vec4> API::GetFrustumCornersWorldSpace(const float fov, const float aspectRatio, const float nearPlane, const float farPlane, const glm::mat4& view) {
+	const glm::mat4 proj = glm::perspective(glm::radians(fov), aspectRatio, nearPlane, farPlane);
+	const auto inv = glm::inverse(proj * view);
+
+	std::vector<glm::vec4> corners;
+	for (int x = 0; x < 2; x++) {
+		for (int y = 0; y < 2; y++) {
+			for (int z = 0; z < 2; z++) {
+				const glm::vec4 point =
+					inv * glm::vec4(
+						2.0f * x - 1.0f,
+						2.0f * y - 1.0f,
+						2.0f * z - 1.0f,
+						1.0f);
+				corners.push_back(point / point.w);
+			}
+		}
+	}
+
+	return corners;
+}
+
+glm::mat4 API::GetLightViewMatrix(const glm::vec3& lightDir, const std::vector<glm::vec4>& frustumCorners) {
+	glm::vec3 center = glm::vec3(0.0f); // center of light frustum
+	for (const auto& v : frustumCorners) {
+		center += glm::vec3(v);
+	}
+
+	center /= (float)frustumCorners.size();
+
+	glm::vec3 normalizedLightDir = glm::normalize(lightDir);
+	float pitch = glm::asin(normalizedLightDir.y);
+	float yaw = glm::atan(normalizedLightDir.x, normalizedLightDir.z);
+
+	glm::mat4 view = glm::mat4(1.0f);
+	glm::mat4 translate = glm::translate(view, -(center - lightDir));
+	glm::mat4 rotYaw = glm::rotate(view, -yaw, { 0.0f, 1.0f, 0.0f });
+	glm::mat4 rotPitch = glm::rotate(view, -pitch, { 1.0f, 0.0f, 0.0f });
+	return rotPitch * rotYaw * translate;
+}
+
+/* Returns the light proj matrix when using CSM. To get the view-proj matrix,
+just multiply by the view matrix (see GetLightViewMatrix()).*/
+glm::mat4 API::GetLightSpaceMatrix(const glm::mat4& lightViewMatrix, const std::vector<glm::vec4>& corners) {
+	float minX = std::numeric_limits<float>::max();
+	float maxX = std::numeric_limits<float>::lowest();
+	float minY = std::numeric_limits<float>::max();
+	float maxY = std::numeric_limits<float>::lowest();
+	float minZ = std::numeric_limits<float>::max();
+	float maxZ = std::numeric_limits<float>::lowest();
+
+	for (const auto& v : corners)
+	{
+		const auto trf = lightViewMatrix * v;
+		minX = glm::min(minX, trf.x);
+		maxX = glm::max(maxX, trf.x);
+		minY = glm::min(minY, trf.y);
+		maxY = glm::max(maxY, trf.y);
+		minZ = glm::min(minZ, trf.z);
+		maxZ = glm::max(maxZ, trf.z);
+	}
+
+	//auto tmp = -minZ;
+	//minZ = -maxZ;
+	//maxZ = tmp;
+
+	//auto mid = (maxZ - minZ) / 2;
+	//minZ -= mid * 5.0f;
+	//maxZ += mid * 5.0f;
+
+	constexpr float zMult = 10.0f; // multiplier to extend light view frustum to 
+	// corners of camera (objects out of view still cast shadows)
+	if (minZ < 0)
+		minZ *= zMult;
+	else
+		minZ /= zMult;
+
+	if (maxZ < 0)
+		maxZ /= zMult;
+	else
+		maxZ *= zMult;
+
+	//auto mid = (maxZ - minZ) / 2.0;
+	//minZ -= mid * 5.0f;
+	//maxZ += mid * 5.0f;
+
+	const glm::mat4 lightProjection = glm::ortho(
+		minX,
+		maxX,
+		minY,
+		maxY,
+		minZ,
+		maxZ
+	);
+
+	return lightProjection * lightViewMatrix;
+};
+
+void API::InitSSAOUniformBuffer() {
 
 	std::uniform_real_distribution<float> randomFloats(0.0, 1.0);
 	std::default_random_engine generator;
@@ -116,7 +304,7 @@ void OpenGL::InitSSAOUniformBuffer() {
 		sample *= randomFloats(generator);
 
 		float scale = (float)i / SSAO_KERNEL_SIZE;
-		scale = GLUtils::lerp(0.1f, 1.0f, scale * scale);
+		scale = glm::mix(0.1f, 1.0f, scale * scale);
 		sample *= scale;
 		//ssaoKernel.push_back(sample);
 		ssaoSettings.samples[i] = sample;
@@ -157,7 +345,7 @@ void OpenGL::InitSSAOUniformBuffer() {
 	}
 }
 
-void OpenGL::InitPostFxFBO() {
+void API::InitPostFxFBO() {
 	postFXTex2D = Texture2D("post_fx_tex2d", GL_RGB8, SCR_WIDTH, SCR_HEIGHT);
 	postFXTex2D.SetParam(GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	postFXTex2D.SetParam(GL_TEXTURE_MAG_FILTER, GL_NEAREST);
@@ -170,7 +358,7 @@ void OpenGL::InitPostFxFBO() {
 	}
 }
 
-void OpenGL::InitShadowMapFBOs() {
+void API::InitShadowMapFBOs() {
 	float borderColor[] = {1.0f, 1.0f, 1.0f, 1.0f};
 	float invBorderColor[] = { 0.0f, 0.0f, 0.0f, 0.0f };
 	
@@ -247,7 +435,7 @@ void OpenGL::InitShadowMapFBOs() {
 	}
 }
 
-void OpenGL::InitLightingFBO()
+void API::InitLightingFBO()
 {
 	diffuseTex2D = Texture2D("gDiffuse_tex2D", GL_RGB16F, SCR_WIDTH, SCR_HEIGHT);
 	diffuseTex2D.SetParam(GL_TEXTURE_MIN_FILTER, GL_NEAREST);
@@ -262,7 +450,7 @@ void OpenGL::InitLightingFBO()
 	}
 }
 
-void OpenGL::InitGBuffer() {
+void API::InitGBuffer() {
 	gPosition = Texture2D("gPosition_tex2D", GL_RGBA16F, SCR_WIDTH, SCR_HEIGHT);
 	gPosition.SetParam(GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	gPosition.SetParam(GL_TEXTURE_MAG_FILTER, GL_NEAREST);
@@ -307,25 +495,43 @@ void OpenGL::InitGBuffer() {
 	}
 }
 
-void OpenGL::RegisterTexture2D(Texture* texture) {
-	assert(texture != nullptr && "OpenGL: Failed to buffer texture.");
+void API::RegisterTexture2D(Texture* texture) {
+	if (texture == nullptr)
+		LOG(LogOpenGL, LOG_CRITICAL, std::format("Failed to register texture {} to buffer.", texture->assetPath));
 
 	auto it = assetIDToTex2DMap.find(texture->assetId);
 	if (it != assetIDToTex2DMap.end())
 		return;
-
-	GLenum format = GL_RED;
-	GLenum internalFormat = GL_R8;
-	if (texture->nrChannels == 3)
-	{
-		format = GL_RGB;
-		internalFormat = GL_RGB8;
+	
+	GLenum internalFormat;
+	if (texture->type == TextureAssetType::Albedo) {
+		if (texture->hasAlphaChannel) {
+			if (texture->inLinearSpace)
+				internalFormat = GL_RGBA8;
+			else
+				internalFormat = GL_SRGB8_ALPHA8;
+		}
+		else {
+			if (texture->inLinearSpace)
+				internalFormat = GL_RGB8;
+			else
+				internalFormat = GL_SRGB8;
+		}
 	}
-	else if (texture->nrChannels == 4)
-	{
-		format = GL_RGBA;
-		internalFormat = GL_RGBA8;
+	else if (texture->type == TextureAssetType::Metallic || 
+			 texture->type == TextureAssetType::Specular ||
+			 texture->type == TextureAssetType::Roughness ||
+			 texture->type == TextureAssetType::AO ||
+			 texture->type == TextureAssetType::Linear) {
+		internalFormat = GL_R8;
 	}
+	else if (texture->type == TextureAssetType::Normal) {
+		internalFormat = GL_RG8;
+	}
+	else {
+		LOG(LogOpenGL, LOG_CRITICAL, std::format("Failed to infer texture format for {}", texture->assetPath));
+	}
+	GLenum format = internalToFormat(internalFormat);
 
 	Texture2D glTex2D = Texture2D(texture->assetName, internalFormat, texture->width, texture->height);
 	glTex2D.SetParam(GL_TEXTURE_WRAP_S, GL_REPEAT);
@@ -344,7 +550,7 @@ void OpenGL::RegisterTexture2D(Texture* texture) {
 	assetIDToTex2DMap[texture->assetId] = glTex2D;
 }
 
-glm::mat4 OpenGL::CalculateModelMatrix(const glm::vec3 &position, const glm::quat &rotation, const glm::vec3 &scale)
+glm::mat4 API::CalculateModelMatrix(const glm::vec3 &position, const glm::quat &rotation, const glm::vec3 &scale)
 {
 	glm::mat4 modelMatrix = glm::mat4(1.0f);
 	modelMatrix = glm::translate(modelMatrix, position);
@@ -353,7 +559,7 @@ glm::mat4 OpenGL::CalculateModelMatrix(const glm::vec3 &position, const glm::qua
 	return modelMatrix;
 }
 
-void OpenGL::UploadSceneLightData() {
+void API::UploadSceneLightData() {
 	SceneLightData sceneLightData;
 	sceneLightData.mHasDirectionalLight = static_cast<GLuint>(directionalLight != nullptr);
 	sceneLightData.mDirectionalLightColor = directionalLight? directionalLight->color : glm::vec3(1.0f);
@@ -361,13 +567,13 @@ void OpenGL::UploadSceneLightData() {
 	sceneLightData.mDirectionalLightIntensity = directionalLight? directionalLight->intensity : 1.0f;
 	sceneLightData.mDirectionalLightMatrix = directionalLight? directionalLight->LightSpaceMatrix(currentActiveCamera->position) : glm::mat4(1.0f);
 	sceneLightData.mAmbientLightColor = glm::vec3(1.0f);
-	sceneLightData.mAmbientLightIntensity = .4f;
+	sceneLightData.mAmbientLightIntensity = .1f;
 	sceneLightData.mPointLightsCount = static_cast<GLsizei>(pointLightDataArray.size());
 
 	sceneLightDataUBO.UpdateData(0, sizeof(SceneLightData), &sceneLightData);
 }
 
-void OpenGL::UploadCameraData() {
+void API::UploadCameraData() {
 	assert(currentActiveCamera && "OpenGL: Attempting to upload camera data without an active camera.");
 
 	CameraData cameraData = {};
@@ -378,22 +584,14 @@ void OpenGL::UploadCameraData() {
 	cameraDataUBO.UpdateData(0, sizeof(CameraData), &cameraData);
 }
 
-void OpenGL::PointLightShadowMapPass() {
+void API::PointLightShadowMapPass() {
 	if (pointLightDataArray.empty())
 		return;
 
 	BIND(FrameBuffer, pointShadowFBO);
-	pointShadowFBO.SetViewport();
-
-	glClear(GL_DEPTH_BUFFER_BIT);
-	glEnable(GL_DEPTH_TEST);
-	glCullFace(GL_FRONT);
-
-	size_t pointLightsCount = pointLightDataArray.size();
-
 	BIND(Shader, pointLightShadowMapShader);
-	BIND(VertexArray, meshVAO);
-	BIND(DrawIndirectBuffer, meshDIB);
+	SetViewport(0, 0, pointShadowFBO.GetWidth(), pointShadowFBO.GetHeight());
+	size_t pointLightsCount = pointLightDataArray.size();
 
 	// we re-draw the scene for each of the faces
 	// of the cube map depth texture
@@ -425,16 +623,16 @@ void OpenGL::PointLightShadowMapPass() {
 		pointLightShadowMapShader.SetUFloat("uLightFarPlane", lightData.shadowFarPlane);
 		pointLightShadowMapShader.SetUInt("uBaseLayerOffset", 6*i);
 
-		pointLightDataArraySSBO.UpdateData(lightData.dataArrayIndex * sizeof(PointLightData) + offsetof(PointLightData, shadowCubeMapIndex), sizeof(GLuint), &lightData.shadowCubeMapIndex);
-
-		glMultiDrawElementsIndirect(GL_TRIANGLES, GL_UNSIGNED_INT, nullptr, static_cast<GLsizei>(meshDrawCmdDataArray.size()), sizeof(MeshDrawCmdData));
+		pointLightDataArraySSBO.UpdateData(lightData.dataArrayIndex * sizeof(PointLightData) 
+										   + offsetof(PointLightData,
+										   shadowCubeMapIndex),
+										   sizeof(GLuint),
+										   &lightData.shadowCubeMapIndex);
+		DrawScene();
 	}
-
-	glCullFace(GL_BACK);
-	glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);
 }
 
-void OpenGL::RegisterCamera(Camera* camera) {
+void API::RegisterCamera(Camera* camera) {
 	if (camera != nullptr) {
 		currentActiveCamera = camera;
 
@@ -465,16 +663,16 @@ void OpenGL::RegisterCamera(Camera* camera) {
 	}
 }
 
-void OpenGL::ShadowMapPass() {
+void API::ShadowMapPass() {
 	if (directionalLight == nullptr) return;
 
 	for (int i = 0; i < SHADOW_MAP_N_CASCADES; i++) {
 		const float cascadeNearPlane = cascadeDataArray[i].nearPlane;
 		const float cascadeFarPlane = cascadeDataArray[i].farPlane;
 
-		const std::vector<glm::vec4> corners = GLUtils::GetFrustumCornersWorldSpace(currentActiveCamera->mFOV, currentActiveCamera->mAspectRatio, cascadeNearPlane, cascadeFarPlane, currentActiveCamera->ViewMatrix());
-		const glm::mat4 view = GLUtils::GetLightViewMatrix(directionalLight->direction, corners);
-		const glm::mat4 lightSpaceMatrix = GLUtils::GetLightSpaceMatrix(view, corners);
+		const std::vector<glm::vec4> corners = GetFrustumCornersWorldSpace(currentActiveCamera->mFOV, currentActiveCamera->mAspectRatio, cascadeNearPlane, cascadeFarPlane, currentActiveCamera->ViewMatrix());
+		const glm::mat4 view = GetLightViewMatrix(directionalLight->direction, corners);
+		const glm::mat4 lightSpaceMatrix = GetLightSpaceMatrix(view, corners);
 		cascadeDataArray[i].lightSpaceMatrix = lightSpaceMatrix;
 	}
 
@@ -482,22 +680,11 @@ void OpenGL::ShadowMapPass() {
 
 	BIND(Shader, shadowMapShader);
 	BIND(FrameBuffer, shadowMapFBO);
-	BIND(DrawIndirectBuffer, meshDIB);
-	BIND(VertexArray, meshVAO);
-
-	shadowMapFBO.SetViewport();
-
-	glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
-	glEnable(GL_DEPTH_TEST);
-	glCullFace(GL_FRONT);
-
-	glMultiDrawElementsIndirect(GL_TRIANGLES, GL_UNSIGNED_INT, nullptr, static_cast<GLsizei>(meshDrawCmdDataArray.size()), sizeof(MeshDrawCmdData));
-
-	glCullFace(GL_BACK);
-	glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);
+	SetViewport(0, 0, shadowMapFBO.GetWidth(), shadowMapFBO.GetHeight());
+	DrawScene();
 }
 
-void OpenGL::LightingPass() {
+void API::LightingPass() {
 	BIND_TEX(TextureCubeMapArray, pointShadowCubemapArray, 0);
 	BIND_TEX(Texture2DArray, shadowMapTex2DArray, 1);
 	BIND_TEX(Texture2D, gPosition, 2);
@@ -508,17 +695,13 @@ void OpenGL::LightingPass() {
 	BIND_TEX(Texture2D, SSAOBlurTex2D, 7);
 	BIND(Shader, lightingShader);
 	BIND(FrameBuffer, lightingFBO);
-	BIND(VertexArray, screenQuadVAO);
-
-	lightingFBO.SetViewport();
 	lightingShader.SetUInt("cascadeCount", static_cast<uint32_t>(cascadeDataArray.size()));
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-	glDisable(GL_DEPTH_TEST);
-	glDrawArrays(GL_TRIANGLES, 0, 6);
-	glEnable(GL_DEPTH_TEST);
+
+	SetViewport(0, 0, lightingFBO.GetWidth(), lightingFBO.GetHeight());
+	DrawScreenQuad(diffuseTex2D);
 }
 
-void OpenGL::OutputToScreen(const SceneTexture st) {
+void API::OutputToScreen(const SceneTexture st) {
 	Texture2D sceneTexture;
 	switch (st) {
 		case SceneTexture::ST_POST_FX:
@@ -549,31 +732,44 @@ void OpenGL::OutputToScreen(const SceneTexture st) {
 			LOG(LogOpenGL, LOG_CRITICAL, std::format("Invalid scene texture selected."));
 	}
 
-	BIND(VertexArray, screenQuadVAO);
 	BIND_TEX(Texture2D, sceneTexture, 0);
 	BIND(Shader, screenShader);
-	glBindFramebuffer(GL_FRAMEBUFFER, 0);
-	glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-	glDisable(GL_DEPTH_TEST);
+	DrawScreenQuad(sceneTexture);
+}
+
+void API::DrawScreenQuad(Texture2D& texture) {
+	BIND(VertexArray, screenQuadVAO);
+	ClearBuffers(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	SetDepthEnabled(false);
 	glDrawArrays(GL_TRIANGLES, 0, 6);
 }
 
-void OpenGL::PostFxPass()
+void API::DrawScene() {
+	SetViewport(0, 0, gBufferFBO.GetWidth(), gBufferFBO.GetHeight());
+	BIND(DrawIndirectBuffer, meshDIB);
+	BIND(VertexArray, meshVAO);
+	ClearBuffers(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
+	SetDepthEnabled(true);
+	SetFaceCullMode(GL_FRONT);
+	glMultiDrawElementsIndirect(GL_TRIANGLES,
+								GL_UNSIGNED_INT,
+								nullptr,
+								static_cast<GLsizei>(meshDrawCmdDataArray.size()),
+								sizeof(MeshDrawCmdData));
+	SetFaceCullMode(GL_BACK);
+}
+
+void API::PostFxPass()
 {
 	BIND_TEX(Texture2D, diffuseTex2D, 0);
 	BIND(Shader, postFxShader);
-	BIND(VertexArray, screenQuadVAO);
 	BIND(FrameBuffer, postfxFBO);
-
 	postFxShader.SetUFloat("uGamma", GAMMA);
-	postfxFBO.SetViewport();
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-	glDisable(GL_DEPTH_TEST);
-	glDrawArrays(GL_TRIANGLES, 0, 6);
+	SetViewport(0, 0, postfxFBO.GetWidth(), postfxFBO.GetHeight());
+	DrawScreenQuad(postFXTex2D);
 }
 
-void OpenGL::UpsertMeshEntity(const Entity entity, const std::vector<const Mesh*>& meshes, const Transform& transform) {
+void API::UpsertMeshEntity(const Entity entity, const std::vector<const Mesh*>& meshes, const Transform& transform) {
 	glm::mat4 model = CalculateModelMatrix(transform.position, transform.rotation, transform.scale);;
 	glm::mat4 inverseModel = glm::inverseTranspose(model);
 
@@ -598,7 +794,7 @@ void OpenGL::UpsertMeshEntity(const Entity entity, const std::vector<const Mesh*
 	}	
 }
 
-void OpenGL::RegisterPointLight(const Entity entity, const PointLight* light) {
+void API::RegisterPointLight(const Entity entity, const PointLight* light) {
 	if (light == nullptr) {
 		LOG(LogOpenGL, LOG_WARNING, "Failed to register point light. Light is null.");
 		return;
@@ -618,10 +814,9 @@ void OpenGL::RegisterPointLight(const Entity entity, const PointLight* light) {
 	}
 
 	pointLightDataArraySSBO.UpdateData(it->second.dataArrayIndex * sizeof(PointLightData), sizeof(PointLightData), &it->second);
-	// pointShadowCubemapArray.Allocate(GL_DEPTH_COMPONENT32F, SHADOW_MAP_RESOLUTION, SHADOW_MAP_RESOLUTION, 6 ^ pointLightDataArray.size());
 }
 
-void OpenGL::RegisterMesh(const Mesh* mesh) {
+void API::RegisterMesh(const Mesh* mesh) {
 	const std::vector<Vertex>& vertices = mesh->vertices;
 	const std::vector<GLuint>& indices = mesh->indices;
 
@@ -652,7 +847,7 @@ void OpenGL::RegisterMesh(const Mesh* mesh) {
 	}
 }
 
-void OpenGL::BatchMeshInstData() {
+void API::BatchMeshInstData() {
 	std::vector<MeshInstanceData> meshInstDataArray;
 	for (const auto& it : assToMeshInsts) {
 		MeshMetaData& metaData = assToMesh[it.first];
@@ -667,21 +862,15 @@ void OpenGL::BatchMeshInstData() {
 	meshSSBO.UpdateData(0, meshInstDataArray.size() * sizeof(MeshInstanceData), meshInstDataArray.data());
 }
 
-void OpenGL::GeometryPass() {
+void API::GeometryPass() {
 	BIND(Shader, gBufferShader);
 	BIND(FrameBuffer, gBufferFBO);
-	BIND(DrawIndirectBuffer, meshDIB);
-	BIND(VertexArray, meshVAO);
-
-	gBufferFBO.SetViewport();
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-	glEnable(GL_DEPTH_TEST);
-
-	glMultiDrawElementsIndirect(GL_TRIANGLES, GL_UNSIGNED_INT, nullptr, static_cast<GLsizei>(meshDrawCmdDataArray.size()), sizeof(MeshDrawCmdData));
+	SetViewport(0, 0, gBufferFBO.GetWidth(), gBufferFBO.GetHeight());
+	DrawScene();
 }
 
-void OpenGL::SSAOPass() {
-	BIND(VertexArray, screenQuadVAO);
+void API::SSAOPass() {
+	SetViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);
 
 	{
 		BIND_TEX(Texture2D, gViewPosition, 0);
@@ -689,28 +878,144 @@ void OpenGL::SSAOPass() {
 		BIND_TEX(Texture2D, SSAONoiseTex2D, 2);
 		BIND(Shader, ssaoShader);
 		BIND(FrameBuffer, ssaoFBO);
-		
-		ssaoFBO.SetViewport();
-		glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-		glDisable(GL_DEPTH_TEST);
-		glDrawArrays(GL_TRIANGLES, 0, 6);
-		glEnable(GL_DEPTH_TEST);
-		glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);
+		ClearColor({0, 0, 0, 1});
+		DrawScreenQuad(SSAOTex2D);
 	}
 
 	{
 		BIND_TEX(Texture2D, SSAOTex2D, 0);
 		BIND(Shader, ssaoBlurShader);
 		BIND(FrameBuffer, ssaoBlurFBO);
-
-		ssaoBlurFBO.SetViewport();
-		glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-		glDisable(GL_DEPTH_TEST);
-		glDrawArrays(GL_TRIANGLES, 0, 6);
-		glEnable(GL_DEPTH_TEST);
-		glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);
+		ClearColor({0, 0, 0, 1});
+		DrawScreenQuad(SSAOBlurTex2D);
 	}
 
+}
+
+void API::SetDepthEnabled(const bool val)
+{
+	if (mDepthEnabled == val) return;
+	
+	val? glEnable(GL_DEPTH_TEST) : glDisable(GL_DEPTH_TEST);        
+	mDepthEnabled = val;
+}
+
+void API::SetFaceCullEnabled(const bool val)
+{
+	if (mFaceCullEnabled == val) return;
+	
+	val? glEnable(GL_DEPTH_TEST) : glDisable(GL_DEPTH_TEST);        
+	mFaceCullEnabled = val;
+}
+
+void API::SetFaceCullMode(const GLenum mode)
+{
+	if (mFaceCullMode == mode) return;
+	glCullFace(mode);
+}
+
+void API::SetViewport(const GLint x_off, const GLint y_off, const GLsizei width, const GLsizei height)
+{
+	if (mViewport.x_offset == x_off &&
+		mViewport.y_offset == y_off &&
+		mViewport.width == width &&
+		mViewport.height == height)
+		return;
+
+	mViewport.x_offset = x_off;
+	mViewport.y_offset = y_off;
+	mViewport.width = width;
+	mViewport.height = height;
+
+	glViewport(x_off, y_off, width, height);
+}
+
+void API::ClearColor(const glm::vec4 &rgba)
+{
+	glClearColor(rgba.r, rgba.g, rgba.b, rgba.a);
+}
+
+void API::ClearBuffers(const GLenum flags)
+{
+	glClear(flags);
+}
+
+GLenum API::internalToFormat(const GLenum internalFormat)
+{
+    switch (internalFormat) {
+        case GL_R8:
+        case GL_R8_SNORM:
+        case GL_R16:
+        case GL_R16_SNORM:
+        case GL_R16F:
+        case GL_R32F:
+        case GL_R8I:
+        case GL_R8UI:
+        case GL_R16I:
+        case GL_R16UI:
+        case GL_R32I:
+        case GL_R32UI:
+            return GL_RED;
+
+        case GL_RG8:
+        case GL_RG8_SNORM:
+        case GL_RG16:
+        case GL_RG16_SNORM:
+        case GL_RG16F:
+        case GL_RG32F:
+        case GL_RG8I:
+        case GL_RG8UI:
+        case GL_RG16I:
+        case GL_RG16UI:
+        case GL_RG32I:
+        case GL_RG32UI:
+            return GL_RG;
+
+        case GL_R3_G3_B2:
+        case GL_RGB4:
+        case GL_RGB5:
+        case GL_RGB8:
+        case GL_RGB8_SNORM:
+        case GL_RGB10:
+        case GL_RGB12:
+        case GL_RGB16_SNORM:
+        case GL_SRGB8:
+        case GL_RGB16F:
+        case GL_RGB32F:
+        case GL_R11F_G11F_B10F:
+        case GL_RGB9_E5:
+        case GL_RGB8I:
+        case GL_RGB8UI:
+        case GL_RGB16I:
+        case GL_RGB16UI:
+        case GL_RGB32I:
+        case GL_RGB32UI:
+            return GL_RGB;
+
+        case GL_RGBA2:
+        case GL_RGBA4:
+            return GL_RGB;
+
+        // Map to GL_RGBA
+        case GL_RGB5_A1:
+        case GL_RGBA8:
+        case GL_RGBA8_SNORM:
+        case GL_RGB10_A2:
+        case GL_RGB10_A2UI:
+        case GL_RGBA12:
+        case GL_RGBA16:
+        case GL_SRGB8_ALPHA8:
+        case GL_RGBA16F:
+        case GL_RGBA32F:
+        case GL_RGBA8I:
+        case GL_RGBA8UI:
+        case GL_RGBA16I:
+        case GL_RGBA16UI:
+        case GL_RGBA32I:
+        case GL_RGBA32UI:
+            return GL_RGBA;
+
+        default:
+            return 0;
+    }
 }

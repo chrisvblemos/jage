@@ -1,6 +1,5 @@
 #include <World/World.h>
-#include <Defaults/Models.h>
-#include <Renderer/OpenGL.h>
+#include <Renderer/API.h>
 #include <Core/AssetLoader.h>
 #include <Core/AssetManager.h>
 #include <Input/MouseInput.h>
@@ -30,7 +29,7 @@ bool Engine::CreateWindow() {
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
-	window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "LearnOpenGL", nullptr, nullptr);
+	window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "JAGE", nullptr, nullptr);
 	if (window == nullptr)
 	{
 		std::cout << "Could not create game window." << std::endl;
@@ -65,7 +64,7 @@ void Engine::Init() {
 		return;
 	}
 
-	if (!OpenGL::Get().Initialize()) {
+	if (!API::Get().Initialize()) {
 		std::cout << "Failed to initialize renderer. Exiting..." << std::endl;
 		glfwTerminate();
 		return;
@@ -92,12 +91,13 @@ void Engine::Init() {
 	ImGui_ImplOpenGL3_Init("#version 460");
 
 	// load default assets
-	MeshModel& DefaultPlane = AssetLoader::Get().LoadMeshModelFromFile("Assets/Meshes/default_plane.obj");
-	MeshModel& DefaultCube = AssetLoader::Get().LoadMeshModelFromFile("Assets/Meshes/default_cube.obj");
-	MeshModel& backpackModel = AssetLoader::Get().LoadMeshModelFromFile("Assets/Meshes/SurvivalGuitarBackpack/backpack.obj");
+	MeshModel& DefaultPlane = AssetLoader::Get().LoadMeshModelFromFile(
+		"Assets/Meshes/default_plane.obj");
+	MeshModel& DefaultCube = AssetLoader::Get().LoadMeshModelFromFile(
+		"Assets/Meshes/default_cube.obj");
+	MeshModel& backpackModel = AssetLoader::Get().LoadMeshModelFromFile(
+		"Assets/Meshes/SurvivalGuitarBackpack/backpack.obj");
 
-	Texture& gaussianNoiseTex = AssetLoader::Get().LoadTextureFromFile("Assets/Textures/Noises/gaussian_noise.png");
-	
 	// register components
 	world.RegisterComponent<Transform>();
 	world.RegisterComponent<Camera>();
@@ -117,7 +117,7 @@ void Engine::Init() {
 	world.SetSystemOptionalSignature<PlayerSystem>(any);
 
 	RenderSystem* renderSystem = world.RegisterSystem<RenderSystem>();
-	renderSystem->SetRenderApi(&OpenGL::Get());
+	renderSystem->SetRenderApi(&API::Get());
 
 	Signature renderRequiredSignature = world.MakeSignature<Transform>();
 	Signature renderOptionalSignature = world.MakeSignature<StaticMeshRenderer, DirectionalLight, PointLight>();

@@ -12,12 +12,6 @@
     <ClCompile Include="Engine\Engine.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Engine\Renderer\OpenGL.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Engine\Defaults\Models.h">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="Engine\ECS\Components\Transform.h">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -93,9 +87,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Engine\Engine.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Engine\Renderer\OpenGL.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Engine\ECS\Components\StaticMeshRenderer.h">
@@ -1334,9 +1325,6 @@
     <ClInclude Include="ThirdParty\imgui\imstb_truetype.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Engine\Renderer\OpenGLUtils.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="Engine\Logging.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -1370,10 +1358,7 @@
     <ClInclude Include="Engine\Renderer\ShaderPreProcessor.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Engine\Defaults\Textures.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-  </ItemGroup>
+    </ItemGroup>
   <ItemGroup>
     <None Include="Assets\Meshes\AbandonedCottage\cottage.mtl" />
     <None Include="Assets\Meshes\AbandonedCottage\cottage.obj" />

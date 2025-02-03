@@ -11,6 +11,6 @@ in vec2 TexCoords;
 void main() {
     vec3 diffuse = texture(uDiffuseTex2D, TexCoords).rgb;
 
-    vec3 gammaResult = diffuse * uGamma;
+    vec3 gammaResult = pow(diffuse, vec3(1.0/uGamma));
     uPostFxTex2D = gammaResult;
 }

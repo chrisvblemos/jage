@@ -1,21 +1,12 @@
 #pragma once
 
+#include "Settings.h"
 #include "Types/Buffer.h"
 #include "Types/Shader.h"
 #include "Types/FrameBuffer.h"
 #include "Types/Texture.h"
 #include "Types/VertexArray.h"
 #include <Core/Core.h>
-
-struct Vertex;
-struct Texture;
-struct Transform;
-struct Material;
-struct Mesh;
-struct Camera;
-struct DirectionalLight;
-struct PointLight;
-struct StaticMeshRenderer;
 
 // UBOs & SSBOs
 #define UBO_LIGHTS 0
@@ -29,49 +20,26 @@ struct StaticMeshRenderer;
 #define UBO_SHADOW_CASCADE_DATA 8
 #define UBO_SSAO_SETTINGS_DATA 9
 
-// MESHES
-#define MAX_MESHES 10000
-#define MAX_MESH_INSTANCES 20000
-#define MAX_MATERIAL_INSTANCES 200
-#define MAX_POINT_LIGHTS 128
-#define MAX_TEXTURES 10000
-
-#define SHADOW_MAP_RESOLUTION 1024
-#define SHADOW_MAP_N_CASCADES 4
-#define SHADOW_MAP_MAX_CASCADES 16
-
-#define SSAO_KERNEL_SIZE 64
-#define SSAO_RADIUS 1.8f
-#define SSAO_BIAS 0.025f
-#define SSAO_POWER .5f
-
-#define GAMMA 2.2f
-
-enum SceneTexture : uint32_t {
-	ST_POST_FX,
-	ST_DIFFUSE,
-	ST_SSAO,
-	ST_ALBEDO,
-	ST_SPECULAR,
-	ST_METALLIC,
-	ST_DEPTH,
-	ST_WORLD_NORMAL,
-	ST_WORLD_POSITION,
-	ST_VIEW_POSITION,
-	ST_VIEW_NORMAL,
-	COUNT
-};
+struct Vertex;
+struct Texture;
+struct Transform;
+struct Material;
+struct Mesh;
+struct Camera;
+struct DirectionalLight;
+struct PointLight;
+struct StaticMeshRenderer;
 
 struct SSAOSettingsData {
-	GLuint kernelSize = SSAO_KERNEL_SIZE;
-	float radius = SSAO_RADIUS;
-	float padding0[2];
+	GLuint    kernelSize = SSAO_KERNEL_SIZE;
+	float     radius     = SSAO_RADIUS;
+	float     padding0[2];
 	glm::vec4 samples[SSAO_KERNEL_SIZE];
-	glm::vec2 noiseScale;
-	float bias = SSAO_BIAS;
-	float power = SSAO_POWER;
+	glm::vec2 noiseScale = {SCR_WIDTH / 4.0f, SCR_HEIGHT / 4.0f};
+	float     bias       = SSAO_BIAS;
+	float     power      = SSAO_POWER;
 };
- 
+
 struct CascadeData {
 	glm::mat4 lightSpaceMatrix = glm::mat4(1.0f);
 	float	  farPlane  = 0.0f;
@@ -104,15 +72,15 @@ struct MeshMetaData {
 struct SceneLightData {
 	GLuint	  mHasDirectionalLight;
 	float	  padding1[3];
-    glm::vec3 mDirectionalLightDirection;
+	glm::vec3 mDirectionalLightDirection;
 	float	  padding2;
-    glm::vec3 mDirectionalLightColor;
-    float	  mDirectionalLightIntensity;
-    glm::mat4 mDirectionalLightMatrix;
+	glm::vec3 mDirectionalLightColor;
+	float	  mDirectionalLightIntensity;
+	glm::mat4 mDirectionalLightMatrix;
 	GLuint	  mPointLightsCount;
 	float	  padding3[3];
-    glm::vec3 mAmbientLightColor;
-    float	  mAmbientLightIntensity;
+	glm::vec3 mAmbientLightColor;
+	float	  mAmbientLightIntensity;
 };
 
 struct PointLightData {
@@ -136,16 +104,39 @@ struct CameraData {
 	glm::mat4 mView{ 1.0f };
 };
 
+
+enum SceneTexture : uint32_t {
+	ST_POST_FX,
+	ST_DIFFUSE,
+	ST_SSAO,
+	ST_ALBEDO,
+	ST_SPECULAR,
+	ST_METALLIC,
+	ST_DEPTH,
+	ST_WORLD_NORMAL,
+	ST_WORLD_POSITION,
+	ST_VIEW_POSITION,
+	ST_VIEW_NORMAL,
+	COUNT
+};
+
+struct Viewport {
+	GLuint x_offset = 0;
+	GLuint y_offset = 0;
+	GLuint width = 800;
+	GLuint height = 600;
+};
+
 // screen quad
 const float quadVertices[] = {
 	// Positions   // Texture coordinates
 	-1.0f,  1.0f,  0.0f, 1.0f,  // Top-left
 	-1.0f, -1.0f,  0.0f, 0.0f,  // Bottom-left
-	 1.0f, -1.0f,  1.0f, 0.0f,  // Bottom-right
+	1.0f, -1.0f,  1.0f, 0.0f,  // Bottom-right
 
 	-1.0f,  1.0f,  0.0f, 1.0f,  // Top-left
-	 1.0f, -1.0f,  1.0f, 0.0f,  // Bottom-right
-	 1.0f,  1.0f,  1.0f, 1.0f   // Top-right
+	1.0f, -1.0f,  1.0f, 0.0f,  // Bottom-right
+	1.0f,  1.0f,  1.0f, 1.0f   // Top-right
 };
 
 const GLuint quadIndices[] = {
@@ -153,9 +144,15 @@ const GLuint quadIndices[] = {
 	3, 4, 5   // Second Triangle: Top-left, Bottom-right, Top-right
 };
 
-class OpenGL {
+
+class API {
 private:
-	OpenGL() = default;
+	API() = default;
+
+	Viewport mViewport;
+	bool mDepthEnabled;
+	bool mFaceCullEnabled;
+	GLenum mFaceCullMode;
 
 	Shader lightingShader;
 	Shader screenShader;
@@ -226,13 +223,13 @@ private:
 	// CPU data
 	DirectionalLight* directionalLight;
 	Camera* currentActiveCamera;
-
-	std::vector<CascadeData> cascadeDataArray;
 	
 	std::unordered_map<AssetId, std::unordered_map<Entity, uint32_t>> assToEntMeshInstIndexes;
 	std::unordered_map<AssetId, MeshMetaData> assToMesh;
 	std::unordered_map<AssetId, std::vector<MeshInstanceData>> assToMeshInsts;
 	std::unordered_map<Entity, PointLightData> entToPointLightData;
+
+	std::vector<CascadeData> cascadeDataArray;
 
 	std::vector<MeshDrawCmdData> meshDrawCmdDataArray;
 	std::vector<GLuint> meshIndexDataArray;
@@ -243,32 +240,45 @@ private:
 	std::unordered_map<AssetId, Texture2D> assetIDToTex2DMap;
 	std::vector<GLuint64> tex2DHndlrDataArray;
 
+	void SetDepthEnabled(const bool val);
+	void SetFaceCullEnabled(const bool val);
+	void SetFaceCullMode(const GLenum mode);
+	void SetViewport(const GLint x_off, const GLint y_off, const GLsizei width, const GLsizei height);
+	void ClearColor(const glm::vec4& rgba);
+	void ClearBuffers(const GLenum flags);
+
+	GLenum internalToFormat(const GLenum internalFormat);
+
 	void InitGBuffer();
 	void InitShadowMapFBOs();
 	void InitLightingFBO();
-    void InitPostFxFBO();
-	void InitSSAOUniformBuffer();
-
-	glm::mat4 CalculateModelMatrix(const glm::vec3& position, const glm::quat& rotation, const glm::vec3& scale);
+	void InitPostFxFBO();
+    void InitSSAOUniformBuffer();
+    
+    std::vector<glm::vec4> GetFrustumCornersWorldSpace(const float fov, const float aspectRatio, const float nearPlane, const float farPlane, const glm::mat4 &view);
+    glm::mat4 GetLightSpaceMatrix(const glm::mat4 &lightViewMatrix, const std::vector<glm::vec4> &corners);
+    glm::mat4 GetLightViewMatrix(const glm::vec3 &lightDir, const std::vector<glm::vec4> &frustumCorners);
+    glm::mat4 CalculateModelMatrix(const glm::vec3& position, const glm::quat& rotation, const glm::vec3& scale);
 
 public:
 	// prevents copying
-	OpenGL(const OpenGL&) = delete;
-	OpenGL& operator=(const OpenGL&) = delete;
+	API(const API&) = delete;
+	API& operator=(const API&) = delete;
 
-	static OpenGL& Get() {
-		static OpenGL instance;
+	static API& Get() {
+		static API instance;
 		return instance;
 	}
 
 	bool Initialize();
 
-    void RegisterDirectionalLight(DirectionalLight *light)
-    {
-        directionalLight = light;
-    };
 
-    void RegisterCamera(Camera* camera);
+    void RegisterDirectionalLight(DirectionalLight *light)
+	{
+		directionalLight = light;
+	};
+
+	void RegisterCamera(Camera* camera);
 
 	void RegisterPointLight(const Entity entity, const PointLight* light);
 	void UploadSceneLightData();
@@ -287,8 +297,9 @@ public:
 	void PointLightShadowMapPass();
 	void LightingPass();
 	void PostFxPass();
-    void OutputToScreen(const SceneTexture st);
+	void OutputToScreen(const SceneTexture st);
 
 
-    void DebugGbuffer(uint32_t layer = 0);
+    void DrawScreenQuad(Texture2D& texture);
+    void DrawScene();
 };

@@ -7,7 +7,7 @@ class FrameBuffer {
 public:
 	FrameBuffer() = default;
 
-	FrameBuffer(const GLuint width, const GLuint height) {
+	FrameBuffer(const GLsizei width, const GLsizei height) {
 		glCreateFramebuffers(1, &id);
 		this->width = width;
 		this->height = height;
@@ -98,6 +98,14 @@ public:
 		glNamedFramebufferReadBuffer(id, GL_NONE);
 	}
 
+	GLsizei GetWidth() const {
+		return width;
+	}
+
+	GLsizei GetHeight() const {
+		return height;
+	}
+
 	void SetViewport() {
 		glViewport(0, 0, width, height);
 	}
@@ -108,8 +116,8 @@ public:
 
 private:
 	GLuint id = 0;
-	GLuint width = 0;
-	GLuint height = 0;
+	GLsizei width = 0;
+	GLsizei height = 0;
 	GLuint rbo = 0;
 	std::vector<GLuint> colorTextAttachments;
 	GLuint depthTextAttachment;

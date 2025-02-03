@@ -28,7 +28,6 @@ in flat int MetallicTextureHndlrIndex;
 void main() {
 	gPosition = FragPos;
 	gViewPosition = view * vec4(FragPos, 1.0);
-	gNormal = normalize(Normal);
 	
 	gNormal = normalize(Normal);
 	gViewNormal = normalize(mat3(view) * Normal);

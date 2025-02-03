@@ -1,4 +1,4 @@
-#include <Renderer/OpenGL.h>
+#include <Renderer/API.h>
 #include <ECS/Components/Camera.h>
 #include <ECS/Components/StaticMeshRenderer.h>
 #include <ECS/Components/Transform.h>
@@ -9,7 +9,7 @@
 #include <Core/AssetManager.h>
 #include "RenderSystem.h"
 
-void RenderSystem::SetRenderApi(OpenGL* renderApi) {
+void RenderSystem::SetRenderApi(API* renderApi) {
 	assert(renderApi != nullptr && "RenderSystem: Failed to set render API.");
 	mRenderApi = renderApi;
 }

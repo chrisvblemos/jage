@@ -16,7 +16,7 @@ private:
 
 	void ProcessObjNode(aiNode* node, const aiScene* scene, const std::string& path, MeshModel& meshModel);
 	AssetId ProcessMesh(aiMesh* mesh, const aiScene* scene, const std::string& path);
-	std::vector<AssetId> LoadTexturesFromMaterial(aiMaterial* mat, aiTextureType aiType, const std::string& path);
+	std::vector<AssetId> LoadTexturesFromMaterial(aiMaterial* mat, const aiTextureType aiType, const std::string& path);
 
 public:
 	// prevents copying
@@ -29,5 +29,5 @@ public:
 	}
 
 	MeshModel& LoadMeshModelFromFile(const std::string& path);
-	Texture& LoadTextureFromFile(const std::string& path);
+	Texture& LoadTextureFromFile(const std::string& path, const uint8_t texType);
 };

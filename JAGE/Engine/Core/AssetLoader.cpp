@@ -1,5 +1,5 @@
 #include <Core/Core.h>
-#include <Renderer/OpenGL.h>
+#include <Renderer/API.h>
 #include <assimp/Importer.hpp>
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
@@ -117,28 +117,48 @@ AssetId AssetLoader::ProcessMesh(aiMesh* aiMesh, const aiScene* scene, const std
 			newMesh.specularTexture = normalTextures[0];
 	}
 
-	OpenGL::Get().RegisterMesh(&newMesh);
+	API::Get().RegisterMesh(&newMesh);
 
 	return newMesh.assetId;
 }
 
-std::vector<AssetId> AssetLoader::LoadTexturesFromMaterial(aiMaterial* mat, aiTextureType aiType, const std::string& path) {
+std::vector<AssetId> AssetLoader::LoadTexturesFromMaterial(aiMaterial* mat, const aiTextureType aiType, const std::string& path) {
 	std::vector<AssetId> textures;
+
+	TextureAssetType texType;
+	if (aiType == aiTextureType_BASE_COLOR || aiType == aiTextureType_DIFFUSE) {
+		texType = TextureAssetType::Albedo;
+	}
+	else if (aiType == aiTextureType_AMBIENT_OCCLUSION) {
+		texType = TextureAssetType::AO;
+	}
+	else if (aiType == aiTextureType_METALNESS) {
+		texType = TextureAssetType::Metallic;
+	}
+	else if (aiType == aiTextureType_SPECULAR) {
+		texType = TextureAssetType::Specular;
+	}
+	else if (aiType == aiTextureType_NORMALS)
+	{
+		texType = TextureAssetType::Normal;
+	}
+	else {
+		LOG(LogAssetLoader, LOG_CRITICAL, std::format("Failed to infer texture type from texture at {}", path));
+	}
 
 	for (uint32_t i = 0; i < mat->GetTextureCount(aiType); i++) {
 		aiString fileName;
 		mat->GetTexture(aiType, i, &fileName);
 		std::filesystem::path pathObj(path);
 		std::filesystem::path texturePathObj = pathObj.parent_path() / std::string(fileName.C_Str());
-
-		Texture& texture = LoadTextureFromFile(texturePathObj.string());
+		Texture& texture = LoadTextureFromFile(texturePathObj.string(), texType);
 		textures.push_back(texture.assetId);
 	}
 
 	return textures;
 }
 
-Texture& AssetLoader::LoadTextureFromFile(const std::string& path) {
+Texture& AssetLoader::LoadTextureFromFile(const std::string& path, const uint8_t texType) {
 	auto& assetManager = AssetManager::Get();
 	Texture* existingTexture = assetManager.GetAssetByPath<Texture>(path);
 	if (existingTexture) {
@@ -148,7 +168,7 @@ Texture& AssetLoader::LoadTextureFromFile(const std::string& path) {
 	int width, height, nrChannels;
 	unsigned char* data = stbi_load(path.data(), &width, &height, &nrChannels, 0);
 
-	if (!data) {
+	if (!data || width == 0) {
 		LOG(LogAssetLoader, LOG_CRITICAL, "Failed to load texture from " + path);
 		stbi_image_free(data);
 	}
@@ -160,14 +180,11 @@ Texture& AssetLoader::LoadTextureFromFile(const std::string& path) {
 	texture.height = height;
 	texture.width = width;
 	texture.nrChannels = nrChannels;
+	texture.hasAlphaChannel = nrChannels > 3;
+	texture.type = static_cast<TextureAssetType>(texType);
 
-	OpenGL::Get().RegisterTexture2D(&texture);
+	API::Get().RegisterTexture2D(&texture);
 
 	stbi_image_free(data);
-
-	if (texture.width == 0) {
-		LOG(LogAssetLoader, LOG_CRITICAL, std::format("Failed to load texture from {}", path));
-	}
-
 	return texture;
 }
