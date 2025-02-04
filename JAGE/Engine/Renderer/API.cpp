@@ -403,7 +403,7 @@ void API::InitShadowMapFBOs() {
 												  GL_DEPTH_COMPONENT32F, 
 												  Cfg::Rendering.Read<uint32_t>("OpenGL", "opengl.shadows.resolution", 512), 
 												  Cfg::Rendering.Read<uint32_t>("OpenGL", "opengl.shadows.resolution", 512), 
-												  6 * Cfg::Rendering.Read<uint32_t>("OpenGL", "opengl.max_point_lights", 128), 1);
+												  6 * Cfg::Rendering.Read<uint32_t>("OpenGL", "opengl.max_point_lights", 8), 1);
 	pointShadowCubemapArray.SetParams(GL_TEXTURE_BORDER_COLOR, borderColor);
 	pointShadowFBO.AttachDepthCubeMapTex(pointShadowCubemapArray.GetID());
 	pointShadowFBO.DisableColorBuffer();
