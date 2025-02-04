@@ -1,12 +1,12 @@
 #pragma once
 
-#include "Settings.h"
 #include "Types/Buffer.h"
 #include "Types/Shader.h"
 #include "Types/FrameBuffer.h"
 #include "Types/Texture.h"
 #include "Types/VertexArray.h"
 #include <Core/Core.h>
+#include <Config.h>
 
 // UBOs & SSBOs
 #define UBO_LIGHTS 0
@@ -20,6 +20,9 @@
 #define UBO_SHADOW_CASCADE_DATA 8
 #define UBO_SSAO_SETTINGS_DATA 9
 
+#define SHADOW_MAP_MAX_CASCADES 16
+#define SSAO_KERNEL_SIZE 64
+
 struct Vertex;
 struct Texture;
 struct Transform;
@@ -31,13 +34,13 @@ struct PointLight;
 struct StaticMeshRenderer;
 
 struct SSAOSettingsData {
-	GLuint    kernelSize = SSAO_KERNEL_SIZE;
-	float     radius     = SSAO_RADIUS;
+	GLuint    kernelSize;
+	float     radius;
 	float     padding0[2];
 	glm::vec4 samples[SSAO_KERNEL_SIZE];
-	glm::vec2 noiseScale = {SCR_WIDTH / 4.0f, SCR_HEIGHT / 4.0f};
-	float     bias       = SSAO_BIAS;
-	float     power      = SSAO_POWER;
+	glm::vec2 noiseScale;
+	float     bias;
+	float     power;
 };
 
 struct CascadeData {

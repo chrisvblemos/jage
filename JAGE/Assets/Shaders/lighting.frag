@@ -77,8 +77,8 @@ void main() {
         lightingResult += (1.0 - shadow) * directionalLighting;
     };
 
-    vec3 ambientLight   = ambientLightColor * ambientLightIntensity * AmbientOcclusion;
-    lightingResult      = lightingResult + ambientLight;
+    vec3 ambientLight   = ambientLightColor * ambientLightIntensity;
+    lightingResult      = (lightingResult + ambientLight) * AmbientOcclusion;
     outDiffuse         = lightingResult * Albedo;
 };
 

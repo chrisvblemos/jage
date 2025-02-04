@@ -28,6 +28,19 @@
       "problemMatcher": []
     },
     {
+      "label": "copy-cfgs",
+      "type": "shell",
+      "command": "xcopy",
+      "args": [
+        "${workspaceFolder}\\JAGE\\Config",
+        "${workspaceFolder}\\JAGE\\x64\\Debug\\Config",
+        "/E",    // Copies subdirectories, including empty ones
+        "/I",    // Assumes destination is a directory
+        "/Y"     // Suppresses prompting to confirm overwrites
+      ],
+      "problemMatcher": []
+    },
+    {
       "label": "build",
       "type": "shell",
       "command": "msbuild",
@@ -40,7 +53,10 @@
         "kind": "build",
         "isDefault": true
       },
-      "dependsOn": "copy-resources",
+      "dependsOn": [
+        "copy-resources",
+        "copy-cfgs"
+      ],
       "problemMatcher": "$msCompile"
     },
     {

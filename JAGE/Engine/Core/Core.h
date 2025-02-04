@@ -41,8 +41,6 @@
 #include <Logging.h>
 #include <Utils.h>
 
-#define SCR_WIDTH 1920
-#define SCR_HEIGHT 1080
 #define MAX_ENTITIES 100000
 #define MAX_COMPONENTS 32
 

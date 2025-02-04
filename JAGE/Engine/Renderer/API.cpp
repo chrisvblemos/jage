@@ -10,7 +10,7 @@
 #include <ECS/Components/StaticMeshRenderer.h>
 #include <Core/AssetManager.h>
 #include <LogDisplay.h>
-#include "Settings.h"
+#include <Config.h>
 #include "ShaderPreProcessor.h"
 #include "Utils.h"
 #include "API.h"
@@ -48,13 +48,26 @@ bool API::Initialize() {
 	postFxShader              = Shader(spp.GetCodeStr("screen.vert"),
 						               spp.GetCodeStr("post_fx.frag"));
 
-	meshVBO = VertexArrayBuffer(5000 * MAX_MESHES, GL_DYNAMIC_STORAGE_BIT);
-	meshEBO = ElementArrayBuffer(3 * 5000 * MAX_MESHES, GL_DYNAMIC_STORAGE_BIT);
-	meshDIB = DrawIndirectBuffer(SSBO_MESH_INDIRECT_DRAW_COMMAND, MAX_MESHES * sizeof(MeshDrawCmdData), GL_DYNAMIC_STORAGE_BIT);
+	meshVBO = VertexArrayBuffer(
+		5000 * Cfg::Rendering.Read<uint32_t>("OpenGL", "opengl.max_meshes", 10000), 
+		GL_DYNAMIC_STORAGE_BIT);
+	meshEBO = ElementArrayBuffer(
+		3 * 5000 * Cfg::Rendering.Read<uint32_t>("OpenGL", "opengl.max_meshes", 10000), 
+		GL_DYNAMIC_STORAGE_BIT);
+	meshDIB = DrawIndirectBuffer(
+		SSBO_MESH_INDIRECT_DRAW_COMMAND, 
+		Cfg::Rendering.Read<uint32_t>("OpenGL", "opengl.max_meshes", 10000) * sizeof(MeshDrawCmdData), 
+		GL_DYNAMIC_STORAGE_BIT);
 
-	meshSSBO                = ShaderStorageBuffer(SSBO_MESH_INSTANCE_DATA, MAX_MESHES * sizeof(MeshInstanceData));
-	textureHndlrsSSBO       = ShaderStorageBuffer(SSBO_TEXTURE_HANDLERS, MAX_TEXTURES * sizeof(GLuint64));
-	pointLightDataArraySSBO = ShaderStorageBuffer(SSBO_POINT_LIGHT_DATA_ARRAY, MAX_POINT_LIGHTS * sizeof(PointLightData));
+	meshSSBO = ShaderStorageBuffer(
+		SSBO_MESH_INSTANCE_DATA, 
+		Cfg::Rendering.Read<uint32_t>("OpenGL", "opengl.max_meshes", 10000) * sizeof(MeshInstanceData));
+	textureHndlrsSSBO = ShaderStorageBuffer(
+		SSBO_TEXTURE_HANDLERS, 
+		Cfg::Rendering.Read<uint32_t>("OpenGL", "opengl.max_textures", 10000) * sizeof(GLuint64));
+	pointLightDataArraySSBO = ShaderStorageBuffer(
+		SSBO_POINT_LIGHT_DATA_ARRAY, 
+		Cfg::Rendering.Read<uint32_t>("OpenGL", "opengl.max_point_lights", 128) * sizeof(PointLightData));
 	
 	cameraDataUBO     = UniformBuffer(UBO_CAMERA_DATA, sizeof(CameraData));
 	sceneLightDataUBO = UniformBuffer(UBO_SCENE_LIGHT_DATA, sizeof(SceneLightData), GL_DYNAMIC_STORAGE_BIT);
@@ -290,8 +303,14 @@ void API::InitSSAOUniformBuffer() {
 	SSAONoiseTex2D.SetParam(GL_TEXTURE_WRAP_T, GL_REPEAT);
 
 	SSAOSettingsData ssaoSettings;
-	ssaoSettings.noiseScale = glm::vec2{ SCR_WIDTH / 4.0f, SCR_HEIGHT / 4.0f };
-	
+	ssaoSettings.kernelSize = SSAO_KERNEL_SIZE;
+	ssaoSettings.noiseScale = glm::vec2{ 
+		Cfg::Rendering.Read<float>("Video", "video.resX", 800.0f) / 4.0f, 
+		Cfg::Rendering.Read<float>("Video", "video.resY", 600.0f) / 4.0f };
+	ssaoSettings.bias = Cfg::Rendering.Read<float>("OpenGL", "opengl.ssao.bias", 0.025f);
+	ssaoSettings.power = Cfg::Rendering.Read<float>("OpenGL", "openg.ssao.power", 1.0f);
+	ssaoSettings.radius = Cfg::Rendering.Read<float>("OpenGL", "opengl.ssao.radius", 0.5f);
+
 	//std::vector<glm::vec4> ssaoKernel;
 	for (uint32_t i = 0; i < SSAO_KERNEL_SIZE; i++) {
 		glm::vec4 sample = {
@@ -313,16 +332,22 @@ void API::InitSSAOUniformBuffer() {
 	ssaoSettingsDataUBO = UniformBuffer(UBO_SSAO_SETTINGS_DATA, sizeof(SSAOSettingsData), GL_DYNAMIC_STORAGE_BIT);
 	ssaoSettingsDataUBO.UpdateData(0, sizeof(SSAOSettingsData), &ssaoSettings);
 
-	SSAOTex2D = Texture2D("gSSAO_tex2D", GL_R16F, SCR_WIDTH, SCR_HEIGHT);
+	SSAOTex2D = Texture2D("gSSAO_tex2D", 
+						  GL_R16F, 
+						  Cfg::Rendering.Read<uint32_t>("Video", "video.resX", 800), 
+						  Cfg::Rendering.Read<uint32_t>("Video", "video.resY", 600));
 	SSAOTex2D.SetParam(GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	SSAOTex2D.SetParam(GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 	SSAOTex2D.SetParam(GL_TEXTURE_WRAP_S, GL_REPEAT);
 	SSAOTex2D.SetParam(GL_TEXTURE_WRAP_T, GL_REPEAT);
 
-	std::vector<float> noSSAO(SCR_WIDTH * SCR_HEIGHT, 1.0f);
+	std::vector<float> noSSAO(Cfg::Rendering.Read<uint32_t>("Video", "video.resX", 800) * 
+							  Cfg::Rendering.Read<uint32_t>("Video", "video.resY", 600), 
+							  1.0f);
 	SSAOTex2D.SetSubImage2D(GL_RED, 0, 0, 0, GL_FLOAT, noSSAO.data());
 
-	ssaoFBO = FrameBuffer(SCR_WIDTH, SCR_HEIGHT);
+	ssaoFBO = FrameBuffer(Cfg::Rendering.Read<uint32_t>("Video", "video.resX", 800), 
+						  Cfg::Rendering.Read<uint32_t>("Video", "video.resY", 600));
 	ssaoFBO.CreateRenderBuffer();
 	ssaoFBO.AttachColorTex2D(SSAOTex2D.GetID(), 0);
 	ssaoFBO.DrawColorBuffers();
@@ -331,11 +356,15 @@ void API::InitSSAOUniformBuffer() {
 		LOG(LogOpenGL, LOG_CRITICAL, "SSAO frame buffer is incomplete.");
 	}
 
-	SSAOBlurTex2D = Texture2D("gSSAO_blurred_tex2d", GL_R16F, SCR_WIDTH, SCR_HEIGHT);
+	SSAOBlurTex2D = Texture2D("gSSAO_blurred_tex2d", 
+							  GL_R16F, 
+							  Cfg::Rendering.Read<uint32_t>("Video", "video.resX", 800), 
+							  Cfg::Rendering.Read<uint32_t>("Video", "video.resY", 600));
 	SSAOBlurTex2D.SetParam(GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	SSAOBlurTex2D.SetParam(GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
-	ssaoBlurFBO = FrameBuffer(SCR_WIDTH, SCR_HEIGHT);
+	ssaoBlurFBO = FrameBuffer(Cfg::Rendering.Read<uint32_t>("Video", "video.resX", 800), 
+							  Cfg::Rendering.Read<uint32_t>("Video", "video.resY", 600));
 	ssaoBlurFBO.CreateRenderBuffer();
 	ssaoBlurFBO.AttachColorTex2D(SSAOBlurTex2D.GetID(), 0);
 	ssaoBlurFBO.DrawColorBuffers();
@@ -346,10 +375,14 @@ void API::InitSSAOUniformBuffer() {
 }
 
 void API::InitPostFxFBO() {
-	postFXTex2D = Texture2D("post_fx_tex2d", GL_RGB8, SCR_WIDTH, SCR_HEIGHT);
+	postFXTex2D = Texture2D("post_fx_tex2d", 
+							GL_RGB8, 
+							Cfg::Rendering.Read<uint32_t>("Video", "video.resX", 800), 
+							Cfg::Rendering.Read<uint32_t>("Video", "video.resY", 600));
 	postFXTex2D.SetParam(GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	postFXTex2D.SetParam(GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-	postfxFBO = FrameBuffer(SCR_WIDTH, SCR_HEIGHT);
+	postfxFBO = FrameBuffer(Cfg::Rendering.Read<uint32_t>("Video", "video.resX", 800), 
+							Cfg::Rendering.Read<uint32_t>("Video", "video.resY", 600));
 	postfxFBO.CreateRenderBuffer();
 	postfxFBO.AttachColorTex2D(postFXTex2D.GetID(), 0);
 
@@ -364,8 +397,13 @@ void API::InitShadowMapFBOs() {
 	
 	// point shadow map
 	BIND(Shader, pointLightShadowMapShader); // we bind here to tell open gl that we are using a geometry shader
-	pointShadowFBO = FrameBuffer(SHADOW_MAP_RESOLUTION, SHADOW_MAP_RESOLUTION);
-	pointShadowCubemapArray = TextureCubeMapArray("point_light_shadow_cubemap_array", GL_DEPTH_COMPONENT32F, SHADOW_MAP_RESOLUTION, SHADOW_MAP_RESOLUTION, 6 * MAX_POINT_LIGHTS, 1);
+	pointShadowFBO = FrameBuffer(Cfg::Rendering.Read<uint32_t>("OpenGL", "opengl.shadows.resolution", 512), 
+								 Cfg::Rendering.Read<uint32_t>("OpenGL", "opengl.shadows.resolution", 512));
+	pointShadowCubemapArray = TextureCubeMapArray("point_light_shadow_cubemap_array", 
+												  GL_DEPTH_COMPONENT32F, 
+												  Cfg::Rendering.Read<uint32_t>("OpenGL", "opengl.shadows.resolution", 512), 
+												  Cfg::Rendering.Read<uint32_t>("OpenGL", "opengl.shadows.resolution", 512), 
+												  6 * Cfg::Rendering.Read<uint32_t>("OpenGL", "opengl.max_point_lights", 128), 1);
 	pointShadowCubemapArray.SetParams(GL_TEXTURE_BORDER_COLOR, borderColor);
 	pointShadowFBO.AttachDepthCubeMapTex(pointShadowCubemapArray.GetID());
 	pointShadowFBO.DisableColorBuffer();
@@ -376,25 +414,33 @@ void API::InitShadowMapFBOs() {
 	}
 
 	// Gaussian blur on shadows
-	vBlurShadowMapTex2D = Texture2D("vBlurShadowMapTex2D", GL_RGB16F, SHADOW_MAP_RESOLUTION, SHADOW_MAP_RESOLUTION);
+	vBlurShadowMapTex2D = Texture2D("vBlurShadowMapTex2D", 
+						            GL_RGB16F, 
+									Cfg::Rendering.Read<uint32_t>("OpenGL", "opengl.shadows.resolution", 512), 
+									Cfg::Rendering.Read<uint32_t>("OpenGL", "opengl.shadows.resolution", 512));
 	vBlurShadowMapTex2D.SetParam(GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	vBlurShadowMapTex2D.SetParam(GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	vBlurShadowMapTex2D.SetParam(GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
 	vBlurShadowMapTex2D.SetParam(GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
 	vBlurShadowMapTex2D.SetParams(GL_TEXTURE_BORDER_COLOR, invBorderColor);
 
-	vBlurShadowMapFBO = FrameBuffer(SHADOW_MAP_RESOLUTION, SHADOW_MAP_RESOLUTION);
+	vBlurShadowMapFBO = FrameBuffer(Cfg::Rendering.Read<uint32_t>("OpenGL", "opengl.shadows.resolution", 512), 
+									Cfg::Rendering.Read<uint32_t>("OpenGL", "opengl.shadows.resolution", 512));
 	vBlurShadowMapFBO.CreateRenderBuffer();
 	vBlurShadowMapFBO.AttachColorTex2D(vBlurShadowMapTex2D.GetID(), 0);
 
-	hBlurShadowMapTex2D = Texture2D("hBlurShadowMapTex2D", GL_RGB16F, SHADOW_MAP_RESOLUTION, SHADOW_MAP_RESOLUTION);
+	hBlurShadowMapTex2D = Texture2D("hBlurShadowMapTex2D", 
+									GL_RGB16F, 
+									Cfg::Rendering.Read<uint32_t>("OpenGL", "opengl.shadows.resolution", 512), 
+									Cfg::Rendering.Read<uint32_t>("OpenGL", "opengl.shadows.resolution", 512));
 	hBlurShadowMapTex2D.SetParam(GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	hBlurShadowMapTex2D.SetParam(GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	hBlurShadowMapTex2D.SetParam(GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
 	hBlurShadowMapTex2D.SetParam(GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
 	hBlurShadowMapTex2D.SetParams(GL_TEXTURE_BORDER_COLOR, invBorderColor);
 
-	hBlurShadowMapFBO = FrameBuffer(SHADOW_MAP_RESOLUTION, SHADOW_MAP_RESOLUTION);
+	hBlurShadowMapFBO = FrameBuffer(Cfg::Rendering.Read<uint32_t>("OpenGL", "opengl.shadows.resolution", 512), 
+									Cfg::Rendering.Read<uint32_t>("OpenGL", "opengl.shadows.resolution", 512));
 	hBlurShadowMapFBO.AttachColorTex2D(hBlurShadowMapTex2D.GetID(), 0);
 	hBlurShadowMapFBO.CreateRenderBuffer();
 
@@ -409,14 +455,21 @@ void API::InitShadowMapFBOs() {
 	}
 
 	// CSM Shadow Maps
-	shadowMapTex2DArray = Texture2DArray("shadow_map_tex2d", GL_RG32F, SHADOW_MAP_RESOLUTION, SHADOW_MAP_RESOLUTION, SHADOW_MAP_N_CASCADES);
+	shadowMapTex2DArray = Texture2DArray("shadow_map_tex2d", 
+										 GL_RG32F, 
+										 Cfg::Rendering.Read<uint32_t>("OpenGL", "opengl.shadows.resolution", 512), 
+										 Cfg::Rendering.Read<uint32_t>("OpenGL", "opengl.shadows.resolution", 512), Cfg::Rendering.Read<uint32_t>("OpenGL", "opengl.shadows.cascade_count", 4));
 	shadowMapTex2DArray.SetParam(GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	shadowMapTex2DArray.SetParam(GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	shadowMapTex2DArray.SetParam(GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
 	shadowMapTex2DArray.SetParam(GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
 	shadowMapTex2DArray.SetParams(GL_TEXTURE_BORDER_COLOR, borderColor);
 
-	Texture2DArray shadowMapDepthTex2DArray = Texture2DArray("shadow_map_depth_tex2darray", GL_DEPTH_COMPONENT32F, SHADOW_MAP_RESOLUTION, SHADOW_MAP_RESOLUTION, SHADOW_MAP_N_CASCADES);
+	Texture2DArray shadowMapDepthTex2DArray = Texture2DArray("shadow_map_depth_tex2darray", 
+															 GL_DEPTH_COMPONENT32F, 
+															 Cfg::Rendering.Read<uint32_t>("OpenGL", "opengl.shadows.resolution", 512), 
+															 Cfg::Rendering.Read<uint32_t>("OpenGL", "opengl.shadows.resolution", 512), 
+															 Cfg::Rendering.Read<uint32_t>("OpenGL", "opengl.shadows.cascade_count", 4));
 	shadowMapDepthTex2DArray.SetParam(GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	shadowMapDepthTex2DArray.SetParam(GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 	shadowMapDepthTex2DArray.SetParam(GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
@@ -424,7 +477,8 @@ void API::InitShadowMapFBOs() {
 	shadowMapDepthTex2DArray.SetParams(GL_TEXTURE_BORDER_COLOR, borderColor);
 
 	BIND(Shader, shadowMapShader); // we bind here to tell open gl that we are using a geometry shader
-	shadowMapFBO = FrameBuffer(SHADOW_MAP_RESOLUTION, SHADOW_MAP_RESOLUTION);
+	shadowMapFBO = FrameBuffer(Cfg::Rendering.Read<uint32_t>("OpenGL", "opengl.shadows.resolution", 512), 
+						       Cfg::Rendering.Read<uint32_t>("OpenGL", "opengl.shadows.resolution", 512));
 	shadowMapFBO.AttachDepthTex2D(shadowMapDepthTex2DArray.GetID());
 	shadowMapFBO.AttachColorTex2D(shadowMapTex2DArray.GetID(), 0);
 	shadowMapFBO.DrawBuffer(0);
@@ -437,11 +491,15 @@ void API::InitShadowMapFBOs() {
 
 void API::InitLightingFBO()
 {
-	diffuseTex2D = Texture2D("gDiffuse_tex2D", GL_RGB16F, SCR_WIDTH, SCR_HEIGHT);
+	diffuseTex2D = Texture2D("gDiffuse_tex2D", 
+							 GL_RGB16F, 
+							 Cfg::Rendering.Read<uint32_t>("Video", "video.resX", 800), 
+							 Cfg::Rendering.Read<uint32_t>("Video", "video.resY", 600));
 	diffuseTex2D.SetParam(GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	diffuseTex2D.SetParam(GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
-	lightingFBO = FrameBuffer(SCR_WIDTH, SCR_HEIGHT);
+	lightingFBO = FrameBuffer(Cfg::Rendering.Read<uint32_t>("Video", "video.resX", 800), 
+							  Cfg::Rendering.Read<uint32_t>("Video", "video.resY", 600));
 	lightingFBO.CreateRenderBuffer();
 	lightingFBO.AttachColorTex2D(diffuseTex2D.GetID(), 0);
 
@@ -451,35 +509,57 @@ void API::InitLightingFBO()
 }
 
 void API::InitGBuffer() {
-	gPosition = Texture2D("gPosition_tex2D", GL_RGBA16F, SCR_WIDTH, SCR_HEIGHT);
+	gPosition = Texture2D("gPosition_tex2D", 
+						  GL_RGBA16F, 
+						  Cfg::Rendering.Read<uint32_t>("Video", "video.resX", 800), 
+						  Cfg::Rendering.Read<uint32_t>("Video", "video.resY", 600));
 	gPosition.SetParam(GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	gPosition.SetParam(GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 	
-	gViewPosition = Texture2D("gViewPosition_tex2D", GL_RGBA16F, SCR_WIDTH, SCR_HEIGHT);
+	gViewPosition = Texture2D("gViewPosition_tex2D", 
+						  	  GL_RGBA16F, 
+						  	  Cfg::Rendering.Read<uint32_t>("Video", "video.resX", 800), 
+						  	  Cfg::Rendering.Read<uint32_t>("Video", "video.resY", 600));
 	gViewPosition.SetParam(GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	gViewPosition.SetParam(GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
-	gNormal = Texture2D("gNormal_tex2D", GL_RGBA16F, SCR_WIDTH, SCR_HEIGHT);
+	gNormal = Texture2D("gNormal_tex2D", 
+						GL_RGBA16F, 
+						Cfg::Rendering.Read<uint32_t>("Video", "video.resX", 800), 
+						Cfg::Rendering.Read<uint32_t>("Video", "video.resY", 600));
 	gNormal.SetParam(GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	gNormal.SetParam(GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 	
-	gViewNormal = Texture2D("gViewNormal_tex2D", GL_RGBA16F, SCR_WIDTH, SCR_HEIGHT);
+	gViewNormal = Texture2D("gViewNormal_tex2D", 
+						    GL_RGBA16F, 
+						    Cfg::Rendering.Read<uint32_t>("Video", "video.resX", 800), 
+						    Cfg::Rendering.Read<uint32_t>("Video", "video.resY", 600));
 	gViewNormal.SetParam(GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	gViewNormal.SetParam(GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
-	gAlbedo = Texture2D("gDiffuse_tex2D", GL_RGB8, SCR_WIDTH, SCR_HEIGHT);
+	gAlbedo = Texture2D("gDiffuse_tex2D", 
+						GL_RGB8, 
+						Cfg::Rendering.Read<uint32_t>("Video", "video.resX", 800), 
+						Cfg::Rendering.Read<uint32_t>("Video", "video.resY", 600));
 	gAlbedo.SetParam(GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	gAlbedo.SetParam(GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
-	gSpecular = Texture2D("gSpecular_tex2D", GL_R8, SCR_WIDTH, SCR_HEIGHT);
+	gSpecular = Texture2D("gSpecular_tex2D", 
+						  GL_R8, 
+						  Cfg::Rendering.Read<uint32_t>("Video", "video.resX", 800), 
+						  Cfg::Rendering.Read<uint32_t>("Video", "video.resY", 600));
 	gSpecular.SetParam(GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	gSpecular.SetParam(GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
-	gMetallic = Texture2D("gMetallic_tex2D", GL_R8, SCR_WIDTH, SCR_HEIGHT);
+	gMetallic = Texture2D("gMetallic_tex2D", 
+						  GL_R8, 
+						  Cfg::Rendering.Read<uint32_t>("Video", "video.resX", 800), 
+						  Cfg::Rendering.Read<uint32_t>("Video", "video.resY", 600));
 	gMetallic.SetParam(GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	gMetallic.SetParam(GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
-	gBufferFBO = FrameBuffer(SCR_WIDTH, SCR_HEIGHT);
+	gBufferFBO = FrameBuffer(Cfg::Rendering.Read<uint32_t>("Video", "video.resX", 800), 
+						     Cfg::Rendering.Read<uint32_t>("Video", "video.resY", 600));
 	gBufferFBO.AttachColorTex2D(gPosition.GetID(), 0);
 	gBufferFBO.AttachColorTex2D(gNormal.GetID(), 1);
 	gBufferFBO.AttachColorTex2D(gAlbedo.GetID(), 2);
@@ -567,7 +647,7 @@ void API::UploadSceneLightData() {
 	sceneLightData.mDirectionalLightIntensity = directionalLight? directionalLight->intensity : 1.0f;
 	sceneLightData.mDirectionalLightMatrix = directionalLight? directionalLight->LightSpaceMatrix(currentActiveCamera->position) : glm::mat4(1.0f);
 	sceneLightData.mAmbientLightColor = glm::vec3(1.0f);
-	sceneLightData.mAmbientLightIntensity = 0.1f;
+	sceneLightData.mAmbientLightIntensity = 0.6f;
 	sceneLightData.mPointLightsCount = static_cast<GLsizei>(pointLightDataArray.size());
 
 	sceneLightDataUBO.UpdateData(0, sizeof(SceneLightData), &sceneLightData);
@@ -646,12 +726,12 @@ void API::RegisterCamera(Camera* camera) {
 		currentActiveCamera = camera;
 
 		cascadeDataArray.clear();
-		cascadeDataArray = std::vector<CascadeData>(SHADOW_MAP_N_CASCADES);
+		cascadeDataArray = std::vector<CascadeData>(Cfg::Rendering.Read<uint32_t>("OpenGL", "opengl.shadows.cascade_count", 4));
 
-		for (int i = 0; i < SHADOW_MAP_N_CASCADES; i++) {
+		for (int i = 0; i < Cfg::Rendering.Read<uint32_t>("OpenGL", "opengl.shadows.cascade_count", 4); i++) {
 			
-			const float fractionNear = static_cast<float>(i) / static_cast<float>(SHADOW_MAP_N_CASCADES);
-			const float fractionFar = static_cast<float>(i + 1) / static_cast<float>(SHADOW_MAP_N_CASCADES);
+			const float fractionNear = static_cast<float>(i) / static_cast<float>(Cfg::Rendering.Read<uint32_t>("OpenGL", "opengl.shadows.cascade_count", 4));
+			const float fractionFar = static_cast<float>(i + 1) / static_cast<float>(Cfg::Rendering.Read<uint32_t>("OpenGL", "opengl.shadows.cascade_count", 4));
 
 			const float cameraClipRange = camera->mFarClipPlane - camera->mNearClipPlane;
 			const float cameraClipRatio = camera->mFarClipPlane / camera->mNearClipPlane;
@@ -668,18 +748,22 @@ void API::RegisterCamera(Camera* camera) {
 		}
 
 		cascadeDataArray[0].nearPlane = camera->mNearClipPlane;
-		cascadeDataArray[SHADOW_MAP_N_CASCADES - 1].farPlane = camera->mFarClipPlane;
+		cascadeDataArray[Cfg::Rendering.Read<uint32_t>("OpenGL", "opengl.shadows.cascade_count", 4) - 1].farPlane = camera->mFarClipPlane;
 	}
 }
 
 void API::ShadowMapPass() {
 	if (directionalLight == nullptr) return;
 
-	for (int i = 0; i < SHADOW_MAP_N_CASCADES; i++) {
+	for (int i = 0; i < Cfg::Rendering.Read<uint32_t>("OpenGL", "opengl.shadows.cascade_count", 4); i++) {
 		const float cascadeNearPlane = cascadeDataArray[i].nearPlane;
 		const float cascadeFarPlane = cascadeDataArray[i].farPlane;
 
-		const std::vector<glm::vec4> corners = GetFrustumCornersWorldSpace(currentActiveCamera->mFOV, currentActiveCamera->mAspectRatio, cascadeNearPlane, cascadeFarPlane, currentActiveCamera->ViewMatrix());
+		const std::vector<glm::vec4> corners = GetFrustumCornersWorldSpace(currentActiveCamera->mFOV, 
+																		   currentActiveCamera->mAspectRatio, 
+																		   cascadeNearPlane, 
+																		   cascadeFarPlane, 
+																		   currentActiveCamera->ViewMatrix());
 		const glm::mat4 view = GetLightViewMatrix(directionalLight->direction, corners);
 		const glm::mat4 lightSpaceMatrix = GetLightSpaceMatrix(view, corners);
 		cascadeDataArray[i].lightSpaceMatrix = lightSpaceMatrix;
@@ -776,7 +860,7 @@ void API::PostFxPass()
 	BIND_TEX(Texture2D, diffuseTex2D, 0);
 	BIND(Shader, postFxShader);
 	BIND(FrameBuffer, postfxFBO);
-	postFxShader.SetUFloat("uGamma", GAMMA);
+	postFxShader.SetUFloat("uGamma", Cfg::Rendering.Read<float>("Video", "video.gamma", 2.2f));
 	SetViewport(0, 0, postfxFBO.GetWidth(), postfxFBO.GetHeight());
 	DrawScreenQuad(postFXTex2D);
 }
@@ -882,7 +966,10 @@ void API::GeometryPass() {
 }
 
 void API::SSAOPass() {
-	SetViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);
+	SetViewport(0, 
+				0, 
+				Cfg::Rendering.Read<uint32_t>("Video", "video.resX", 800), 
+			    Cfg::Rendering.Read<uint32_t>("Video", "video.resY", 600));
 
 	{
 		BIND_TEX(Texture2D, gViewPosition, 0);

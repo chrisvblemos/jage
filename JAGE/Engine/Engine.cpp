@@ -29,7 +29,12 @@ bool Engine::CreateWindow() {
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
-	window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "JAGE", nullptr, nullptr);
+	window = glfwCreateWindow(
+		Cfg::Rendering.Read<uint32_t>("Video", "video.resX", 800), 
+		Cfg::Rendering.Read<uint32_t>("Video", "video.resY", 600), 
+		"JAGE", 
+		nullptr, 
+		nullptr);
 	if (window == nullptr)
 	{
 		std::cout << "Could not create game window." << std::endl;
@@ -188,7 +193,7 @@ void Engine::Init() {
 	world.AddComponent(sun, Transform{});
 	world.AddComponent(sun, DirectionalLight{});
 	DirectionalLight& sunDirLight = world.GetComponent<DirectionalLight>(sun);
-	sunDirLight.intensity = 0.0f;
+	sunDirLight.intensity = 0.1f;
 	sunDirLight.orthoProjSizes = glm::vec4(5);
 
 	Editor editor = Editor();
