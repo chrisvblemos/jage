@@ -165,19 +165,30 @@ void Engine::Init() {
 	}
 
 	Entity pointLight = world.CreateEntity();
-	glm::vec3 pos = glm::vec3(0.0f, 12.0f, 0.0f);
+	float intensity = 200.0f;
+	glm::vec3 pos = glm::vec3(-5.0f, 12.0f, 0.0f);
 	glm::vec3 color = glm::vec3(0.5f, 0.1f, 0.05f);
-	float intensity = 20.0f;
-	float radius = 1000000.0f * Utils::RandomFloat();
 	world.AddComponent(pointLight, Transform{ pos });
-	world.AddComponent(pointLight, PointLight{ pos, color, intensity, radius });
+	world.AddComponent(pointLight, PointLight{ pos, color, intensity });
+
+	Entity pointLight1 = world.CreateEntity();
+	pos = glm::vec3(0.0f, 12.0f, 0.0f);
+	color = glm::vec3(0.1f, 0.5f, 0.05f);
+	world.AddComponent(pointLight1, Transform{ pos });
+	world.AddComponent(pointLight1, PointLight{ pos, color, intensity });
+
+	// Entity pointLight2 = world.CreateEntity();
+	// pos = glm::vec3(5.0f, 12.0f, 0.0f);
+	// color = glm::vec3(0.05f, 0.1f, 0.5f);
+	// world.AddComponent(pointLight2, Transform{ pos });
+	// world.AddComponent(pointLight2, PointLight{ pos, color, intensity });
 
 	// the sun
 	Entity sun = world.CreateEntity();
 	world.AddComponent(sun, Transform{});
 	world.AddComponent(sun, DirectionalLight{});
 	DirectionalLight& sunDirLight = world.GetComponent<DirectionalLight>(sun);
-	sunDirLight.intensity = 0.2f;
+	sunDirLight.intensity = 0.0f;
 	sunDirLight.orthoProjSizes = glm::vec4(5);
 
 	Editor editor = Editor();

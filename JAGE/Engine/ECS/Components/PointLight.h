@@ -6,15 +6,12 @@ struct PointLight {
 	glm::vec3 position{ 0.0f };
 	glm::vec3 color{ 1.0f };
 	float intensity{ 1.0f };
-	float radius{ 1.0f };
 	int glShadowMapIndex{ -1 };
+	float shadowMapNearPlane{ 0.1f };
+	float shadowMapFarPlane{ 100.0f };
 
-	float shadowMapResolution{ 2048 };
-	float shadowMapNearPlane{ 1.0f };
-	float shadowMapFarPlane{ 25.0f };
-
-	PointLight(const glm::vec3& position = glm::vec3(0.0f), const glm::vec3& color = glm::vec3(1.0f), float intensity = 1.0f, float radius = 1.0f)
-		: position(position), color(color), intensity(intensity), radius(radius) {
+	PointLight(const glm::vec3& position = glm::vec3(0.0f), const glm::vec3& color = glm::vec3(1.0f), float intensity = 1.0f)
+		: position(position), color(color), intensity(intensity) {
 	};
 
 	std::vector<glm::mat4> GetCubemapLightSpaceMatrices(glm::vec3 cameraPos) const {

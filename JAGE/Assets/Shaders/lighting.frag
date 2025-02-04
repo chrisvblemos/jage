@@ -33,9 +33,7 @@ void main() {
             PointLightData pointLight   = pointLights[i];
             vec3  pointLightDir         = normalize(pointLight.position - WorldFragPos);
             float distanceToLight       = length(pointLight.position - WorldFragPos);
-            float attenuation           = 1.0 / (pointLight.constant + 
-                                                    pointLight.linear * distanceToLight + 
-                                                    pointLight.quadratic * distanceToLight * distanceToLight);
+            float attenuation           = 1.0 / (distanceToLight * distanceToLight);
             float attenuatedIntensity   = pointLight.intensity * attenuation;
 
             vec3 pointLightResult = GetLight(

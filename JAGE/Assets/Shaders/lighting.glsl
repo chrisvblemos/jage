@@ -34,15 +34,12 @@ const vec3 sampleOffsetDirections[20] = vec3[] (
 
 struct PointLightData {
     vec3  position;
-    float radius;
     vec3  color;
     float intensity;
     float shadowFarPlane;
+    float shadowNearPlane;
     int   shadowCubemapIndex;
-    float dataArrayIndex;
-    float constant;
-    float linear;
-    float quadratic;
+    int dataArrayIndex;
 };
 
 layout(std430, binding = 4) readonly buffer PointLightDataArray {
@@ -60,7 +57,12 @@ layout(std140, binding = 5) uniform SceneLightData {
     float ambientLightIntensity;
 };
 
-vec3 GetLight(vec3 lightColor, float lightIntensity, vec3 lightDir, vec3 camToFragDir, vec3 normal, float specular) {
+vec3 GetLight(vec3  lightColor, 
+              float lightIntensity, 
+              vec3  lightDir, 
+              vec3  camToFragDir, 
+              vec3  normal, 
+              float specular) {
     vec3 halfwayDir = normalize(lightDir + camToFragDir);
     vec3 light      = lightColor * lightIntensity;
 
@@ -90,10 +92,14 @@ float ChebysevShadowProb(vec2 moments, float currentDepth) {
     return min(max(p, p_max), 1.0);
 };
 
-float GetPointLightDataShadow(samplerCubeArray shadowCubemap, int i, vec3 worldFragPos, vec3 lightPos, float farPlane, vec3 viewPos) {
+float GetPointLightDataShadow(samplerCubeArray shadowCubemap, 
+                              int   i, 
+                              vec3  worldFragPos, 
+                              vec3  lightPos, 
+                              float farPlane, 
+                              vec3  viewPos) {
     float shadow        = 0.0;
-    float bias          = 0.05; 
-    // float samples       = 16.0;
+    float bias          = 0.1; 
     vec3  fragToLight   = worldFragPos - lightPos;
     float currentDepth  = length(fragToLight);
     float viewDistance  = length(viewPos - worldFragPos);
@@ -105,9 +111,10 @@ float GetPointLightDataShadow(samplerCubeArray shadowCubemap, int i, vec3 worldF
         vec3 nudge = fragToLight + POISSON_SPHERE_16[index] * diskRadius;
         float closestDepth = texture(shadowCubemap, vec4(nudge, i)).r;
         closestDepth *= farPlane;   // undo mapping [0;1]
-        if (currentDepth >= farPlane) return 0.0;
+        
         if(currentDepth - bias > closestDepth)
-            shadow += 1.0;
+            shadow += 1.0 - smoothstep(0.0, 1.0, currentDepth/farPlane);
+            //shadow += 1.0;
     }
 
     shadow /= SHADOW_POISSON_SAMPLES;  
@@ -115,7 +122,12 @@ float GetPointLightDataShadow(samplerCubeArray shadowCubemap, int i, vec3 worldF
 };
 
 
-float SampleVarianceShadowMap(sampler2DArray shadowMapArray, vec3 worldFragPos, vec3 lightDir, int cascadeLayer, mat4 cascadeLightSpaceMatrix, float cascadeFarPlane) {
+float SampleVarianceShadowMap(sampler2DArray shadowMapArray, 
+                              vec3  worldFragPos, 
+                              vec3  lightDir, 
+                              int   cascadeLayer, 
+                              mat4  cascadeLightSpaceMatrix, 
+                              float cascadeFarPlane) {
     
     int layer = cascadeLayer;
     

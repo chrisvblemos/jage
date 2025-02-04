@@ -85,17 +85,13 @@ struct SceneLightData {
 
 struct PointLightData {
 	glm::vec3 mPosition;
-	float	  mRadius;
+	float padding;
 	glm::vec3 mColor;
 	float	  mIntensity;
 	float	  shadowFarPlane;
 	float	  shadowNearPlane;
 	GLuint	  shadowCubeMapIndex;
 	GLuint	  dataArrayIndex;
-	float	  constant = 1.0f;
-	float	  linear = 0.7f;
-	float	  quadratic = 1.8f;
-	float	  padding[3];
 };
 
 struct CameraData {
@@ -301,5 +297,5 @@ public:
 
 
     void DrawScreenQuad(Texture2D& texture);
-    void DrawScene(const bool withDepth, const GLenum faceCulling);
+    void DrawScene(const bool withDepth, const GLenum faceCulling, const bool clear = true);
 };

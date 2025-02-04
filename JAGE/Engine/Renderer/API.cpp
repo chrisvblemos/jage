@@ -567,7 +567,7 @@ void API::UploadSceneLightData() {
 	sceneLightData.mDirectionalLightIntensity = directionalLight? directionalLight->intensity : 1.0f;
 	sceneLightData.mDirectionalLightMatrix = directionalLight? directionalLight->LightSpaceMatrix(currentActiveCamera->position) : glm::mat4(1.0f);
 	sceneLightData.mAmbientLightColor = glm::vec3(1.0f);
-	sceneLightData.mAmbientLightIntensity = .1f;
+	sceneLightData.mAmbientLightIntensity = 0.1f;
 	sceneLightData.mPointLightsCount = static_cast<GLsizei>(pointLightDataArray.size());
 
 	sceneLightDataUBO.UpdateData(0, sizeof(SceneLightData), &sceneLightData);
@@ -590,6 +590,11 @@ void API::PointLightShadowMapPass() {
 
 	BIND(FrameBuffer, pointShadowFBO);
 	BIND(Shader, pointLightShadowMapShader);
+	BIND(VertexArray, meshVAO);
+	BIND(DrawIndirectBuffer, meshDIB);
+	ClearBuffers(GL_DEPTH_BUFFER_BIT);
+	SetDepthEnabled(true);
+	SetFaceCullMode(GL_FRONT);
 	SetViewport(0, 0, pointShadowFBO.GetWidth(), pointShadowFBO.GetHeight());
 	size_t pointLightsCount = pointLightDataArray.size();
 
@@ -624,11 +629,15 @@ void API::PointLightShadowMapPass() {
 		pointLightShadowMapShader.SetUInt("uBaseLayerOffset", 6*i);
 
 		pointLightDataArraySSBO.UpdateData(lightData.dataArrayIndex * sizeof(PointLightData) 
-										   + offsetof(PointLightData,
-										   shadowCubeMapIndex),
+										   + offsetof(PointLightData, shadowCubeMapIndex),
 										   sizeof(GLuint),
 										   &lightData.shadowCubeMapIndex);
-		DrawScene(true, GL_FRONT);
+
+		glMultiDrawElementsIndirect(GL_TRIANGLES,
+									GL_UNSIGNED_INT,
+									nullptr,
+									static_cast<GLsizei>(meshDrawCmdDataArray.size()),
+									sizeof(MeshDrawCmdData));
 	}
 }
 
@@ -744,11 +753,15 @@ void API::DrawScreenQuad(Texture2D& texture) {
 	glDrawArrays(GL_TRIANGLES, 0, 6);
 }
 
-void API::DrawScene(const bool withDepth, const GLenum faceCulling) {
+void API::DrawScene(const bool withDepth, const GLenum faceCulling, const bool clear) {
 	BIND(DrawIndirectBuffer, meshDIB);
 	BIND(VertexArray, meshVAO);
-	ClearBuffers(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
-	ClearColor({0, 0, 0, 0});
+
+	if (clear) {
+		ClearBuffers(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
+		// ClearColor({0, 0, 0, 0});
+	}
+	
 	SetDepthEnabled(withDepth);
 	SetFaceCullMode(faceCulling);
 	glMultiDrawElementsIndirect(GL_TRIANGLES,
@@ -801,11 +814,11 @@ void API::RegisterPointLight(const Entity entity, const PointLight* light) {
 
 	auto [it, inserted] = entToPointLightData.try_emplace(entity);
 
+	it->second.mPosition = light->position;
 	it->second.mColor = light->color;
 	it->second.mIntensity = light->intensity;
-	it->second.mPosition = light->position;
-	it->second.mRadius = light->radius;
 	it->second.shadowFarPlane = light->shadowMapFarPlane;
+	it->second.shadowNearPlane = light->shadowMapNearPlane;
 
 	if (inserted) {
 		it->second.dataArrayIndex = static_cast<GLuint>(pointLightDataArray.size());
