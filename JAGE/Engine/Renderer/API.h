@@ -301,5 +301,5 @@ public:
 
 
     void DrawScreenQuad(Texture2D& texture);
-    void DrawScene();
+    void DrawScene(const bool withDepth, const GLenum faceCulling);
 };

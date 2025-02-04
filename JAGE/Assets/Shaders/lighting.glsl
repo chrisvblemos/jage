@@ -83,10 +83,10 @@ float LinearStep(float low, float high, float v) {
 
 float ChebysevShadowProb(vec2 moments, float currentDepth) {
     float p = step(currentDepth, moments.x);
-    float variance  = max(moments.g - (moments.r * moments.r), 0.01);
+    float variance  = max(moments.g - (moments.r * moments.r), 0.00001);
     float d = currentDepth - moments.r;
     float p_max = variance / (variance + d * d);
-    p_max = LinearStep(0.2, 1.0, p_max);
+    p_max = LinearStep(0.4, 1.0, p_max);
     return min(max(p, p_max), 1.0);
 };
 
@@ -137,5 +137,6 @@ float SampleVarianceShadowMap(sampler2DArray shadowMapArray, vec3 worldFragPos, 
         shadow += ChebysevShadowProb(moments, currentDepth); 
     };
 
-    return clamp(shadow /= SHADOW_POISSON_SAMPLES, 0.0, 0.3);
+    shadow /= SHADOW_POISSON_SAMPLES;
+    return 1.0 - shadow;
 };

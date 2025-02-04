@@ -628,7 +628,7 @@ void API::PointLightShadowMapPass() {
 										   shadowCubeMapIndex),
 										   sizeof(GLuint),
 										   &lightData.shadowCubeMapIndex);
-		DrawScene();
+		DrawScene(true, GL_FRONT);
 	}
 }
 
@@ -681,7 +681,7 @@ void API::ShadowMapPass() {
 	BIND(Shader, shadowMapShader);
 	BIND(FrameBuffer, shadowMapFBO);
 	SetViewport(0, 0, shadowMapFBO.GetWidth(), shadowMapFBO.GetHeight());
-	DrawScene();
+	DrawScene(true, GL_FRONT);
 }
 
 void API::LightingPass() {
@@ -744,19 +744,18 @@ void API::DrawScreenQuad(Texture2D& texture) {
 	glDrawArrays(GL_TRIANGLES, 0, 6);
 }
 
-void API::DrawScene() {
-	SetViewport(0, 0, gBufferFBO.GetWidth(), gBufferFBO.GetHeight());
+void API::DrawScene(const bool withDepth, const GLenum faceCulling) {
 	BIND(DrawIndirectBuffer, meshDIB);
 	BIND(VertexArray, meshVAO);
 	ClearBuffers(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
-	SetDepthEnabled(true);
-	SetFaceCullMode(GL_FRONT);
+	ClearColor({0, 0, 0, 0});
+	SetDepthEnabled(withDepth);
+	SetFaceCullMode(faceCulling);
 	glMultiDrawElementsIndirect(GL_TRIANGLES,
 								GL_UNSIGNED_INT,
 								nullptr,
 								static_cast<GLsizei>(meshDrawCmdDataArray.size()),
 								sizeof(MeshDrawCmdData));
-	SetFaceCullMode(GL_BACK);
 }
 
 void API::PostFxPass()
@@ -866,7 +865,7 @@ void API::GeometryPass() {
 	BIND(Shader, gBufferShader);
 	BIND(FrameBuffer, gBufferFBO);
 	SetViewport(0, 0, gBufferFBO.GetWidth(), gBufferFBO.GetHeight());
-	DrawScene();
+	DrawScene(true, GL_BACK);
 }
 
 void API::SSAOPass() {
