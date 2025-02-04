@@ -728,7 +728,7 @@ void API::RegisterCamera(Camera* camera) {
 		cascadeDataArray.clear();
 		cascadeDataArray = std::vector<CascadeData>(Cfg::Rendering.Read<uint32_t>("OpenGL", "opengl.shadows.cascade_count", 4));
 
-		for (int i = 0; i < Cfg::Rendering.Read<uint32_t>("OpenGL", "opengl.shadows.cascade_count", 4); i++) {
+		for (size_t i = 0; i < Cfg::Rendering.Read<uint32_t>("OpenGL", "opengl.shadows.cascade_count", 4); i++) {
 			
 			const float fractionNear = static_cast<float>(i) / static_cast<float>(Cfg::Rendering.Read<uint32_t>("OpenGL", "opengl.shadows.cascade_count", 4));
 			const float fractionFar = static_cast<float>(i + 1) / static_cast<float>(Cfg::Rendering.Read<uint32_t>("OpenGL", "opengl.shadows.cascade_count", 4));
@@ -755,7 +755,7 @@ void API::RegisterCamera(Camera* camera) {
 void API::ShadowMapPass() {
 	if (directionalLight == nullptr) return;
 
-	for (int i = 0; i < Cfg::Rendering.Read<uint32_t>("OpenGL", "opengl.shadows.cascade_count", 4); i++) {
+	for (size_t i = 0; i < Cfg::Rendering.Read<uint32_t>("OpenGL", "opengl.shadows.cascade_count", 4); i++) {
 		const float cascadeNearPlane = cascadeDataArray[i].nearPlane;
 		const float cascadeFarPlane = cascadeDataArray[i].farPlane;
 
