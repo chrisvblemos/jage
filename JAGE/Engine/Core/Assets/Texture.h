@@ -1,6 +1,5 @@
 #pragma once
 
-#include <Core/Core.h>
 #include "GameAsset.h"
 
 enum TextureAssetType : uint8_t {
@@ -29,5 +28,5 @@ struct Texture : public GameAsset {
 
 	Texture() = default;
 	Texture(const std::string& assetName) : GameAsset(assetName) {};
-	Texture(const AssetId id) : GameAsset(id) {};
+	Texture(const Asset id) : GameAsset(id) {};
 };

@@ -90,15 +90,12 @@ const vec3 sampleOffsetDirections[20] = vec3[] (
 
 struct PointLightData {
     vec3  position;
-    float radius;
     vec3  color;
     float intensity;
     float shadowFarPlane;
+    float shadowNearPlane;
     int   shadowCubemapIndex;
-    float dataArrayIndex;
-    float constant;
-    float linear;
-    float quadratic;
+    int dataArrayIndex;
 };
 
 layout(std430, binding = 4) readonly buffer PointLightDataArray {
@@ -116,7 +113,12 @@ layout(std140, binding = 5) uniform SceneLightData {
     float ambientLightIntensity;
 };
 
-vec3 GetLight(vec3 lightColor, float lightIntensity, vec3 lightDir, vec3 camToFragDir, vec3 normal, float specular) {
+vec3 GetLight(vec3  lightColor, 
+              float lightIntensity, 
+              vec3  lightDir, 
+              vec3  camToFragDir, 
+              vec3  normal, 
+              float specular) {
     vec3 halfwayDir = normalize(lightDir + camToFragDir);
     vec3 light      = lightColor * lightIntensity;
 
@@ -139,17 +141,21 @@ float LinearStep(float low, float high, float v) {
 
 float ChebysevShadowProb(vec2 moments, float currentDepth) {
     float p = step(currentDepth, moments.x);
-    float variance  = max(moments.g - (moments.r * moments.r), 0.01);
+    float variance  = max(moments.g - (moments.r * moments.r), 0.00001);
     float d = currentDepth - moments.r;
     float p_max = variance / (variance + d * d);
-    p_max = LinearStep(0.2, 1.0, p_max);
+    p_max = LinearStep(0.4, 1.0, p_max);
     return min(max(p, p_max), 1.0);
 };
 
-float GetPointLightDataShadow(samplerCubeArray shadowCubemap, int i, vec3 worldFragPos, vec3 lightPos, float farPlane, vec3 viewPos) {
+float GetPointLightDataShadow(samplerCubeArray shadowCubemap, 
+                              int   i, 
+                              vec3  worldFragPos, 
+                              vec3  lightPos, 
+                              float farPlane, 
+                              vec3  viewPos) {
     float shadow        = 0.0;
-    float bias          = 0.05; 
-    // float samples       = 16.0;
+    float bias          = 0.1; 
     vec3  fragToLight   = worldFragPos - lightPos;
     float currentDepth  = length(fragToLight);
     float viewDistance  = length(viewPos - worldFragPos);
@@ -161,9 +167,10 @@ float GetPointLightDataShadow(samplerCubeArray shadowCubemap, int i, vec3 worldF
         vec3 nudge = fragToLight + POISSON_SPHERE_16[index] * diskRadius;
         float closestDepth = texture(shadowCubemap, vec4(nudge, i)).r;
         closestDepth *= farPlane;   // undo mapping [0;1]
-        if (currentDepth >= farPlane) return 0.0;
+        
         if(currentDepth - bias > closestDepth)
-            shadow += 1.0;
+            shadow += 1.0 - smoothstep(0.0, 1.0, currentDepth/farPlane);
+            //shadow += 1.0;
     }
 
     shadow /= SHADOW_POISSON_SAMPLES;  
@@ -171,7 +178,12 @@ float GetPointLightDataShadow(samplerCubeArray shadowCubemap, int i, vec3 worldF
 };
 
 
-float SampleVarianceShadowMap(sampler2DArray shadowMapArray, vec3 worldFragPos, vec3 lightDir, int cascadeLayer, mat4 cascadeLightSpaceMatrix, float cascadeFarPlane) {
+float SampleVarianceShadowMap(sampler2DArray shadowMapArray, 
+                              vec3  worldFragPos, 
+                              vec3  lightDir, 
+                              int   cascadeLayer, 
+                              mat4  cascadeLightSpaceMatrix, 
+                              float cascadeFarPlane) {
     
     int layer = cascadeLayer;
     
@@ -193,36 +205,39 @@ float SampleVarianceShadowMap(sampler2DArray shadowMapArray, vec3 worldFragPos, 
         shadow += ChebysevShadowProb(moments, currentDepth); 
     };
 
-    return clamp(shadow /= SHADOW_POISSON_SAMPLES, 0.0, 0.3);
+    shadow /= SHADOW_POISSON_SAMPLES;
+    return 1.0 - shadow;
 };
 
 in  vec2  TexCoords;
-out vec4  FragColor;
+
+layout (location = 0) out vec3 outDiffuse;
 
 layout (binding = 0) uniform samplerCubeArray   shadowCubemapArray;
 layout (binding = 1) uniform sampler2DArray     shadowMapArray;
 layout (binding = 2) uniform sampler2D          gPosition;
 layout (binding = 3) uniform sampler2D          gNormal;
-layout (binding = 4) uniform sampler2D          gAlbedoSpec;
-layout (binding = 5) uniform sampler2D          gSSAO;
+layout (binding = 4) uniform sampler2D          gAlbedo;
+layout (binding = 5) uniform sampler2D          gSpecular;
+layout (binding = 6) uniform sampler2D          gMetallic;
+layout (binding = 7) uniform sampler2D          gSSAO;
 
 void main() {
-	vec3  WorldFragPos   = texture(gPosition, TexCoords).rgb;        // gPosition texture
-	vec3  WorldNormal    = texture(gNormal, TexCoords).rgb;          // gNormal texture
-	vec3  Albedo         = texture(gAlbedoSpec, TexCoords).rgb;      // gAlbedo texture
-	float Specular       = texture(gAlbedoSpec, TexCoords).a;        // gAlbedoSpec texture (stored in alpha of gAlbedo)
+	vec3  WorldFragPos     = texture(gPosition, TexCoords).rgb;
+	vec3  WorldNormal      = texture(gNormal, TexCoords).rgb;
+	vec3  Albedo           = texture(gAlbedo, TexCoords).rgb;
+	float Specular         = texture(gSpecular, TexCoords).a;
+    float Metallic         = texture(gMetallic, TexCoords).r;
     float AmbientOcclusion = texture(gSSAO, TexCoords).r;
-    vec3  camToFragDir   = normalize(viewPos.xyz - WorldFragPos);    // direction from camera to fragment
-    vec3  lightingResult = vec3(0.0, 0.0, 0.0);                      // result of lighting calculations
+    vec3  camToFragDir     = normalize(viewPos.xyz - WorldFragPos);
+    vec3  lightingResult   = vec3(0.0, 0.0, 0.0);
 
     if (pointLightsCount > 0) {
 	    for (int i = 0; i < pointLightsCount; ++i) {
             PointLightData pointLight   = pointLights[i];
             vec3  pointLightDir         = normalize(pointLight.position - WorldFragPos);
             float distanceToLight       = length(pointLight.position - WorldFragPos);
-            float attenuation           = 1.0 / (pointLight.constant + 
-                                                    pointLight.linear * distanceToLight + 
-                                                    pointLight.quadratic * distanceToLight * distanceToLight);
+            float attenuation           = 1.0 / (distanceToLight * distanceToLight);
             float attenuatedIntensity   = pointLight.intensity * attenuation;
 
             vec3 pointLightResult = GetLight(
@@ -266,11 +281,8 @@ void main() {
         lightingResult += (1.0 - shadow) * directionalLighting;
     };
 
-    vec3 ambientLight   = ambientLightColor * ambientLightIntensity * AmbientOcclusion;
-    lightingResult      = lightingResult + ambientLight;
-    vec3 result         = lightingResult * Albedo;
-
-    FragColor = vec4(ambientLight, 1.0);
-    
+    vec3 ambientLight   = ambientLightColor * ambientLightIntensity;
+    lightingResult      = (lightingResult + ambientLight) * AmbientOcclusion;
+    outDiffuse         = lightingResult * Albedo;
 };
 

@@ -1,6 +1,6 @@
 #pragma once
 
-#include <Renderer/API.h>
+#include <Renderer/OpenGlApi.h>
 #include <ECS/Components/Camera.h>
 #include "System.h"
 
@@ -9,13 +9,13 @@ using TransformID = uint32_t;
 class RenderSystem : public System {
 private:
 	Camera* mActiveCamera;
-	API* mRenderApi;
+	OpenGlApi* mRenderApi;
 public:
 	RenderSystem() {
 		name = "RenderSystem";
 	}
 
 	void SetActiveCamera(Camera* camera);
-	void SetRenderApi(API* r);
-	void Update(float dt);
+	void SetRenderApi(OpenGlApi* r);
+	void Update(float dt) override;
 };

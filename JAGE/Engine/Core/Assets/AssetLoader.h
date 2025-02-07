@@ -1,22 +1,21 @@
 #pragma once
 
-#include <Core/Core.h>
-
-struct Texture;
-struct MeshModel;
-struct aiNode;
-struct aiScene;
-struct aiMesh;
-struct aiMaterial;
-enum aiTextureType;
+#include "Common.h"
+#include "Texture.h"
+#include "MeshModel.h"
+#include "Mesh.h"
+#include <stb/stb_image.h>
+#include <assimp/Importer.hpp>
+#include <assimp/scene.h>
+#include <assimp/postprocess.h>
 
 class AssetLoader {
 private:
 	AssetLoader() = default;
 
 	void ProcessObjNode(aiNode* node, const aiScene* scene, const std::string& path, MeshModel& meshModel);
-	AssetId ProcessMesh(aiMesh* mesh, const aiScene* scene, const std::string& path);
-	std::vector<AssetId> LoadTexturesFromMaterial(aiMaterial* mat, const aiTextureType aiType, const std::string& path);
+	Asset ProcessMesh(aiMesh* mesh, const aiScene* scene, const std::string& path);
+	std::vector<Asset> LoadTexturesFromMaterial(aiMaterial* mat, const aiTextureType aiType, const std::string& path);
 
 public:
 	// prevents copying

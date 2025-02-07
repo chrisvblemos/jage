@@ -1,6 +1,7 @@
 #pragma once
 
 #include <Core/Core.h>
+#include <Core/Log/Logging.h>
 #include "IBindable.h"
 
 class IBuffer {

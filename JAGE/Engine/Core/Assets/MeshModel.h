@@ -1,12 +1,11 @@
 #pragma once
 
-#include <Core/Core.h>
 #include "GameAsset.h"
 
 struct MeshModel : public GameAsset {
-	std::vector<AssetId> meshes;
+	std::vector<Asset> meshes;
 
 	MeshModel() = default;
 	MeshModel(const std::string& assetName) : GameAsset(assetName) {};
-	MeshModel(const AssetId id) : GameAsset(id) {};
+	MeshModel(const Asset id) : GameAsset(id) {};
 };

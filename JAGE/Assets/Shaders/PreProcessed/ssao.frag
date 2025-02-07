@@ -9,8 +9,8 @@ layout (std140, binding = 1) uniform CameraData {
 
 layout (location = 0) out float gSSAO;
 
-layout (binding = 0) uniform sampler2D uGbuffer_Position;
-layout (binding = 1) uniform sampler2D uGBuffer_Normal;
+layout (binding = 0) uniform sampler2D uGbuffer_ViewPosition;
+layout (binding = 1) uniform sampler2D uGBuffer_ViewNormal;
 layout (binding = 2) uniform sampler2D uSSAO_TexNoise;
 
 layout (std140, binding = 9) uniform SSAO_SettingsData {
@@ -19,13 +19,14 @@ layout (std140, binding = 9) uniform SSAO_SettingsData {
 	vec4 uSSAO_Samples[64];
 	vec2 uSSAO_NoiseScale;
 	float uSSAO_Bias;
+	float uSSAO_Power;
 };
 
 in vec2 TexCoords;
 
 void main() {
-    vec3 fragPos = vec3(view * vec4(texture(uGbuffer_Position, TexCoords).xyz, 1.0));
-    vec3 normal = normalize(mat3(view) * texture(uGBuffer_Normal, TexCoords).xyz);
+    vec3 fragPos = texture(uGbuffer_ViewPosition, TexCoords).xyz;
+    vec3 normal = texture(uGBuffer_ViewNormal, TexCoords).xyz;
     vec3 randomVec	= texture(uSSAO_TexNoise, TexCoords * uSSAO_NoiseScale).xyz; 
 
 	vec3 tangent   = normalize(randomVec - normal * dot(randomVec, normal));
@@ -42,11 +43,13 @@ void main() {
 		offset.xyz /= offset.w;
 		offset.xyz  = offset.xyz * 0.5 + 0.5;
 
-        vec3 sampleFragPos = vec3(view * vec4(texture(uGbuffer_Position, clamp(offset.xy, 0.0, 0.95)).xyz, 1.0));
+        vec3 sampleFragPos = texture(uGbuffer_ViewPosition, offset.xy).xyz;
 		float sampleDepth	= sampleFragPos.z;
 		float rangeCheck	= smoothstep(0.0, 1.0, uSSAO_Radius / abs(fragPos.z - sampleDepth));
 		occlusion		   += (sampleDepth >= samplePos.z + uSSAO_Bias ? 1.0 : 0.0) * rangeCheck;
 	}
 
-	gSSAO = 1.0 - (occlusion / uSSAO_KernelSize);
+	occlusion = 1.0 - (occlusion / uSSAO_KernelSize);
+	occlusion = pow(occlusion, uSSAO_Power);
+	gSSAO = occlusion;
 }

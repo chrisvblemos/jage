@@ -1,5 +1,5 @@
-#include <Input/KeyboardInput.h>
-#include <Input/MouseInput.h>
+#include <Core/Core.h>
+#include <Core/Window.h>
 #include "Editor.h"
 
 
@@ -14,12 +14,12 @@ void Editor::Update(float dt)
 void Editor::ToggleEditorMode()
 {
 	mIsEditorActive = !mIsEditorActive;
-	MouseInput::Get().SetMouseCursorVisibility(mIsEditorActive);
+	Window::Get().SetMouseCursorVisibility(mIsEditorActive);
 }
 
 void Editor::HandleInput()
 {
-	if (KeyboardInput::Get().IsKeyPressed(GLFW_KEY_F1)) {
+	if (Input::Get().GetKeyWasPressed(GLFW_KEY_F1)) {
 		ToggleEditorMode();
 	}
 }

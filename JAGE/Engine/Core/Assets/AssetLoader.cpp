@@ -1,16 +1,6 @@
 #include <Core/Core.h>
-#include <Renderer/API.h>
-#include <assimp/Importer.hpp>
-#include <assimp/scene.h>
-#include <assimp/postprocess.h>
-#include <stb/stb_image.h>
+#include <Renderer/OpenGlApi.h>
 #include <filesystem>
-
-#include "Types/MeshModel.h"
-#include "Types/Material.h"
-#include "Types/Mesh.h"
-#include "Types/Texture.h"
-
 #include "AssetManager.h"
 #include "AssetLoader.h"
 
@@ -46,7 +36,7 @@ MeshModel& AssetLoader::LoadMeshModelFromFile(const std::string& path) {
 void AssetLoader::ProcessObjNode(aiNode* node, const aiScene* scene, const std::string& path, MeshModel& meshModel) {
 	for (uint32_t i = 0; i < node->mNumMeshes; i++) {
 		aiMesh* aimesh = scene->mMeshes[node->mMeshes[i]];
-		AssetId meshAssetId = ProcessMesh(aimesh, scene, path);
+		Asset meshAssetId = ProcessMesh(aimesh, scene, path);
 		meshModel.meshes.push_back(meshAssetId);
 	}
 
@@ -55,7 +45,7 @@ void AssetLoader::ProcessObjNode(aiNode* node, const aiScene* scene, const std::
 	}
 }
 
-AssetId AssetLoader::ProcessMesh(aiMesh* aiMesh, const aiScene* scene, const std::string& path) {
+Asset AssetLoader::ProcessMesh(aiMesh* aiMesh, const aiScene* scene, const std::string& path) {
 	auto& assetManager = AssetManager::Get();
 	std::vector<Vertex> vertices;
 	std::vector<uint32_t> indices;
@@ -104,9 +94,9 @@ AssetId AssetLoader::ProcessMesh(aiMesh* aiMesh, const aiScene* scene, const std
 
 	if (aiMesh->mMaterialIndex >= 0) {
 		aiMaterial* aiMat = scene->mMaterials[aiMesh->mMaterialIndex];
-		std::vector<AssetId> diffuseTextures = LoadTexturesFromMaterial(aiMat, aiTextureType_DIFFUSE, path);
-		std::vector<AssetId> specularTextures = LoadTexturesFromMaterial(aiMat, aiTextureType_SPECULAR, path);
-		std::vector<AssetId> normalTextures = LoadTexturesFromMaterial(aiMat, aiTextureType_NORMALS, path);
+		std::vector<Asset> diffuseTextures = LoadTexturesFromMaterial(aiMat, aiTextureType_DIFFUSE, path);
+		std::vector<Asset> specularTextures = LoadTexturesFromMaterial(aiMat, aiTextureType_SPECULAR, path);
+		std::vector<Asset> normalTextures = LoadTexturesFromMaterial(aiMat, aiTextureType_NORMALS, path);
 
 		// create material assigned to this mesh
 		if (!diffuseTextures.empty())
@@ -117,13 +107,13 @@ AssetId AssetLoader::ProcessMesh(aiMesh* aiMesh, const aiScene* scene, const std
 			newMesh.specularTexture = normalTextures[0];
 	}
 
-	API::Get().RegisterMesh(&newMesh);
+	OpenGlApi::Get().RegisterMesh(&newMesh);
 
 	return newMesh.assetId;
 }
 
-std::vector<AssetId> AssetLoader::LoadTexturesFromMaterial(aiMaterial* mat, const aiTextureType aiType, const std::string& path) {
-	std::vector<AssetId> textures;
+std::vector<Asset> AssetLoader::LoadTexturesFromMaterial(aiMaterial* mat, const aiTextureType aiType, const std::string& path) {
+	std::vector<Asset> textures;
 
 	TextureAssetType texType;
 	if (aiType == aiTextureType_BASE_COLOR || aiType == aiTextureType_DIFFUSE) {
@@ -183,7 +173,7 @@ Texture& AssetLoader::LoadTextureFromFile(const std::string& path, const uint8_t
 	texture.hasAlphaChannel = nrChannels > 3;
 	texture.type = static_cast<TextureAssetType>(texType);
 
-	API::Get().RegisterTexture2D(&texture);
+	OpenGlApi::Get().RegisterTexture2D(&texture);
 
 	stbi_image_free(data);
 	return texture;

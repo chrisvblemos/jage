@@ -1,10 +1,8 @@
-#include <Input/KeyboardInput.h>
-#include <Input/MouseInput.h>
 #include <ECS/Components/PlayerMovement.h>
 #include <ECS/Components/Camera.h>
 #include <ECS/Components/Transform.h>
 #include <World/World.h>
-#include <Utils.h>
+#include <Core/Utils.h>
 
 #include "PlayerSystem.h"
 
@@ -23,17 +21,17 @@ void PlayerSystem::Update(float dt) {
 		PlayerMovement& playerMovement = World::Get().GetComponent<PlayerMovement>(entity);
 
 		// camera control
-		const glm::vec2 mouseDelta = MouseInput::Get().GetMouseDelta(camera.mMouseSensitivity);
+		const glm::vec2 mouseDelta = Input::Get().GetMouseDelta();
 
 		// the player entity only rotates in the yaw axis
 		// camera pitch is stored inside the camera component
 		if (mouseDelta.x) {
-			camera.yaw -= mouseDelta.x * dt;
+			camera.yaw -= camera.mMouseSensitivity * mouseDelta.x * dt;
 		}
 
 		// clamp pitch between -89.0f and 89.0f
 		if (mouseDelta.y) {
-			camera.pitch -= mouseDelta.y * dt;
+			camera.pitch -= camera.mMouseSensitivity * mouseDelta.y * dt;
 			camera.pitch = glm::clamp(camera.pitch, MIN_CAMERA_PITCH, MAX_CAMERA_PITCH);
 		}
 
@@ -45,16 +43,16 @@ void PlayerSystem::Update(float dt) {
 
 		// player movement control
 		glm::vec3 moveInput = glm::vec3(0.0f);
-		if (KeyboardInput::Get().IsKeyPressed(EKey::W) || KeyboardInput::Get().IsKeyHeld(EKey::W)) {
+		if (Input::Get().GetKeyWasPressed(GLFW_KEY_W) || Input::Get().GetKeyWasPressed(GLFW_KEY_W)) {
 			moveInput += forward;
 		}
-		if (KeyboardInput::Get().IsKeyPressed(EKey::S) || KeyboardInput::Get().IsKeyHeld(EKey::S)) {
+		if (Input::Get().GetKeyWasPressed(GLFW_KEY_S) || Input::Get().GetKeyWasPressed(GLFW_KEY_S)) {
 			moveInput -= forward;
 		}
-		if (KeyboardInput::Get().IsKeyPressed(EKey::A) || KeyboardInput::Get().IsKeyHeld(EKey::A)) {
+		if (Input::Get().GetKeyWasPressed(GLFW_KEY_A) || Input::Get().GetKeyWasPressed(GLFW_KEY_A)) {
 			moveInput -= right;
 		}
-		if (KeyboardInput::Get().IsKeyPressed(EKey::D) || KeyboardInput::Get().IsKeyHeld(EKey::D)) {
+		if (Input::Get().GetKeyWasPressed(GLFW_KEY_D) || Input::Get().GetKeyWasPressed(GLFW_KEY_D)) {
 			moveInput += right;
 		}
 
@@ -65,7 +63,7 @@ void PlayerSystem::Update(float dt) {
 			playerMovement.velocity.t = 0.0f;
 		}
 		// jump
-		if (playerMovement.isGrounded && KeyboardInput::Get().IsKeyPressed(EKey::Space)) {
+		if (playerMovement.isGrounded && Input::Get().GetKeyWasPressed(GLFW_KEY_SPACE)) {
 			playerMovement.velocity.y = 5.0f;
 			playerMovement.isGrounded = false;
 		}

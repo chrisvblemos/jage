@@ -6,7 +6,7 @@
 #include "Types/Texture.h"
 #include "Types/VertexArray.h"
 #include <Core/Core.h>
-#include <Config.h>
+#include <Core/Config.h>
 
 // UBOs & SSBOs
 #define UBO_LIGHTS 0
@@ -144,9 +144,9 @@ const GLuint quadIndices[] = {
 };
 
 
-class API {
+class OpenGlApi {
 private:
-	API() = default;
+	OpenGlApi() = default;
 
 	Viewport mViewport;
 	bool mDepthEnabled;
@@ -223,9 +223,9 @@ private:
 	DirectionalLight* directionalLight;
 	Camera* currentActiveCamera;
 	
-	std::unordered_map<AssetId, std::unordered_map<Entity, uint32_t>> assToEntMeshInstIndexes;
-	std::unordered_map<AssetId, MeshMetaData> assToMesh;
-	std::unordered_map<AssetId, std::vector<MeshInstanceData>> assToMeshInsts;
+	std::unordered_map<Asset, std::unordered_map<Entity, uint32_t>> assToEntMeshInstIndexes;
+	std::unordered_map<Asset, MeshMetaData> assToMesh;
+	std::unordered_map<Asset, std::vector<MeshInstanceData>> assToMeshInsts;
 	std::unordered_map<Entity, PointLightData> entToPointLightData;
 
 	std::vector<CascadeData> cascadeDataArray;
@@ -236,7 +236,7 @@ private:
 	std::vector<uint32_t> depthCubemapDataArray;
 	std::vector<PointLightData> pointLightDataArray;
 
-	std::unordered_map<AssetId, Texture2D> assetIDToTex2DMap;
+	std::unordered_map<Asset, Texture2D> assetIDToTex2DMap;
 	std::vector<GLuint64> tex2DHndlrDataArray;
 
 	void SetDepthEnabled(const bool val);
@@ -260,12 +260,11 @@ private:
     glm::mat4 CalculateModelMatrix(const glm::vec3& position, const glm::quat& rotation, const glm::vec3& scale);
 
 public:
-	// prevents copying
-	API(const API&) = delete;
-	API& operator=(const API&) = delete;
+	OpenGlApi(const OpenGlApi&) = delete;
+	OpenGlApi& operator=(const OpenGlApi&) = delete;
 
-	static API& Get() {
-		static API instance;
+	static OpenGlApi& Get() {
+		static OpenGlApi instance;
 		return instance;
 	}
 

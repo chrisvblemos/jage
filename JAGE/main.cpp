@@ -1,6 +1,7 @@
 #include "Engine/Engine.h"
 
 int main() {
-	Engine::Get().Init();
+	Engine engine = Engine();
+	engine.Init();
 	return 0;
 }

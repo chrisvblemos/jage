@@ -3,8 +3,8 @@
 #include <Core/Core.h>
 
 struct StaticMeshRenderer {
-	std::vector<AssetId> meshes;
+	std::vector<Asset> meshes;
 
 	StaticMeshRenderer() = default;
-	StaticMeshRenderer(const std::vector<AssetId>& meshes) : meshes(meshes) {};
+	StaticMeshRenderer(const std::vector<Asset>& meshes) : meshes(meshes) {};
 };

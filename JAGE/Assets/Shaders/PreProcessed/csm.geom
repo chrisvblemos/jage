@@ -34,7 +34,7 @@ int GetCascadeLayer(vec3 worldFragPos, mat4 view) {
 };
 
 void main()
-{          
+{
     for (int i = 0; i < 3; ++i)
     {
         gl_Position = cascades[gl_InvocationID].lightSpaceMatrix * gl_in[i].gl_Position;

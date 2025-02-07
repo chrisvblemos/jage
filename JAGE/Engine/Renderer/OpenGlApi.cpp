@@ -1,23 +1,19 @@
 #include <ECS/EntityManager.h>
-#include <Core/Types/GameAsset.h>
-#include <Core/Types/Texture.h>
-#include <Core/Types/Mesh.h>
-#include <Core/Types/Material.h>
 #include <ECS/Components/Transform.h>
 #include <ECS/Components/Camera.h>
 #include <ECS/Components/DirectionalLight.h>
 #include <ECS/Components/PointLight.h>
 #include <ECS/Components/StaticMeshRenderer.h>
-#include <Core/AssetManager.h>
-#include <LogDisplay.h>
-#include <Config.h>
+#include <Core/Assets/AssetManager.h>
+#include <Core/Log/LogDisplay.h>
+#include <Core/Config.h>
 #include "ShaderPreProcessor.h"
-#include "Utils.h"
-#include "API.h"
+#include "Core/Utils.h"
+#include "OpenGlApi.h"
 
 void EnableOpenGLDebugOutput();
 
-bool API::Initialize() {
+bool OpenGlApi::Initialize() {
 
 	EnableOpenGLDebugOutput();
 	ShaderPreProcessor spp = ShaderPreProcessor();
@@ -182,7 +178,7 @@ void EnableOpenGLDebugOutput() {
 
 /* Projection matrix uses camera fov and aspect ratio, and the near and far plane
 of the frustum in question. The view matrix is the camera's view matrix as usual. */
-std::vector<glm::vec4> API::GetFrustumCornersWorldSpace(const float fov, const float aspectRatio, const float nearPlane, const float farPlane, const glm::mat4& view) {
+std::vector<glm::vec4> OpenGlApi::GetFrustumCornersWorldSpace(const float fov, const float aspectRatio, const float nearPlane, const float farPlane, const glm::mat4& view) {
 	const glm::mat4 proj = glm::perspective(glm::radians(fov), aspectRatio, nearPlane, farPlane);
 	const auto inv = glm::inverse(proj * view);
 
@@ -204,7 +200,7 @@ std::vector<glm::vec4> API::GetFrustumCornersWorldSpace(const float fov, const f
 	return corners;
 }
 
-glm::mat4 API::GetLightViewMatrix(const glm::vec3& lightDir, const std::vector<glm::vec4>& frustumCorners) {
+glm::mat4 OpenGlApi::GetLightViewMatrix(const glm::vec3& lightDir, const std::vector<glm::vec4>& frustumCorners) {
 	glm::vec3 center = glm::vec3(0.0f); // center of light frustum
 	for (const auto& v : frustumCorners) {
 		center += glm::vec3(v);
@@ -225,7 +221,7 @@ glm::mat4 API::GetLightViewMatrix(const glm::vec3& lightDir, const std::vector<g
 
 /* Returns the light proj matrix when using CSM. To get the view-proj matrix,
 just multiply by the view matrix (see GetLightViewMatrix()).*/
-glm::mat4 API::GetLightSpaceMatrix(const glm::mat4& lightViewMatrix, const std::vector<glm::vec4>& corners) {
+glm::mat4 OpenGlApi::GetLightSpaceMatrix(const glm::mat4& lightViewMatrix, const std::vector<glm::vec4>& corners) {
 	float minX = std::numeric_limits<float>::max();
 	float maxX = std::numeric_limits<float>::lowest();
 	float minY = std::numeric_limits<float>::max();
@@ -280,7 +276,7 @@ glm::mat4 API::GetLightSpaceMatrix(const glm::mat4& lightViewMatrix, const std::
 	return lightProjection * lightViewMatrix;
 };
 
-void API::InitSSAOUniformBuffer() {
+void OpenGlApi::InitSSAOUniformBuffer() {
 
 	std::uniform_real_distribution<float> randomFloats(0.0, 1.0);
 	std::default_random_engine generator;
@@ -374,7 +370,7 @@ void API::InitSSAOUniformBuffer() {
 	}
 }
 
-void API::InitPostFxFBO() {
+void OpenGlApi::InitPostFxFBO() {
 	postFXTex2D = Texture2D("post_fx_tex2d", 
 							GL_RGB8, 
 							Cfg::Rendering.Read<uint32_t>("Video", "video.resX", 800), 
@@ -391,7 +387,7 @@ void API::InitPostFxFBO() {
 	}
 }
 
-void API::InitShadowMapFBOs() {
+void OpenGlApi::InitShadowMapFBOs() {
 	float borderColor[] = {1.0f, 1.0f, 1.0f, 1.0f};
 	float invBorderColor[] = { 0.0f, 0.0f, 0.0f, 0.0f };
 	
@@ -489,7 +485,7 @@ void API::InitShadowMapFBOs() {
 	}
 }
 
-void API::InitLightingFBO()
+void OpenGlApi::InitLightingFBO()
 {
 	diffuseTex2D = Texture2D("gDiffuse_tex2D", 
 							 GL_RGB16F, 
@@ -508,7 +504,7 @@ void API::InitLightingFBO()
 	}
 }
 
-void API::InitGBuffer() {
+void OpenGlApi::InitGBuffer() {
 	gPosition = Texture2D("gPosition_tex2D", 
 						  GL_RGBA16F, 
 						  Cfg::Rendering.Read<uint32_t>("Video", "video.resX", 800), 
@@ -575,7 +571,7 @@ void API::InitGBuffer() {
 	}
 }
 
-void API::RegisterTexture2D(Texture* texture) {
+void OpenGlApi::RegisterTexture2D(Texture* texture) {
 	if (texture == nullptr)
 		LOG(LogOpenGL, LOG_CRITICAL, std::format("Failed to register texture {} to buffer.", texture->assetPath));
 
@@ -630,7 +626,7 @@ void API::RegisterTexture2D(Texture* texture) {
 	assetIDToTex2DMap[texture->assetId] = glTex2D;
 }
 
-glm::mat4 API::CalculateModelMatrix(const glm::vec3 &position, const glm::quat &rotation, const glm::vec3 &scale)
+glm::mat4 OpenGlApi::CalculateModelMatrix(const glm::vec3 &position, const glm::quat &rotation, const glm::vec3 &scale)
 {
 	glm::mat4 modelMatrix = glm::mat4(1.0f);
 	modelMatrix = glm::translate(modelMatrix, position);
@@ -639,7 +635,7 @@ glm::mat4 API::CalculateModelMatrix(const glm::vec3 &position, const glm::quat &
 	return modelMatrix;
 }
 
-void API::UploadSceneLightData() {
+void OpenGlApi::UploadSceneLightData() {
 	SceneLightData sceneLightData;
 	sceneLightData.mHasDirectionalLight = static_cast<GLuint>(directionalLight != nullptr);
 	sceneLightData.mDirectionalLightColor = directionalLight? directionalLight->color : glm::vec3(1.0f);
@@ -653,7 +649,7 @@ void API::UploadSceneLightData() {
 	sceneLightDataUBO.UpdateData(0, sizeof(SceneLightData), &sceneLightData);
 }
 
-void API::UploadCameraData() {
+void OpenGlApi::UploadCameraData() {
 	assert(currentActiveCamera && "OpenGL: Attempting to upload camera data without an active camera.");
 
 	CameraData cameraData = {};
@@ -664,7 +660,7 @@ void API::UploadCameraData() {
 	cameraDataUBO.UpdateData(0, sizeof(CameraData), &cameraData);
 }
 
-void API::PointLightShadowMapPass() {
+void OpenGlApi::PointLightShadowMapPass() {
 	if (pointLightDataArray.empty())
 		return;
 
@@ -721,7 +717,7 @@ void API::PointLightShadowMapPass() {
 	}
 }
 
-void API::RegisterCamera(Camera* camera) {
+void OpenGlApi::RegisterCamera(Camera* camera) {
 	if (camera != nullptr) {
 		currentActiveCamera = camera;
 
@@ -752,7 +748,7 @@ void API::RegisterCamera(Camera* camera) {
 	}
 }
 
-void API::ShadowMapPass() {
+void OpenGlApi::ShadowMapPass() {
 	if (directionalLight == nullptr) return;
 
 	for (size_t i = 0; i < Cfg::Rendering.Read<uint32_t>("OpenGL", "opengl.shadows.cascade_count", 4); i++) {
@@ -777,7 +773,7 @@ void API::ShadowMapPass() {
 	DrawScene(true, GL_FRONT);
 }
 
-void API::LightingPass() {
+void OpenGlApi::LightingPass() {
 	BIND_TEX(TextureCubeMapArray, pointShadowCubemapArray, 0);
 	BIND_TEX(Texture2DArray, shadowMapTex2DArray, 1);
 	BIND_TEX(Texture2D, gPosition, 2);
@@ -794,7 +790,7 @@ void API::LightingPass() {
 	DrawScreenQuad(diffuseTex2D);
 }
 
-void API::OutputToScreen(const SceneTexture st) {
+void OpenGlApi::OutputToScreen(const SceneTexture st) {
 	Texture2D sceneTexture;
 	switch (st) {
 		case SceneTexture::ST_POST_FX:
@@ -830,14 +826,14 @@ void API::OutputToScreen(const SceneTexture st) {
 	DrawScreenQuad(sceneTexture);
 }
 
-void API::DrawScreenQuad(Texture2D& texture) {
+void OpenGlApi::DrawScreenQuad(Texture2D& texture) {
 	BIND(VertexArray, screenQuadVAO);
 	ClearBuffers(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	SetDepthEnabled(false);
 	glDrawArrays(GL_TRIANGLES, 0, 6);
 }
 
-void API::DrawScene(const bool withDepth, const GLenum faceCulling, const bool clear) {
+void OpenGlApi::DrawScene(const bool withDepth, const GLenum faceCulling, const bool clear) {
 	BIND(DrawIndirectBuffer, meshDIB);
 	BIND(VertexArray, meshVAO);
 
@@ -855,7 +851,7 @@ void API::DrawScene(const bool withDepth, const GLenum faceCulling, const bool c
 								sizeof(MeshDrawCmdData));
 }
 
-void API::PostFxPass()
+void OpenGlApi::PostFxPass()
 {
 	BIND_TEX(Texture2D, diffuseTex2D, 0);
 	BIND(Shader, postFxShader);
@@ -865,7 +861,7 @@ void API::PostFxPass()
 	DrawScreenQuad(postFXTex2D);
 }
 
-void API::UpsertMeshEntity(const Entity entity, const std::vector<const Mesh*>& meshes, const Transform& transform) {
+void OpenGlApi::UpsertMeshEntity(const Entity entity, const std::vector<const Mesh*>& meshes, const Transform& transform) {
 	glm::mat4 model = CalculateModelMatrix(transform.position, transform.rotation, transform.scale);;
 	glm::mat4 inverseModel = glm::inverseTranspose(model);
 
@@ -890,7 +886,7 @@ void API::UpsertMeshEntity(const Entity entity, const std::vector<const Mesh*>& 
 	}	
 }
 
-void API::RegisterPointLight(const Entity entity, const PointLight* light) {
+void OpenGlApi::RegisterPointLight(const Entity entity, const PointLight* light) {
 	if (light == nullptr) {
 		LOG(LogOpenGL, LOG_WARNING, "Failed to register point light. Light is null.");
 		return;
@@ -912,7 +908,7 @@ void API::RegisterPointLight(const Entity entity, const PointLight* light) {
 	pointLightDataArraySSBO.UpdateData(it->second.dataArrayIndex * sizeof(PointLightData), sizeof(PointLightData), &it->second);
 }
 
-void API::RegisterMesh(const Mesh* mesh) {
+void OpenGlApi::RegisterMesh(const Mesh* mesh) {
 	const std::vector<Vertex>& vertices = mesh->vertices;
 	const std::vector<GLuint>& indices = mesh->indices;
 
@@ -943,7 +939,7 @@ void API::RegisterMesh(const Mesh* mesh) {
 	}
 }
 
-void API::BatchMeshInstData() {
+void OpenGlApi::BatchMeshInstData() {
 	std::vector<MeshInstanceData> meshInstDataArray;
 	for (const auto& it : assToMeshInsts) {
 		MeshMetaData& metaData = assToMesh[it.first];
@@ -958,14 +954,14 @@ void API::BatchMeshInstData() {
 	meshSSBO.UpdateData(0, meshInstDataArray.size() * sizeof(MeshInstanceData), meshInstDataArray.data());
 }
 
-void API::GeometryPass() {
+void OpenGlApi::GeometryPass() {
 	BIND(Shader, gBufferShader);
 	BIND(FrameBuffer, gBufferFBO);
 	SetViewport(0, 0, gBufferFBO.GetWidth(), gBufferFBO.GetHeight());
 	DrawScene(true, GL_BACK);
 }
 
-void API::SSAOPass() {
+void OpenGlApi::SSAOPass() {
 	SetViewport(0, 
 				0, 
 				Cfg::Rendering.Read<uint32_t>("Video", "video.resX", 800), 
@@ -991,7 +987,7 @@ void API::SSAOPass() {
 
 }
 
-void API::SetDepthEnabled(const bool val)
+void OpenGlApi::SetDepthEnabled(const bool val)
 {
 	if (mDepthEnabled == val) return;
 	
@@ -999,7 +995,7 @@ void API::SetDepthEnabled(const bool val)
 	mDepthEnabled = val;
 }
 
-void API::SetFaceCullEnabled(const bool val)
+void OpenGlApi::SetFaceCullEnabled(const bool val)
 {
 	if (mFaceCullEnabled == val) return;
 	
@@ -1007,13 +1003,13 @@ void API::SetFaceCullEnabled(const bool val)
 	mFaceCullEnabled = val;
 }
 
-void API::SetFaceCullMode(const GLenum mode)
+void OpenGlApi::SetFaceCullMode(const GLenum mode)
 {
 	if (mFaceCullMode == mode) return;
 	glCullFace(mode);
 }
 
-void API::SetViewport(const GLint x_off, const GLint y_off, const GLsizei width, const GLsizei height)
+void OpenGlApi::SetViewport(const GLint x_off, const GLint y_off, const GLsizei width, const GLsizei height)
 {
 	if (mViewport.x_offset == x_off &&
 		mViewport.y_offset == y_off &&
@@ -1029,17 +1025,17 @@ void API::SetViewport(const GLint x_off, const GLint y_off, const GLsizei width,
 	glViewport(x_off, y_off, width, height);
 }
 
-void API::ClearColor(const glm::vec4 &rgba)
+void OpenGlApi::ClearColor(const glm::vec4 &rgba)
 {
 	glClearColor(rgba.r, rgba.g, rgba.b, rgba.a);
 }
 
-void API::ClearBuffers(const GLenum flags)
+void OpenGlApi::ClearBuffers(const GLenum flags)
 {
 	glClear(flags);
 }
 
-GLenum API::internalToFormat(const GLenum internalFormat)
+GLenum OpenGlApi::internalToFormat(const GLenum internalFormat)
 {
     switch (internalFormat) {
         case GL_R8:

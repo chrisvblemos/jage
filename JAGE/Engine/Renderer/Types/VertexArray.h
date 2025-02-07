@@ -17,11 +17,10 @@ struct VertexAttrib {
 
 class VertexArray {
 public:
-	VertexArray() {
-		glCreateVertexArrays(1, &id);
-	}
+	VertexArray() = default;
 	
 	void Configure(const GLuint vbo, const GLsizei stride, const GLuint ebo, const std::vector<VertexAttrib>& attribs) {
+		glCreateVertexArrays(1, &id);
 		glVertexArrayVertexBuffer(id, 0, vbo, 0, stride);
 		glVertexArrayElementBuffer(id, ebo);
 

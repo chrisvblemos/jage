@@ -1,4 +1,4 @@
-#include <Renderer/API.h>
+#include <Renderer/OpenGlApi.h>
 #include <ECS/Components/Camera.h>
 #include <ECS/Components/StaticMeshRenderer.h>
 #include <ECS/Components/Transform.h>
@@ -6,10 +6,9 @@
 #include <ECS/Components/PointLight.h>
 #include <Core/Core.h>
 #include <World/World.h>
-#include <Core/AssetManager.h>
 #include "RenderSystem.h"
 
-void RenderSystem::SetRenderApi(API* renderApi) {
+void RenderSystem::SetRenderApi(OpenGlApi* renderApi) {
 	assert(renderApi != nullptr && "RenderSystem: Failed to set render API.");
 	mRenderApi = renderApi;
 }
@@ -40,7 +39,7 @@ void RenderSystem::Update(float dt) {
 
 			std::vector<const Mesh*> meshes;
 			auto& assetManager = AssetManager::Get();
-			for (const AssetId assetID : staticMeshRenderer.meshes) {
+			for (const Asset assetID : staticMeshRenderer.meshes) {
 				Mesh* mesh = assetManager.GetAssetById<Mesh>(assetID);
 				meshes.push_back(mesh);
 			}

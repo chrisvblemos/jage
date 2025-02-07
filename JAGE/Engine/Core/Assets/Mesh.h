@@ -1,6 +1,5 @@
 #pragma once
 
-#include <Core/Core.h>
 #include "GameAsset.h"
 
 struct Vertex {
@@ -20,11 +19,11 @@ struct Mesh : public GameAsset {
 	std::vector<Vertex> vertices;
 	std::vector<uint32_t> indices;
 
-	AssetId diffuseTexture = -1;
-	AssetId specularTexture = -1;
-	AssetId normalTexture = -1;
+	Asset diffuseTexture = -1;
+	Asset specularTexture = -1;
+	Asset normalTexture = -1;
 
 	Mesh() = default;
 	Mesh(const std::string& assetName) : GameAsset(assetName) {};
-	Mesh(const AssetId id) : GameAsset(id) {};
+	Mesh(const Asset id) : GameAsset(id) {};
 };

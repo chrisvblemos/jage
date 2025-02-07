@@ -1,25 +1,18 @@
 #pragma once
 
 #include <Core/Core.h>
+#include <Core/Window.h>
+#include <Core/Input.h>
+
+#define LogEngine "Engine"
 
 class Engine {
-private:
-	Engine() = default;
 public:
-	// prevents copying
-	Engine(const Engine&) = delete;
-	Engine& operator=(const Engine&) = delete;
-
-	static Engine& Get() {
-		static Engine instance;
-		return instance;
-	}
-
-	GLFWwindow* window = nullptr;
+	Engine() = default;
 
 	void Init();
-	void Update(float deltaTime);
 
 private:
-	bool CreateWindow();
+	float frameTime;
+	float frameTimePrev;
 };

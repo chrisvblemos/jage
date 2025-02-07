@@ -10,6 +10,11 @@ public:
 	std::string name;
 	bool entitiesChanged = false;
 
+	virtual void Start() {};
+	virtual void Update(float dt) = 0;
+	virtual void PostUpdate() {};
+	virtual void End() {};
+
 	inline void Register(const Entity entity) {
 		auto [it, res] = mEntities.insert(entity);
 		entitiesChanged = res;

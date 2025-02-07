@@ -21,6 +21,7 @@ public:
 	bool Initialize();
 	Entity CreateEntity();
 	void DestroyEntity(const Entity entity);
+	void Update(float dt);
 	const std::string GetEntityName(const Entity entity) const;
 	const std::vector<Entity> GetEntities() const;
 
@@ -79,7 +80,7 @@ public:
 	template<typename T>
 	T* RegisterSystem()
 	{
-		return mSystemManager->RegisterSystem<T>().get();
+		return mSystemManager->RegisterSystem<T>();
 	}
 
 	template<typename T>
