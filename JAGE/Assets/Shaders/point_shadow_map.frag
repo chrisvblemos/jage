@@ -2,11 +2,15 @@
 
 in vec4 FragPos;
 
-uniform vec3 uLightPos;
-uniform float uLightFarPlane;
+#include "lighting.glsl"
+
+uniform int uPointLightIndex;
 
 void main() {
-	float lightDist = length(FragPos.xyz - uLightPos);
-	lightDist = lightDist / uLightFarPlane;
-	gl_FragDepth = lightDist;
+vec3 pos = pointLights[uPointLightIndex].position;
+float farPlane = pointLights[uPointLightIndex].shadowFarPlane;
+
+float lightDist = length(FragPos.xyz - pos);
+lightDist = lightDist / farPlane;
+gl_FragDepth = lightDist;
 }

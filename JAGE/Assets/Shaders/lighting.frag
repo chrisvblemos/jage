@@ -47,7 +47,7 @@ void main() {
 
             float shadow = GetPointLightDataShadow(
                 shadowCubemapArray,
-                pointLight.shadowCubemapIndex, 
+                pointLight.dataArrayIndex, 
                 WorldFragPos, 
                 pointLight.position, 
                 pointLight.shadowFarPlane,

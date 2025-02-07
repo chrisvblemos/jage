@@ -1,11 +1,12 @@
 #include <ECS/Components/Transform.h>
 #include <ECS/Components/Camera.h>
-#include <ECS/Components/PlayerMovement.h>
+#include <ECS/Components/Character.h>
 #include <ECS/Components/RigidBody.h>
 #include <ECS/Components/StaticMeshRenderer.h>
 #include <ECS/Components/PointLight.h>
 #include <ECS/Components/DirectionalLight.h>
-#include <ECS/Systems/PlayerSystem.h>
+#include <ECS/Systems/CharacterSystem.h>
+#include <ECS/Systems/TransformSystem.h>
 #include <ECS/Systems/RenderSystem.h>
 #include "World.h"
 
@@ -17,7 +18,7 @@ bool World::Initialize()
 
 	RegisterComponent<Transform>();
 	RegisterComponent<Camera>();
-	RegisterComponent<PlayerMovement>();
+	RegisterComponent<Character>();
 	RegisterComponent<RigidBody>();
 	RegisterComponent<StaticMeshRenderer>();
 	RegisterComponent<PointLight>();
@@ -26,18 +27,22 @@ bool World::Initialize()
 	Signature any;
 	any.set();
 
-	PlayerSystem* playerSystem = RegisterSystem<PlayerSystem>();
-	Signature playerRequiredSignature = MakeSignature<Transform, Camera, PlayerMovement>();
-	SetSystemRequiredSignature<PlayerSystem>(playerRequiredSignature);
-	SetSystemOptionalSignature<PlayerSystem>(any);
+	CharacterSystem* characterSys = RegisterSystem<CharacterSystem>();
+	Signature charSysReqSign = MakeSignature<Transform, Character>();
+	SetSystemRequiredSignature<CharacterSystem>(charSysReqSign);
+	SetSystemOptionalSignature<CharacterSystem>(any);
 
-	RenderSystem* renderSystem = RegisterSystem<RenderSystem>();
-	renderSystem->SetRenderApi(&OpenGlApi::Get());
+	RenderSystem* renderSys = RegisterSystem<RenderSystem>();
+	Signature renderSysReqSign = MakeSignature<Transform>();
+	Signature renderSysOptSign = MakeSignature<StaticMeshRenderer, DirectionalLight, PointLight, Camera>();
+	SetSystemRequiredSignature<RenderSystem>(renderSysReqSign);
+	SetSystemOptionalSignature<RenderSystem>(renderSysOptSign);
+	renderSys->SetRenderApi(&OpenGlApi::Get());
 
-	Signature renderRequiredSignature = MakeSignature<Transform>();
-	Signature renderOptionalSignature = MakeSignature<StaticMeshRenderer, DirectionalLight, PointLight>();
-	SetSystemRequiredSignature<RenderSystem>(renderRequiredSignature);
-	SetSystemOptionalSignature<RenderSystem>(renderOptionalSignature);
+	TransformSystem* transformSys = RegisterSystem<TransformSystem>();
+	Signature transformSysReqSign = MakeSignature<Transform>();
+	SetSystemRequiredSignature<TransformSystem>(transformSysReqSign);
+	SetSystemOptionalSignature<TransformSystem>(any);
 
 	MeshModel& DefaultPlane = AssetLoader::Get().LoadMeshModelFromFile(
 		"Assets/Meshes/default_plane.obj");
@@ -48,24 +53,29 @@ bool World::Initialize()
 
 	Window::Get().SetMouseCursorVisibility(false);
 
-	Entity player = CreateEntity();
-	AddComponent(player, Transform{ glm::vec3(0.0f, 3.0f, 0.0f) });
-	AddComponent(player, Camera{});
-	AddComponent(player, PlayerMovement{});
-	Camera& playerCamera = GetComponent<Camera>(player);
-	playerCamera.mFOV = 60.0f;
-	playerCamera.mFarClipPlane = 500.0f;
-	renderSystem->SetActiveCamera(&playerCamera);
+	Entity firstPersonCameraEntity = CreateEntity();
+	AddComponent(firstPersonCameraEntity, Camera{});
+	AddComponent(firstPersonCameraEntity, Transform{ Vec3(0.0f, 0.0f, 0.0f) });
+	Camera& firstPersonCamera = GetComponent<Camera>(firstPersonCameraEntity);
+	firstPersonCamera.fov = 60.0f;
+	renderSys->SetActiveCamera(firstPersonCameraEntity);
+
+	Entity character = CreateEntity();
+	AddComponent(character, Transform{ Vec3(0.0f, 3.0f, 0.0f) });
+	AddComponent(character, Character{});
+	Character& characterC = GetComponent<Character>(character);
+	characterC.camera = firstPersonCameraEntity;
+
 
 	Entity ground = CreateEntity();
-	AddComponent(ground, Transform{ glm::vec3(0.0f, -1.5f, 0.0f), QUAT_NO_ROTATION, glm::vec3(1000.0f, 1.0f, 1000.0f) });
+	AddComponent(ground, Transform{ Vec3(0.0f, -1.5f, 0.0f), NullVec3, Vec3(1000.0f, 1.0f, 1000.0f) });
 	AddComponent(ground, StaticMeshRenderer{ DefaultPlane.meshes });
 
 	uint32_t nBackpacks = 5;
 	std::vector<Transform*> bkpTransforms;
 	for (uint32_t i = 0; i < nBackpacks; i++) {
 		Entity backpack = CreateEntity();
-		AddComponent(backpack, Transform{ Utils::RandomPointInSphere(15.f, glm::vec3(0.0f, 12.0f, 0.0f)), Utils::RandomQuaternion(), glm::vec3(Utils::RandomFloat() + glm::vec3(0.5f)) });
+		AddComponent(backpack, Transform{ Utils::RandomPointInSphere(15.f, Vec3(0.0f, 12.0f, 0.0f)), Utils::RandomEulerRotation(), Vec3(Utils::RandomFloat() + Vec3(0.5f)) });
 		AddComponent(backpack, StaticMeshRenderer{ backpackModel.meshes });
 		bkpTransforms.push_back(&GetComponent<Transform>(backpack));
 	}
@@ -74,30 +84,30 @@ bool World::Initialize()
 	std::vector<Transform*> cubeTransforms;
 	for (uint32_t i = 0; i < nCubes; i++) {
 		Entity cube = CreateEntity();
-		AddComponent(cube, Transform{ Utils::RandomPointInSphere(15.f, glm::vec3(0.0f, 12.0f, 0.0f)), Utils::RandomQuaternion(), glm::vec3(Utils::RandomFloat() + glm::vec3(0.5f)) });
+		AddComponent(cube, Transform{ Utils::RandomPointInSphere(15.f, Vec3(0.0f, 12.0f, 0.0f)), Utils::RandomEulerRotation(), Vec3(Utils::RandomFloat() + Vec3(0.5f)) });
 		AddComponent(cube, StaticMeshRenderer{ DefaultCube.meshes });
 		cubeTransforms.push_back(&GetComponent<Transform>(cube));
 	}
 
 	Entity pointLight = CreateEntity();
 	float intensity = 200.0f;
-	glm::vec3 pos = glm::vec3(-5.0f, 12.0f, 0.0f);
-	glm::vec3 color = glm::vec3(0.5f, 0.1f, 0.05f);
+	Vec3 pos = Vec3(-5.0f, 12.0f, 0.0f);
+	Vec3 color = Vec3(0.5f, 0.1f, 0.05f);
 	AddComponent(pointLight, Transform{ pos });
-	AddComponent(pointLight, PointLight{ pos, color, intensity });
+	AddComponent(pointLight, PointLight{ color, intensity });
 
 	Entity pointLight1 = CreateEntity();
-	pos = glm::vec3(0.0f, 12.0f, 0.0f);
-	color = glm::vec3(0.1f, 0.5f, 0.05f);
+	pos = Vec3(0.0f, 12.0f, 0.0f);
+	color = Vec3(0.1f, 0.5f, 0.05f);
 	AddComponent(pointLight1, Transform{ pos });
-	AddComponent(pointLight1, PointLight{ pos, color, intensity });
+	AddComponent(pointLight1, PointLight{ color, intensity });
 
 	Entity sun = CreateEntity();
 	AddComponent(sun, Transform{});
 	AddComponent(sun, DirectionalLight{});
 	DirectionalLight& sunDirLight = GetComponent<DirectionalLight>(sun);
-	sunDirLight.intensity = 0.1f;
-	sunDirLight.orthoProjSizes = glm::vec4(5);
+	sunDirLight.intensity = 0.0f;
+	sunDirLight.orthoProjSizes = Vec4(5);
 
 	return true;
 }
@@ -123,7 +133,7 @@ void World::Update(float dt)
 	using WeakSystemPtr = std::weak_ptr<System>;
 	std::vector<WeakSystemPtr> systems = mSystemManager->GetSystems();
 
-	for (auto sys : systems) {
+	for (auto& sys : systems) {
 		auto ptr = sys.lock();
 		if (ptr) 
 			ptr->Update(dt);

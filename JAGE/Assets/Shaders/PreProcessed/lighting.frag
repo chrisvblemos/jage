@@ -94,8 +94,8 @@ struct PointLightData {
     float intensity;
     float shadowFarPlane;
     float shadowNearPlane;
-    int   shadowCubemapIndex;
-    int dataArrayIndex;
+    int   dataArrayIndex;
+    mat4  cubemapViewMatrices[6];
 };
 
 layout(std430, binding = 4) readonly buffer PointLightDataArray {
@@ -251,7 +251,7 @@ void main() {
 
             float shadow = GetPointLightDataShadow(
                 shadowCubemapArray,
-                pointLight.shadowCubemapIndex, 
+                pointLight.dataArrayIndex, 
                 WorldFragPos, 
                 pointLight.position, 
                 pointLight.shadowFarPlane,

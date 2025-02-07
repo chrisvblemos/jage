@@ -38,8 +38,8 @@ struct PointLightData {
     float intensity;
     float shadowFarPlane;
     float shadowNearPlane;
-    int   shadowCubemapIndex;
-    int dataArrayIndex;
+    int   dataArrayIndex;
+    mat4  cubemapViewMatrices[6];
 };
 
 layout(std430, binding = 4) readonly buffer PointLightDataArray {

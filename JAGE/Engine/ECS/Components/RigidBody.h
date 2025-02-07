@@ -3,8 +3,8 @@
 #include <Core/Core.h>
 
 struct RigidBody {
-	glm::vec3 velocity{};
-	glm::vec3 acceleration{};
+	Vec3 velocity = Vec3(0.0f);
+	Vec3 acceleration = Vec3(0.0f);
 
 	float mass = 1.0f; // kg
 	float airResistance = 0.0f;

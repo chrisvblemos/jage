@@ -5,7 +5,7 @@
 #include "PhysicsSystem.h"
 
 void PhysicsSystem::Update(float dt) {
-	for (const Entity& entity : mEntities) {
+	for (const Entity& entity : entities) {
 		RigidBody& rigidBody = World::Get().GetComponent<RigidBody>(entity);
 		Transform& transform = World::Get().GetComponent<Transform>(entity);
 

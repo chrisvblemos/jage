@@ -4,7 +4,6 @@
 
 struct StaticMeshRenderer {
 	std::vector<Asset> meshes;
-
-	StaticMeshRenderer() = default;
-	StaticMeshRenderer(const std::vector<Asset>& meshes) : meshes(meshes) {};
+	Mat4 modelMatrix = Id4;
+	Mat4 inverseModelMatrix = Id4;
 };

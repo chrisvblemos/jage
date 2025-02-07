@@ -10,63 +10,149 @@
 
 void RenderSystem::SetRenderApi(OpenGlApi* renderApi) {
 	assert(renderApi != nullptr && "RenderSystem: Failed to set render API.");
-	mRenderApi = renderApi;
+	renderAPI = renderApi;
 }
 
-void RenderSystem::SetActiveCamera(Camera* camera) {
-	assert(camera != nullptr && "RenderSystem: Failed to set active camera.");
-	mActiveCamera = camera;
-	mRenderApi->RegisterCamera(camera);
+void RenderSystem::HandlePointLights(Entity entity)
+{
+	World& world = World::Get();
+	PointLight& light = world.GetComponent<PointLight>(entity);
+	Transform& transform = world.GetComponent<Transform>(entity);
+
+	light.projMatrix = glm::perspective(
+		glm::radians(90.0f),
+		1.0f,
+		light.shadowMapNearPlane,
+		light.shadowMapFarPlane
+	);
+
+	Vec3 pos = transform.position;
+	light.cubemapMatrices[0] = light.projMatrix * glm::lookAt(pos, pos + WRight, -WUp);
+	light.cubemapMatrices[1] = light.projMatrix * glm::lookAt(pos, pos - WRight, -WUp);
+	light.cubemapMatrices[2] = light.projMatrix * glm::lookAt(pos, pos + WUp, WForward);
+	light.cubemapMatrices[3] = light.projMatrix * glm::lookAt(pos, pos - WUp, -WForward);
+	light.cubemapMatrices[4] = light.projMatrix * glm::lookAt(pos, pos + WForward, -WUp);
+	light.cubemapMatrices[5] = light.projMatrix * glm::lookAt(pos, pos - WForward, -WUp);
+
+	renderAPI->RegisterPointLight(entity, &light, &transform);
+}
+
+void RenderSystem::HandleDirectionalLights(const Entity entity)
+{
+	World& world = World::Get();
+	DirectionalLight& light = world.GetComponent<DirectionalLight>(entity);
+	Transform& transform = world.GetComponent<Transform>(entity);
+	
+	renderAPI->RegisterDirectionalLight(&light, &transform);
+}
+
+void RenderSystem::HandleStaticMeshes(const Entity entity)
+{
+	World& world = World::Get();
+	StaticMeshRenderer& smRenderer = world.GetComponent<StaticMeshRenderer>(entity);
+	Transform& transform = world.GetComponent<Transform>(entity);
+
+	Mat4 model = Id4;
+	model = glm::translate(model, transform.position);
+	model = glm::rotate(model, transform.rotation.x, WRight);
+	model = glm::rotate(model, transform.rotation.y, WUp);
+	model = glm::rotate(model, transform.rotation.z, WForward);
+	model = glm::scale(model, transform.scale);
+	smRenderer.modelMatrix = model;
+
+	renderAPI->UpsertMeshEntity(entity, &smRenderer);
+}
+
+void RenderSystem::HandleCameras(const Entity entity)
+{
+	World& world = World::Get();
+	Camera& camera = world.GetComponent<Camera>(entity);
+
+	if (!camera.isActive) return; // ignore inactive cameras
+	Transform& transform = world.GetComponent<Transform>(entity);
+
+	Mat4 view = Id4;
+	Mat4 translate = glm::translate(view, -transform.position);
+	Mat4 rotYaw = glm::rotate(view, -transform.rotation.y, WUp);
+	Mat4 rotPitch = glm::rotate(view, -transform.rotation.x, WRight);
+	Mat4 rotRoll = glm::rotate(view, -transform.rotation.z, WForward);
+	camera.viewMatrix = rotRoll * rotPitch * rotYaw * translate * view;
+
+	if (camera.isOrthogonal)
+		camera.projMatrix = Id4;
+	else
+		camera.projMatrix = glm::perspective(
+			glm::radians(camera.fov),
+			camera.aspectRatio,
+			camera.nearPlane,
+			camera.farPlane);
+}
+
+void RenderSystem::OffloadToGPU()
+{
+	World& world = World::Get();
+	Camera& cam = world.GetComponent<Camera>(camera);
+	Transform& camTransform = world.GetComponent<Transform>(camera);
+
+	renderAPI->UploadCameraData(&cam, &camTransform);
+	renderAPI->UploadMeshRenderData();
+}
+
+void RenderSystem::CallRenderPass()
+{
+	renderAPI->GeometryPass();
+	renderAPI->SSAOPass();
+	renderAPI->PointLightShadowMapPass();
+	renderAPI->ShadowMapPass();
+	renderAPI->UploadSceneLightData();
+	renderAPI->LightingPass();
+	renderAPI->PostFxPass();
+	renderAPI->OutputToScreen(SceneTexture::ST_POST_FX);
+}
+
+void RenderSystem::SetActiveCamera(const Entity camera) {
+	if (camera == NULL_ENTITY) {
+		return;
+	}
+
+	World& world = World::Get();
+	if (this->camera != NULL_ENTITY) {
+		Camera& cam = world.GetComponent<Camera>(camera);
+		cam.isActive = false;
+	}
+	
+	this->camera = camera;
+	Camera& cam = world.GetComponent<Camera>(camera);
+	renderAPI->RegisterCamera(&cam);
+
+	cam.isActive = true;
 }
 
 void RenderSystem::Update(float dt) {
-	assert(mActiveCamera != nullptr && "RenderSystem: No active camera detected.");
-	assert(mRenderApi != nullptr && "RenderSystem: No renderer set.");
+	if (camera == NULL_ENTITY)
+		return;
+
+	assert(renderAPI != nullptr && "RenderSystem: No renderer set.");
 
 	World& world = World::Get();
 	Signature staticMeshSignature = world.MakeSignature<StaticMeshRenderer>();
 	Signature directionalLightSignature = world.MakeSignature<DirectionalLight>();
 	Signature pointLightSignature = world.MakeSignature<PointLight>();
+	Signature cameraSignature = world.MakeSignature<Camera>();
 
-
-	for (const Entity& entity : mEntities) {
-		Transform& transform = world.GetComponent<Transform>(entity);
+	for (const Entity& entity : entities) {
 		Signature entitySignature = world.GetEntitySignature(entity);
 
-		if ((entitySignature & staticMeshSignature) == staticMeshSignature) {
-
-			StaticMeshRenderer& staticMeshRenderer = world.GetComponent<StaticMeshRenderer>(entity);
-
-			std::vector<const Mesh*> meshes;
-			auto& assetManager = AssetManager::Get();
-			for (const Asset assetID : staticMeshRenderer.meshes) {
-				Mesh* mesh = assetManager.GetAssetById<Mesh>(assetID);
-				meshes.push_back(mesh);
-			}
-
-			mRenderApi->UpsertMeshEntity(entity, meshes, transform);
-		}
-
-		if ((entitySignature & directionalLightSignature) == directionalLightSignature) {
-			DirectionalLight& dirLight = world.GetComponent<DirectionalLight>(entity);
-			mRenderApi->RegisterDirectionalLight(&dirLight);
-		}
-
-		if ((entitySignature & pointLightSignature) == pointLightSignature) {
-			PointLight& pointLight = world.GetComponent<PointLight>(entity);
-			mRenderApi->RegisterPointLight(entity, &pointLight);
-		}
+		if ((entitySignature & cameraSignature) == cameraSignature)
+			HandleCameras(entity);
+		if ((entitySignature & staticMeshSignature) == staticMeshSignature)
+			HandleStaticMeshes(entity);
+		if ((entitySignature & directionalLightSignature) == directionalLightSignature)
+			HandleDirectionalLights(entity);
+		if ((entitySignature & pointLightSignature) == pointLightSignature)
+			HandlePointLights(entity);
 	}
 
-	mRenderApi->UploadCameraData();
-	mRenderApi->BatchMeshInstData();
-	mRenderApi->GeometryPass();
-	mRenderApi->SSAOPass();
-	mRenderApi->PointLightShadowMapPass();
-	mRenderApi->ShadowMapPass();
-	mRenderApi->UploadSceneLightData();
-	mRenderApi->LightingPass();
-	mRenderApi->PostFxPass();
-	mRenderApi->OutputToScreen(SceneTexture::ST_POST_FX);
-	// mRenderApi->DebugGbuffer(3);
+	OffloadToGPU();
+	CallRenderPass();
 }

@@ -144,7 +144,13 @@ rem Create Meshes folder and copy mesh files
 
 if not exist "$(TargetDir)Assets\Meshes" mkdir "$(TargetDir)Assets\Meshes"
 
-xcopy /E /I /Y "$(ProjectDir)Assets\Meshes\*" "$(TargetDir)Assets\Meshes\"</Command>
+xcopy /E /I /Y "$(ProjectDir)Assets\Meshes\*" "$(TargetDir)Assets\Meshes\"
+
+rem Create Config folder and copy config files
+
+if not exist "$(TargetDir)Assets\Meshes" mkdir "$(TargetDir)Config"
+
+xcopy /E /I /Y "$(ProjectDir)Config\*" "$(TargetDir)Config\"</Command>
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -169,12 +175,13 @@ xcopy /E /I /Y "$(ProjectDir)Assets\Meshes\*" "$(TargetDir)Assets\Meshes\"</Comm
     <ClCompile Include="Engine\Core\Input.cpp" />
     <ClCompile Include="Engine\ECS\ComponentManager.cpp" />
     <ClCompile Include="Engine\ECS\Components\Transform.h" />
+    <ClCompile Include="Engine\ECS\Systems\TransformSystem.cpp" />
     <ClCompile Include="Engine\Editor\Editor.cpp" />
     <ClCompile Include="Engine\World\World.cpp" />
     <ClCompile Include="Engine\Engine.cpp" />
     <ClCompile Include="Engine\ECS\Systems\PhysicsSystem.cpp" />
     <ClCompile Include="Engine\ECS\Systems\PhysicsSystem.h" />
-    <ClCompile Include="Engine\ECS\Systems\PlayerSystem.cpp" />
+    <ClCompile Include="Engine\ECS\Systems\CharacterSystem.cpp" />
     <ClCompile Include="Engine\ECS\Systems\RenderSystem.cpp" />
     <ClCompile Include="Engine\ECS\SystemManager.cpp" />
     <ClCompile Include="Engine\Core\Utils.h" />
@@ -210,9 +217,10 @@ xcopy /E /I /Y "$(ProjectDir)Assets\Meshes\*" "$(TargetDir)Assets\Meshes\"</Comm
     <ClInclude Include="Engine\ECS\Components\DirectionalLight.h" />
     <ClInclude Include="Engine\ECS\Components\RigidBody.h" />
     <ClInclude Include="Engine\ECS\Components\StaticMeshRenderer.h" />
-    <ClInclude Include="Engine\ECS\Components\PlayerMovement.h" />
+    <ClInclude Include="Engine\ECS\Components\Character.h" />
     <ClInclude Include="Engine\ECS\Components\PointLight.h" />
     <ClInclude Include="Engine\ECS\Systems\System.h" />
+    <ClInclude Include="Engine\ECS\Systems\TransformSystem.h" />
     <ClInclude Include="Engine\Editor\Editor.h" />
     <ClInclude Include="Engine\Editor\Viewers\EntityViewer.h" />
     <ClInclude Include="Engine\Editor\Widgets\Components\ComponentWidget.h" />
@@ -230,7 +238,7 @@ xcopy /E /I /Y "$(ProjectDir)Assets\Meshes\*" "$(TargetDir)Assets\Meshes\"</Comm
     <ClInclude Include="Engine\Engine.h" />
     <ClInclude Include="Engine\ECS\EntityManager.h" />
     <ClInclude Include="Engine\ECS\IComponentArray.h" />
-    <ClInclude Include="Engine\ECS\Systems\PlayerSystem.h" />
+    <ClInclude Include="Engine\ECS\Systems\CharacterSystem.h" />
     <ClInclude Include="Engine\ECS\Systems\RenderSystem.h" />
     <ClInclude Include="Engine\ECS\SystemManager.h" />
     <ClInclude Include="Engine\Renderer\Types\Shader.h" />
@@ -684,6 +692,9 @@ xcopy /E /I /Y "$(ProjectDir)Assets\Meshes\*" "$(TargetDir)Assets\Meshes\"</Comm
     <None Include="Assets\Shaders\gaussian_blur_h.frag" />
     <None Include="Assets\Shaders\gaussian_blur_v.frag" />
     <None Include="Assets\Shaders\camera.glsl" />
+    <None Include="Config\Engine.ini" />
+    <None Include="Config\Input.ini" />
+    <None Include="Config\Rendering.ini" />
     <None Include="imgui.ini" />
     <None Include="ThirdParty\assimp\color4.inl" />
     <None Include="ThirdParty\assimp\material.inl" />

@@ -6,6 +6,7 @@
 #include <glm/gtc/constants.hpp>
 #include <glm/gtc/quaternion.hpp>
 #include <random>
+#include <Common.h>
 
 namespace Utils {
 	inline static uint32_t AllocateIdFromPool(std::stack<uint32_t>& pool, uint32_t& count) {
@@ -21,7 +22,7 @@ namespace Utils {
 		return id;
 	}
 
-	inline static glm::vec3 RandomPointInSphere(const float radius, const glm::vec3& origin = glm::vec3(0.0f)) {
+	inline static Vec3 RandomPointInSphere(const float radius, const Vec3& origin = Vec3(0.0f)) {
 		std::random_device rd;
 		std::mt19937 gen(rd());
 		std::uniform_real_distribution<float> dist(0.0f, 1.0f);
@@ -47,7 +48,7 @@ namespace Utils {
 		return dist(gen);
 	}
 
-	inline static glm::quat RandomQuaternion() {
+	inline static Vec3 RandomEulerRotation() {
 		std::random_device rd;
 		std::mt19937 gen(rd());
 		std::uniform_real_distribution<float> dist(0.0f, 1.0f);
@@ -56,11 +57,10 @@ namespace Utils {
 		float u2 = dist(gen);
 		float u3 = dist(gen);
 
-		float w = sqrt(1 - u1) * sin(glm::two_pi<float>() * u2);
-		float x = sqrt(1 - u1) * cos(glm::two_pi<float>() * u2);
-		float y = sqrt(u1) * sin(glm::two_pi<float>() * u3);
-		float z = sqrt(u1) * cos(glm::two_pi<float>() * u3);
+		float pitch = u1 * 360.0f;
+		float yaw = u2 * 360.0f;
+		float roll = u3 * 360.0f;
 
-		return {w,x,y,z};
+		return { pitch, yaw, roll };
 	}
 }

@@ -4,6 +4,7 @@
 #include <Core/Window.h>
 #include <Core/Input.h>
 #include <Core/Utils.h>
+#include <Core/Config.h>
 #include <Core/Log/Logging.h>
 #include <Core/Log/LogDisplay.h>
 #include <Core/Assets/AssetLoader.h>

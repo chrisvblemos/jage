@@ -3,10 +3,10 @@
 #include <Core/Core.h>
 #include "System.h"
 
-class PlayerSystem : public System {
+class TransformSystem : public System {
 public:
-	PlayerSystem() {
-		name = "PlayerSystem";
+	TransformSystem() {
+		name = "TransformSystem";
 	}
 
 	void Update(float dt) override;

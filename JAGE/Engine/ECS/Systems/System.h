@@ -4,7 +4,7 @@
 
 class System {
 protected:
-	std::set<Entity> mEntities{};
+	std::set<Entity> entities{};
 
 public:
 	std::string name;
@@ -16,16 +16,16 @@ public:
 	virtual void End() {};
 
 	inline void Register(const Entity entity) {
-		auto [it, res] = mEntities.insert(entity);
+		auto [it, res] = entities.insert(entity);
 		entitiesChanged = res;
 	}
 
 	inline void UnRegister(const Entity entity) {
-		size_t erased = mEntities.erase(entity);
+		size_t erased = entities.erase(entity);
 		entitiesChanged = erased > 0;
 	}
 
-	inline const size_t GetEntityCount() const { return mEntities.size(); }
-	inline const std::set<Entity>& GetEntities() const { return mEntities; }
+	inline const size_t GetEntityCount() const { return entities.size(); }
+	inline const std::set<Entity>& GetEntities() const { return entities; }
 
 };

@@ -11,10 +11,10 @@ bool Window::Initialize()
 {
 	if (window) return true;
 
-	size_t width = Cfg::Rendering.Read<size_t>("Video", "video.resX", 800);
-	size_t height = Cfg::Rendering.Read<size_t>("Video", "video.resY", 600);
-	bool isFullscreen = Cfg::Rendering.Read<bool>("Video", "fullscreen", true);
-	bool isVsyncEnabled = Cfg::Rendering.Read<bool>("Video", "vsync", false);
+	size_t width = cfg::Rendering.Read<size_t>("Video", "video.resX", 800);
+	size_t height = cfg::Rendering.Read<size_t>("Video", "video.resY", 600);
+	bool isFullscreen = cfg::Rendering.Read<bool>("Video", "fullscreen", true);
+	bool isVsyncEnabled = cfg::Rendering.Read<bool>("Video", "vsync", false);
 
 	glfwInit();
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);

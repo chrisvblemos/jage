@@ -43,6 +43,7 @@ using ComponentType = uint8_t;
 inline constexpr const Entity MAX_ENTITIES = 10000;
 inline constexpr const ComponentType MAX_COMPONENT_TYPES = 32;
 inline constexpr const Entity NULL_ENTITY = -1;
+inline constexpr const Asset NULL_ASSET = -1;
 
 using Signature = std::bitset<MAX_COMPONENT_TYPES>;
 inline constexpr const Signature NO_SIGNATURE = 0;

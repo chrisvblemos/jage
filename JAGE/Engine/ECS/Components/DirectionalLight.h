@@ -11,6 +11,8 @@ public:
 	float shadowMapNearPlane = 1.0f;
 	float shadowMapFarPlane = 500.0f;
 	glm::vec4 orthoProjSizes = glm::vec4(10.0f);
+	Mat4 projMatrix;
+	Mat4 viewMatrix;
 
 	glm::mat4 ViewMatrix(const glm::vec3 cameraPos) const {
 		glm::vec3 lightPos = cameraPos - direction * (shadowDistance * 0.5f);

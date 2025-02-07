@@ -7,11 +7,12 @@
 #include <inih/ini.h>
 #include <format>
 
-namespace Cfg {
+namespace cfg {
 
-    #define ConfigLog "Config"
-    #define CFG_ENGINE_PATH "Config/Engine.ini"
-    #define CFG_RENDERING_PATH "Config/Rendering.ini"
+    constexpr const char* ConfigLog = "Config";
+    constexpr const char* CFG_ENGINE_PATH = "Config/Engine.ini";
+    constexpr const char* CFG_RENDERING_PATH = "Config/Rendering.ini";
+    constexpr const char* CFG_INPUT_PATH = "Config/Input.ini";
 
     class CfgBase {
     public:
@@ -76,6 +77,7 @@ namespace Cfg {
 
     inline const CfgBase Engine(CFG_ENGINE_PATH);
     inline const CfgBase Rendering(CFG_RENDERING_PATH);
+    inline const CfgBase Input(CFG_INPUT_PATH);
 
 }
 

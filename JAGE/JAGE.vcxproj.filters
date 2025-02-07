@@ -9,7 +9,7 @@
     <ClCompile Include="Engine\Engine.cpp" />
     <ClCompile Include="Engine\ECS\Systems\PhysicsSystem.cpp" />
     <ClCompile Include="Engine\ECS\Systems\PhysicsSystem.h" />
-    <ClCompile Include="Engine\ECS\Systems\PlayerSystem.cpp" />
+    <ClCompile Include="Engine\ECS\Systems\CharacterSystem.cpp" />
     <ClCompile Include="Engine\ECS\Systems\RenderSystem.cpp" />
     <ClCompile Include="Engine\ECS\SystemManager.cpp" />
     <ClCompile Include="Engine\Core\Utils.h" />
@@ -28,6 +28,7 @@
     <ClCompile Include="ThirdParty\stb\stb_image.cpp" />
     <ClCompile Include="Engine\Core\Window.cpp" />
     <ClCompile Include="Engine\Core\Input.cpp" />
+    <ClCompile Include="Engine\ECS\Systems\TransformSystem.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Engine\Core\Assets\AssetLoader.h" />
@@ -44,7 +45,7 @@
     <ClInclude Include="Engine\ECS\Components\DirectionalLight.h" />
     <ClInclude Include="Engine\ECS\Components\RigidBody.h" />
     <ClInclude Include="Engine\ECS\Components\StaticMeshRenderer.h" />
-    <ClInclude Include="Engine\ECS\Components\PlayerMovement.h" />
+    <ClInclude Include="Engine\ECS\Components\Character.h" />
     <ClInclude Include="Engine\ECS\Components\PointLight.h" />
     <ClInclude Include="Engine\ECS\Systems\System.h" />
     <ClInclude Include="Engine\Editor\Editor.h" />
@@ -63,7 +64,7 @@
     <ClInclude Include="Engine\Engine.h" />
     <ClInclude Include="Engine\ECS\EntityManager.h" />
     <ClInclude Include="Engine\ECS\IComponentArray.h" />
-    <ClInclude Include="Engine\ECS\Systems\PlayerSystem.h" />
+    <ClInclude Include="Engine\ECS\Systems\CharacterSystem.h" />
     <ClInclude Include="Engine\ECS\Systems\RenderSystem.h" />
     <ClInclude Include="Engine\ECS\SystemManager.h" />
     <ClInclude Include="Engine\Renderer\Types\Shader.h" />
@@ -458,6 +459,7 @@
     <ClInclude Include="Engine\Core\Config.h" />
     <ClInclude Include="Engine\Core\Input.h" />
     <ClInclude Include="Engine\Common.h" />
+    <ClInclude Include="Engine\ECS\Systems\TransformSystem.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Assets\Meshes\AbandonedCottage\cottage.mtl" />
@@ -651,6 +653,9 @@
     <None Include="Assets\Meshes\SurvivalGuitarBackpack\normal.png" />
     <None Include="Assets\Meshes\SurvivalGuitarBackpack\roughness.jpg" />
     <None Include="Assets\Meshes\SurvivalGuitarBackpack\specular.jpg" />
+    <None Include="Config\Engine.ini" />
+    <None Include="Config\Input.ini" />
+    <None Include="Config\Rendering.ini" />
   </ItemGroup>
   <ItemGroup>
     <Natvis Include="ThirdParty\imgui\imgui.natvis" />
