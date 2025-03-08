@@ -1,7 +1,12 @@
 #pragma once
 
 #include <physx/PxPhysicsAPI.h>
-#include <Core\Log\Logging.h>
+#include <physx/cooking/PxCooking.h>
+#include <Core/Log/Logging.h>
+#include <ECS/Components/Transform.h>
+#include <ECS/Components/Collider.h>
+#include <ECS/Components/RigidBody.h>
+#include <Core/Assets/AssetManager.h>
 #include "Common.h"
 
 using namespace physx;
@@ -29,13 +34,15 @@ namespace Physics {
 
 	/* General functions. */
 	void Update(float dt);
-	void AddRigidBody(const int32_t index, const Vec3& pos, const Quat& rot);
+	void AddRigidBody(const Entity entity, const RigidBody& rb, const Transform& transform, const Collider& collider);
+	void AddRigidBody(const Entity entity, const RigidBody& rb, const Transform& transform);
 	Vec3 GetRigidBodyPosition(const int32_t index);
 	Vec3 GetRigidBodyVelocity(const int32_t index);
 	Quat GetRigidBodyRotation(const int32_t index);
 	PxShape* CreateBoxShape(float width, float height, float depth, Vec3 offset, PxMaterial* material = nullptr);
 	Vec3 QuatToEuler(const PxQuat& quat);
 	PxQuat EulerToQuat(const Vec3& euler);
+	PxShape* CreateMeshShape(const std::vector<Vec3>& vertices, Vec3 offset, PxMaterial* material = nullptr);
 };
 
 class ContactReportCallback : public PxSimulationEventCallback {

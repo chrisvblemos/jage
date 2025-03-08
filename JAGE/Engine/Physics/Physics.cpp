@@ -143,6 +143,26 @@ PxQuat Physics::EulerToQuat(const Vec3& euler)
 		PxQuat(euler.z * PxPi / 180.0f, PxVec3(0, 0, 1));
 }
 
+PxShape* Physics::CreateMeshShape(const std::vector<Vec3>& vertices, Vec3 offset, PxMaterial* material)
+{
+	// cooking step
+	PxConvexMeshDesc convexDesc;
+	convexDesc.points.count = vertices.size();
+	convexDesc.points.stride = sizeof(Vec3);
+	convexDesc.points.data = vertices.data();
+	convexDesc.flags = PxConvexFlag::eCOMPUTE_CONVEX;
+
+	PxCookingParams cookingParams = PxCookingParams(PxTolerancesScale());
+	PxDefaultMemoryOutputStream buf;
+	PxConvexMeshCookingResult::Enum result;
+	if (!PxCookConvexMesh(cookingParams, convexDesc, buf, &result))
+		return nullptr;
+	PxDefaultMemoryInputData input(buf.getData(), buf.getSize());
+	PxConvexMesh* convexMesh = gPhysics->createConvexMesh(input);
+	PxShape* shape = gPhysics->createShape(PxConvexMeshGeometry(convexMesh), *material);
+	return shape;
+}
+
 PxMaterial* Physics::GetDefaultMaterial()
 {
 	return gDefaultMaterial;
@@ -161,23 +181,44 @@ void Physics::Update(float dt)
 	gScene->fetchResults(true);
 }
 
-void Physics::AddRigidBody(const int32_t index, const Vec3& pos, const Quat& rot)
-{
-	/* If no rigidbody exists for given entity, create a new one. */
-	auto it = mRigidBodies.find(index);
+void Physics::AddRigidBody(const Entity entity, const RigidBody& rb, const Transform& transform) {
+	auto it = mRigidBodies.find(entity);
 	if (it == mRigidBodies.end()) {
-		PxQuat q = PxQuat(rot.x, rot.y, rot.z, rot.w);
-		std::cout << std::format("Added new cube with quat: {} {} {}", q.x, q.y, q.z, q.w) << std::endl;
-		PxTransform t(PxVec3(pos.x, pos.y, pos.z), q);
+		PxQuat q = PxQuat(transform.rotation.x, transform.rotation.y, transform.rotation.z, transform.rotation.w);
+		PxTransform t(PxVec3(transform.position.x, transform.position.y, transform.position.z), q);
 		PxRigidDynamic* body = gPhysics->createRigidDynamic(t);
-		PxShape* shape = gPhysics->createShape(PxBoxGeometry(1, 1, 1), *gDefaultMaterial);
-		body->attachShape(*shape);
-		body->setAngularDamping(0.05f);
+		PxMaterial* physMaterial = gPhysics->createMaterial(rb.staticFriction, rb.dynamicFriction, rb.restitution);
+		body->setMass(rb.mass);
 		PxRigidBodyExt::updateMassAndInertia(*body, 10.0f);
-		gScene->addActor(*body);
-		// shape->release();
+	}
+}
 
-		mRigidBodies[index] = body;
+void Physics::AddRigidBody(const Entity entity, const RigidBody& rb, const Transform& transform, const Collider& collider)
+{
+	auto it = mRigidBodies.find(entity);
+	if (it == mRigidBodies.end()) {
+		PxQuat q = PxQuat(transform.rotation.x, transform.rotation.y, transform.rotation.z, transform.rotation.w);
+		PxTransform t(PxVec3(transform.position.x, transform.position.y, transform.position.z), q);
+		PxRigidDynamic* body = gPhysics->createRigidDynamic(t);
+		PxMaterial* physMaterial = gPhysics->createMaterial(rb.staticFriction, rb.dynamicFriction, rb.restitution);
+		body->setMass(rb.mass);
+		PxRigidBodyExt::updateMassAndInertia(*body, 10.0f);
+		
+		PxShape* shape = nullptr;
+		if (collider.type == ColliderType::Mesh) {
+			shape = CreateMeshShape(collider.vertices, Vec3(0.0f), physMaterial);
+		}
+		else if (collider.type == ColliderType::Cube) {
+			shape = CreateBoxShape(collider.width, collider.height, collider.depth, Vec3(0.0f), physMaterial);
+		}
+		else if (collider.type == ColliderType::Sphere) {
+			shape = gPhysics->createShape(PxSphereGeometry(collider.radius), *physMaterial);
+		}
+		
+		if (shape)
+			body->attachShape(*shape);
+		gScene->addActor(*body);
+		mRigidBodies[entity] = body;
 	}
 }
 

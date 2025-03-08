@@ -462,7 +462,7 @@
     <ClInclude Include="Engine\Common.h" />
     <ClInclude Include="Engine\ECS\Systems\TransformSystem.h" />
     <ClInclude Include="Engine\Physics\Physics.h" />
-    <ClInclude Include="Engine\Physics\Colliders\Collider.h" />
+    <ClInclude Include="Engine\ECS\Components\Collider.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Assets\Meshes\AbandonedCottage\cottage.mtl" />

@@ -216,6 +216,7 @@ xcopy /E /I /Y "$(ProjectDir)Config\*" "$(TargetDir)Config\"</Command>
     <ClInclude Include="Engine\ECS\ComponentArray.h" />
     <ClInclude Include="Engine\ECS\ComponentManager.h" />
     <ClInclude Include="Engine\ECS\Components\Camera.h" />
+    <ClInclude Include="Engine\ECS\Components\Collider.h" />
     <ClInclude Include="Engine\ECS\Components\DirectionalLight.h" />
     <ClInclude Include="Engine\ECS\Components\RigidBody.h" />
     <ClInclude Include="Engine\ECS\Components\StaticMeshRenderer.h" />
@@ -230,7 +231,6 @@ xcopy /E /I /Y "$(ProjectDir)Config\*" "$(TargetDir)Config\"</Command>
     <ClInclude Include="Engine\Core\Input.h" />
     <ClInclude Include="Engine\Core\Log\LogDisplay.h" />
     <ClInclude Include="Engine\Core\Log\Logging.h" />
-    <ClInclude Include="Engine\Physics\Colliders\Collider.h" />
     <ClInclude Include="Engine\Physics\Physics.h" />
     <ClInclude Include="Engine\Renderer\ShaderPreProcessor.h" />
     <ClInclude Include="Engine\Renderer\Types\Buffer.h" />

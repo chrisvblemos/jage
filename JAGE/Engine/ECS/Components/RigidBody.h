@@ -10,6 +10,8 @@ struct RigidBody {
 	float groundResistance = 0.0f;
 	bool isKinematic = false;
 	bool isGravityEnabled = true;
-
-	int32_t pxActorIndex = -1; // reference to px actor in physx sdk
+	bool isSimulationEnabled = true;
+	float staticFriction = 0.5f;
+	float dynamicFriction = 0.5f;
+	float restitution = 0.6f;
 };

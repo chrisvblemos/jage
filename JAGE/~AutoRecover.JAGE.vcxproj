@@ -216,6 +216,7 @@ xcopy /E /I /Y "$(ProjectDir)Config\*" "$(TargetDir)Config\"</Command>
     <ClInclude Include="Engine\ECS\ComponentArray.h" />
     <ClInclude Include="Engine\ECS\ComponentManager.h" />
     <ClInclude Include="Engine\ECS\Components\Camera.h" />
+    <ClInclude Include="Engine\ECS\Components\Collider.h" />
     <ClInclude Include="Engine\ECS\Components\DirectionalLight.h" />
     <ClInclude Include="Engine\ECS\Components\RigidBody.h" />
     <ClInclude Include="Engine\ECS\Components\StaticMeshRenderer.h" />

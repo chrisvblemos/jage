@@ -4,6 +4,7 @@
 #include <ECS/Components/RigidBody.h>
 #include <ECS/Components/StaticMeshRenderer.h>
 #include <ECS/Components/PointLight.h>
+#include <ECS/Components/Collider.h>
 #include <ECS/Components/DirectionalLight.h>
 #include <ECS/Systems/CharacterSystem.h>
 #include <ECS/Systems/TransformSystem.h>
@@ -24,6 +25,7 @@ bool World::Initialize()
 	RegisterComponent<StaticMeshRenderer>();
 	RegisterComponent<PointLight>();
 	RegisterComponent<DirectionalLight>();
+	RegisterComponent<Collider>();
 
 	Signature any;
 	any.set();
@@ -82,6 +84,9 @@ bool World::Initialize()
 		Entity backpack = CreateEntity();
 		AddComponent(backpack, Transform{ Utils::RandomPointInSphere(15.f, Vec3(0.0f, 12.0f, 0.0f)), Utils::RandomEulerRotation(), Vec3(Utils::RandomFloat() + Vec3(0.5f)) });
 		AddComponent(backpack, StaticMeshRenderer{ backpackModel.meshes });
+		AddComponent(backpack, RigidBody());
+		AddComponent(backpack, Collider{ ColliderType::Mesh });
+		World::Get().GetComponent<Collider>(backpack).SetVertices(backpackModel.meshes);
 		bkpTransforms.push_back(&GetComponent<Transform>(backpack));
 	}
 
@@ -93,6 +98,8 @@ bool World::Initialize()
 		// AddComponent(cube, Transform{ Vec3(0, 100, 0), Vec3(0.0f), Vec3(1.0) });
 		AddComponent(cube, StaticMeshRenderer{ DefaultCube.meshes });
 		AddComponent(cube, RigidBody());
+		AddComponent(cube, Collider{ ColliderType::Mesh });
+		World::Get().GetComponent<Collider>(cube).SetVertices(DefaultCube.meshes);
 		cubeTransforms.push_back(&GetComponent<Transform>(cube));
 	}
 
