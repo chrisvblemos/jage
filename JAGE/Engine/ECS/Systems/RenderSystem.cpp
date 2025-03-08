@@ -53,10 +53,8 @@ void RenderSystem::HandleStaticMeshes(const Entity entity)
 	Transform& transform = world.GetComponent<Transform>(entity);
 
 	Mat4 model = Id4;
-	model = glm::translate(model, transform.position);
-	model = glm::rotate(model, transform.rotation.x, WRight);
-	model = glm::rotate(model, transform.rotation.y, WUp);
-	model = glm::rotate(model, transform.rotation.z, WForward);
+	model= glm::translate(model, transform.position);
+	model *= glm::mat4_cast(transform.rotation);
 	model = glm::scale(model, transform.scale);
 	smRenderer.modelMatrix = model;
 
@@ -73,10 +71,8 @@ void RenderSystem::HandleCameras(const Entity entity)
 
 	Mat4 view = Id4;
 	Mat4 translate = glm::translate(view, -transform.position);
-	Mat4 rotYaw = glm::rotate(view, -transform.rotation.y, WUp);
-	Mat4 rotPitch = glm::rotate(view, -transform.rotation.x, WRight);
-	Mat4 rotRoll = glm::rotate(view, -transform.rotation.z, WForward);
-	camera.viewMatrix = rotRoll * rotPitch * rotYaw * translate * view;
+	Mat4 rotation = glm::mat4_cast(glm::conjugate(transform.rotation));
+	camera.viewMatrix = rotation * translate;
 
 	if (camera.isOrthogonal)
 		camera.projMatrix = Id4;

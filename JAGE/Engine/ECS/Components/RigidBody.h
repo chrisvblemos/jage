@@ -5,11 +5,11 @@
 struct RigidBody {
 	Vec3 velocity = Vec3(0.0f);
 	Vec3 acceleration = Vec3(0.0f);
-
 	float mass = 1.0f; // kg
 	float airResistance = 0.0f;
 	float groundResistance = 0.0f;
 	bool isKinematic = false;
 	bool isGravityEnabled = true;
-	float gravity = -9.81f;
+
+	int32_t pxActorIndex = -1; // reference to px actor in physx sdk
 };

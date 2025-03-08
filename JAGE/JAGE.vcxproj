@@ -72,7 +72,7 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <IncludePath>$(ProjectDir)\ThirdParty;$(ProjectDir)\Engine;$(IncludePath)</IncludePath>
+    <IncludePath>C:\Users\Lemos\source\repos\JAGE\JAGE\ThirdParty\physx;$(ProjectDir)\ThirdParty;$(ProjectDir)\Engine;$(IncludePath)</IncludePath>
     <LibraryPath>$(ProjectDir)\ThirdParty\lib;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
@@ -115,11 +115,12 @@
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <PrecompiledHeaderFile>stdafx.h</PrecompiledHeaderFile>
       <ShowIncludes>false</ShowIncludes>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>DebugFastLink</GenerateDebugInformation>
-      <AdditionalDependencies>assimp-vc143-mt.lib;glfw3.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>assimp-vc143-mt.lib;glfw3.lib;SimulationController_static_64.lib;LowLevel_static_64.lib;LowLevelAABB_static_64.lib;LowLevelDynamics_static_64.lib;PhysX_64.lib;PhysXCharacterKinematic_static_64.lib;PhysXCommon_64.lib;PhysXCooking_64.lib;PhysXExtensions_static_64.lib;PhysXFoundation_64.lib;PhysXPvdSDK_static_64.lib;PhysXTask_static_64.lib;PhysXVehicle_static_64.lib;PhysXVehicle2_static_64.lib;SceneQuery_static_64.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
       <Command>
@@ -177,6 +178,7 @@ xcopy /E /I /Y "$(ProjectDir)Config\*" "$(TargetDir)Config\"</Command>
     <ClCompile Include="Engine\ECS\Components\Transform.h" />
     <ClCompile Include="Engine\ECS\Systems\TransformSystem.cpp" />
     <ClCompile Include="Engine\Editor\Editor.cpp" />
+    <ClCompile Include="Engine\Physics\Physics.cpp" />
     <ClCompile Include="Engine\World\World.cpp" />
     <ClCompile Include="Engine\Engine.cpp" />
     <ClCompile Include="Engine\ECS\Systems\PhysicsSystem.cpp" />
@@ -228,6 +230,8 @@ xcopy /E /I /Y "$(ProjectDir)Config\*" "$(TargetDir)Config\"</Command>
     <ClInclude Include="Engine\Core\Input.h" />
     <ClInclude Include="Engine\Core\Log\LogDisplay.h" />
     <ClInclude Include="Engine\Core\Log\Logging.h" />
+    <ClInclude Include="Engine\Physics\Colliders\Collider.h" />
+    <ClInclude Include="Engine\Physics\Physics.h" />
     <ClInclude Include="Engine\Renderer\ShaderPreProcessor.h" />
     <ClInclude Include="Engine\Renderer\Types\Buffer.h" />
     <ClInclude Include="Engine\Renderer\Types\FrameBuffer.h" />
@@ -672,6 +676,7 @@ xcopy /E /I /Y "$(ProjectDir)Config\*" "$(TargetDir)Config\"</Command>
     <None Include="Assets\Shaders\point_shadow_map.vert">
       <FileType>Document</FileType>
     </None>
+    <None Include="Assets\Shaders\post_fx.frag" />
     <None Include="Assets\Shaders\samplers.glsl" />
     <None Include="Assets\Shaders\screen.frag">
       <FileType>Document</FileType>
@@ -687,6 +692,7 @@ xcopy /E /I /Y "$(ProjectDir)Config\*" "$(TargetDir)Config\"</Command>
     </None>
     <None Include="Assets\Shaders\ssao.frag" />
     <None Include="Assets\Shaders\ssao.vert" />
+    <None Include="Assets\Shaders\ssao_blur.frag" />
     <None Include="Assets\Shaders\vsm.frag" />
     <None Include="Assets\Shaders\vsm.vert" />
     <None Include="Assets\Shaders\gaussian_blur_h.frag" />
@@ -879,6 +885,9 @@ xcopy /E /I /Y "$(ProjectDir)Config\*" "$(TargetDir)Config\"</Command>
   <ItemGroup>
     <Library Include="ThirdParty\lib\assimp-vc143-mt.lib" />
     <Library Include="ThirdParty\lib\glfw3.lib" />
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="Assets\Textures\missingTexture.png" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

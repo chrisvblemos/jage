@@ -29,6 +29,7 @@
     <ClCompile Include="Engine\Core\Window.cpp" />
     <ClCompile Include="Engine\Core\Input.cpp" />
     <ClCompile Include="Engine\ECS\Systems\TransformSystem.cpp" />
+    <ClCompile Include="Engine\Physics\Physics.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Engine\Core\Assets\AssetLoader.h" />
@@ -460,6 +461,8 @@
     <ClInclude Include="Engine\Core\Input.h" />
     <ClInclude Include="Engine\Common.h" />
     <ClInclude Include="Engine\ECS\Systems\TransformSystem.h" />
+    <ClInclude Include="Engine\Physics\Physics.h" />
+    <ClInclude Include="Engine\Physics\Colliders\Collider.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Assets\Meshes\AbandonedCottage\cottage.mtl" />
@@ -656,6 +659,8 @@
     <None Include="Config\Engine.ini" />
     <None Include="Config\Input.ini" />
     <None Include="Config\Rendering.ini" />
+    <None Include="Assets\Shaders\post_fx.frag" />
+    <None Include="Assets\Shaders\ssao_blur.frag" />
   </ItemGroup>
   <ItemGroup>
     <Natvis Include="ThirdParty\imgui\imgui.natvis" />
@@ -666,5 +671,8 @@
   <ItemGroup>
     <Library Include="ThirdParty\lib\assimp-vc143-mt.lib" />
     <Library Include="ThirdParty\lib\glfw3.lib" />
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="Assets\Textures\missingTexture.png" />
   </ItemGroup>
 </Project>

@@ -8,6 +8,7 @@
 #include <ECS/Systems/CharacterSystem.h>
 #include <ECS/Systems/TransformSystem.h>
 #include <ECS/Systems/RenderSystem.h>
+#include <ECS/Systems/PhysicsSystem.h>
 #include "World.h"
 
 bool World::Initialize()
@@ -44,6 +45,11 @@ bool World::Initialize()
 	SetSystemRequiredSignature<TransformSystem>(transformSysReqSign);
 	SetSystemOptionalSignature<TransformSystem>(any);
 
+	PhysicsSystem* physicsSys = RegisterSystem<PhysicsSystem>();
+	Signature physicsSysReqSign = MakeSignature<Transform, RigidBody>();
+	SetSystemRequiredSignature<PhysicsSystem>(physicsSysReqSign);
+	SetSystemOptionalSignature<PhysicsSystem>(any);
+
 	MeshModel& DefaultPlane = AssetLoader::Get().LoadMeshModelFromFile(
 		"Assets/Meshes/default_plane.obj");
 	MeshModel& DefaultCube = AssetLoader::Get().LoadMeshModelFromFile(
@@ -55,17 +61,16 @@ bool World::Initialize()
 
 	Entity firstPersonCameraEntity = CreateEntity();
 	AddComponent(firstPersonCameraEntity, Camera{});
-	AddComponent(firstPersonCameraEntity, Transform{ Vec3(0.0f, 0.0f, 0.0f) });
+	AddComponent(firstPersonCameraEntity, Transform{ Vec3(0), Vec3(0) });
 	Camera& firstPersonCamera = GetComponent<Camera>(firstPersonCameraEntity);
 	firstPersonCamera.fov = 60.0f;
 	renderSys->SetActiveCamera(firstPersonCameraEntity);
 
 	Entity character = CreateEntity();
-	AddComponent(character, Transform{ Vec3(0.0f, 3.0f, 0.0f) });
+	AddComponent(character, Transform{ Vec3(0, 3, 0), Vec3(0) });
 	AddComponent(character, Character{});
 	Character& characterC = GetComponent<Character>(character);
 	characterC.camera = firstPersonCameraEntity;
-
 
 	Entity ground = CreateEntity();
 	AddComponent(ground, Transform{ Vec3(0.0f, -1.5f, 0.0f), NullVec3, Vec3(1000.0f, 1.0f, 1000.0f) });
@@ -80,12 +85,14 @@ bool World::Initialize()
 		bkpTransforms.push_back(&GetComponent<Transform>(backpack));
 	}
 
-	uint32_t nCubes = 30;
+	uint32_t nCubes = 10;
 	std::vector<Transform*> cubeTransforms;
 	for (uint32_t i = 0; i < nCubes; i++) {
 		Entity cube = CreateEntity();
-		AddComponent(cube, Transform{ Utils::RandomPointInSphere(15.f, Vec3(0.0f, 12.0f, 0.0f)), Utils::RandomEulerRotation(), Vec3(Utils::RandomFloat() + Vec3(0.5f)) });
+		AddComponent(cube, Transform{ Utils::RandomPointInSphere(15.f, Vec3(0.0f, 100.0f, 0.0f)), Vec3(0), Vec3(1) });
+		// AddComponent(cube, Transform{ Vec3(0, 100, 0), Vec3(0.0f), Vec3(1.0) });
 		AddComponent(cube, StaticMeshRenderer{ DefaultCube.meshes });
+		AddComponent(cube, RigidBody());
 		cubeTransforms.push_back(&GetComponent<Transform>(cube));
 	}
 
@@ -93,13 +100,13 @@ bool World::Initialize()
 	float intensity = 200.0f;
 	Vec3 pos = Vec3(-5.0f, 12.0f, 0.0f);
 	Vec3 color = Vec3(0.5f, 0.1f, 0.05f);
-	AddComponent(pointLight, Transform{ pos });
+	AddComponent(pointLight, Transform{ pos, Vec3(0) });
 	AddComponent(pointLight, PointLight{ color, intensity });
 
 	Entity pointLight1 = CreateEntity();
 	pos = Vec3(0.0f, 12.0f, 0.0f);
 	color = Vec3(0.1f, 0.5f, 0.05f);
-	AddComponent(pointLight1, Transform{ pos });
+	AddComponent(pointLight1, Transform{ pos, Vec3(0) });
 	AddComponent(pointLight1, PointLight{ color, intensity });
 
 	Entity sun = CreateEntity();

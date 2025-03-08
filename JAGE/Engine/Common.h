@@ -21,6 +21,8 @@
 #include <type_traits>
 #include <regex>
 
+#define GLM_ENABLE_EXPERIMENTAL
+#include <glm/gtx/euler_angles.hpp>
 #include <glm/glm.hpp>
 #include <glm/common.hpp>
 #include <glm/gtc/type_ptr.hpp>
@@ -48,6 +50,7 @@ inline constexpr const Asset NULL_ASSET = -1;
 using Signature = std::bitset<MAX_COMPONENT_TYPES>;
 inline constexpr const Signature NO_SIGNATURE = 0;
 
+using Quat = glm::quat;
 using Vec2 = glm::vec2;
 using Vec3 = glm::vec3;
 using Vec4 = glm::vec4;

@@ -1,6 +1,7 @@
 #include <World/World.h>
 #include <Renderer/OpenGlApi.h>
 #include <Core/Config.h>
+#include <Physics/Physics.h>
 #include "Engine.h"
 
 void Engine::Init() {
@@ -15,6 +16,7 @@ void Engine::Init() {
 	shouldExit = !openglApi.Initialize();
 	shouldExit = !input.Initialize();
 	shouldExit = !world.Initialize();
+	shouldExit = !Physics::Initialize();
 
 	if (shouldExit) LOG(LogEngine, LOG_ERROR, "Something went wrong.");
 

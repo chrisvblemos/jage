@@ -63,4 +63,28 @@ namespace Utils {
 
 		return { pitch, yaw, roll };
 	}
+
+	inline static Vec3 ToDegrees(const Vec3& r) {
+		return r * 180.0f / glm::pi<float>();
+	}
+
+	inline static float ToDegrees(const float a) {
+		return a * 180.0f / glm::pi<float>();
+	}
+
+	inline static Vec3 ToRad(const Vec3& r) {
+		return r * glm::pi<float>() / 180.0f;
+	}
+
+	inline static float ToRad(const float a) {
+		return a * glm::pi<float>() / 180.0f;
+	}
+
+	inline static Quat EulerToQuat(const Vec3& euler) {
+		return glm::quat(euler);
+	}
+
+	inline static Vec3 QuatToEuler(const Quat& quat) {
+		return glm::eulerAngles(quat);
+	}
 }

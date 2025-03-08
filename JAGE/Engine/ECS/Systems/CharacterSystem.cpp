@@ -14,20 +14,19 @@ void CharacterSystem::Update(float dt) {
 		Camera& cam = world.GetComponent<Camera>(character.camera);
 		Transform& camTransform = world.GetComponent<Transform>(character.camera);
 
-		float mouseSens = cfg::Input.Read<float>("Mouse", "input.mouse.sensitivity", 1.0f);
+		float mouseSens = 10 * cfg::Input.Read<float>("Mouse", "input.mouse.sensitivity", 1.0f);
 		const Vec2 mouseDelta = mouseSens * Input::Get().GetMouseDelta();
 
 		if (mouseDelta.x) {
-			camTransform.rotation.y -= mouseDelta.x * dt;
+			camTransform.RotateAround(WUp, -mouseDelta.x * dt);
+			if (character.cameraControlsYaw)
+				transform.RotateAround(WUp, -mouseDelta.x * dt);
 		}
 
 		if (mouseDelta.y) {
-			camTransform.rotation.x -= mouseDelta.y * dt;
-			camTransform.rotation.x = glm::clamp(camTransform.rotation.x, character.camMinPitch, character.camMaxPitch);
-		}
-
-		if (character.cameraControlsYaw)
-			transform.rotation.y = camTransform.rotation.y;
+			Vec3 camRight = transform.rotation * WRight;
+			camTransform.RotateAround(camRight, -mouseDelta.y * dt);
+		}		
 
 		Vec3 moveInput = Vec3(0.0f);
 		if (Input::Get().GetKeyWasPressed(GLFW_KEY_W) || Input::Get().GetKeyWasPressed(GLFW_KEY_W))
