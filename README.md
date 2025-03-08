@@ -23,6 +23,7 @@ Game objects are handled via [entity-component-system](https://en.wikipedia.org/
 
 - CPP+20
 - OpenGL 4.6.0
+- [PhysX 5.5.1](https://github.com/NVIDIA-Omniverse/PhysX)
  
 ## Graphics API Supported Features
 
