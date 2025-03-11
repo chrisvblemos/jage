@@ -143,12 +143,12 @@ PxQuat Physics::EulerToQuat(const Vec3& euler)
 		PxQuat(euler.z * PxPi / 180.0f, PxVec3(0, 0, 1));
 }
 
-PxShape* Physics::CreateMeshShape(const std::vector<Vec3>& vertices, Vec3 offset, PxMaterial* material)
+PxShape* Physics::CreateMeshShape(const std::vector<Vertex>& vertices, Vec3 offset, PxMaterial* material)
 {
 	// cooking step
 	PxConvexMeshDesc convexDesc;
 	convexDesc.points.count = vertices.size();
-	convexDesc.points.stride = sizeof(Vec3);
+	convexDesc.points.stride = sizeof(Vertex);
 	convexDesc.points.data = vertices.data();
 	convexDesc.flags = PxConvexFlag::eCOMPUTE_CONVEX;
 
@@ -205,18 +205,32 @@ void Physics::AddRigidBody(const Entity entity, const RigidBody& rb, const Trans
 		PxRigidBodyExt::updateMassAndInertia(*body, 10.0f);
 		
 		PxShape* shape = nullptr;
+		
 		if (collider.type == ColliderType::Mesh) {
-			shape = CreateMeshShape(collider.vertices, Vec3(0.0f), physMaterial);
+			for (auto meshId : collider.meshes) {
+				auto it = mShapes.find(meshId);
+				if (it == mShapes.end()) {
+					std::cout << "Generating convex hull collision for mesh " << meshId << std::endl;
+					Mesh* loadedMesh = AssetManager::Get().GetAssetById<Mesh>(meshId);
+					mShapes[meshId] = CreateMeshShape(loadedMesh->vertices, Vec3(0), physMaterial);
+				}
+				
+				shape = mShapes[meshId];
+				body->attachShape(*shape);
+				shape->release();
+			}	
 		}
 		else if (collider.type == ColliderType::Cube) {
 			shape = CreateBoxShape(collider.width, collider.height, collider.depth, Vec3(0.0f), physMaterial);
+			body->attachShape(*shape);
+			shape->release();
 		}
 		else if (collider.type == ColliderType::Sphere) {
 			shape = gPhysics->createShape(PxSphereGeometry(collider.radius), *physMaterial);
+			body->attachShape(*shape);
+			shape->release();
 		}
 		
-		if (shape)
-			body->attachShape(*shape);
 		gScene->addActor(*body);
 		mRigidBodies[entity] = body;
 	}
@@ -252,9 +266,6 @@ Quat Physics::GetRigidBodyRotation(const int32_t index)
 	if (it != mRigidBodies.end()) {
 		PxRigidDynamic* body = it->second;
 		PxQuat q = body->getGlobalPose().q;
-
-		std::cout << std::format("q: {} {} {} {}", q.x, q.y, q.z, q.w) << std::endl;
-		//std::cout << std::format("opengl q: {} {} {} {}", openglq.x, openglq.y, openglq.z, openglq.w) << std::endl;
 
 		Quat physxToOpengl = glm::angleAxis(glm::radians(-90.0f), Vec3(0, 1, 0));
 		return Quat(q.w, q.x, q.y, q.z);

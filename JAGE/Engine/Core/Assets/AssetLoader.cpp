@@ -4,7 +4,7 @@
 #include "AssetManager.h"
 #include "AssetLoader.h"
 
-MeshModel& AssetLoader::LoadMeshModelFromFile(const std::string& path) {
+MeshModel& AssetLoader::LoadMeshModelFromFile(const std::string& path, bool flipUV) {
 	auto& assetManager = AssetManager::Get();
 	auto* existingModel = assetManager.GetAssetByPath<MeshModel>(path);
 
@@ -13,7 +13,11 @@ MeshModel& AssetLoader::LoadMeshModelFromFile(const std::string& path) {
 	}
 
 	std::unique_ptr<Assimp::Importer> importer = std::make_unique<Assimp::Importer>();
-	const aiScene* scene = importer->ReadFile(path, aiProcess_Triangulate | aiProcess_JoinIdenticalVertices | aiProcess_OptimizeMeshes);
+
+	uint32_t readFlags = aiProcess_Triangulate | aiProcess_JoinIdenticalVertices | aiProcess_OptimizeMeshes;
+	if (flipUV)
+		readFlags |= aiProcess_FlipUVs;
+	const aiScene* scene = importer->ReadFile(path, readFlags);
 
 	if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode)
 	{

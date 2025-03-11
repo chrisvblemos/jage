@@ -15,6 +15,8 @@ struct DrawMeshCommandData {
 struct MeshInstanceData {
 	mat4 model;
 	mat4 inverseModel;
+	bool shouldDraw;
+	float padding[3];
 };
 
 layout(std430, binding = 2) readonly buffer MeshInstanceDataArray {

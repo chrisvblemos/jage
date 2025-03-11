@@ -661,6 +661,7 @@
     <None Include="Config\Rendering.ini" />
     <None Include="Assets\Shaders\post_fx.frag" />
     <None Include="Assets\Shaders\ssao_blur.frag" />
+    <None Include="..\README.md" />
   </ItemGroup>
   <ItemGroup>
     <Natvis Include="ThirdParty\imgui\imgui.natvis" />

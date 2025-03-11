@@ -58,7 +58,7 @@ void RenderSystem::HandleStaticMeshes(const Entity entity)
 	model = glm::scale(model, transform.scale);
 	smRenderer.modelMatrix = model;
 
-	renderAPI->UpsertMeshEntity(entity, &smRenderer);
+	renderAPI->UpsertMeshEntity(entity, &smRenderer, &transform);
 }
 
 void RenderSystem::HandleCameras(const Entity entity)

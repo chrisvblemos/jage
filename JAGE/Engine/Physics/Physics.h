@@ -24,7 +24,8 @@ namespace Physics {
 	inline std::unordered_map<int, PxConvexMesh*> mConvexMeshes;
 	inline std::unordered_map<int, PxTriangleMesh*> mTriangleMeshes;
 	inline std::vector<CollisionData> mCollisions;
-	inline std::unordered_map<uint32_t, PxRigidDynamic*> mRigidBodies;
+	inline std::unordered_map<Entity, PxRigidDynamic*> mRigidBodies;
+	inline std::unordered_map<Asset, PxShape*> mShapes;
 
 	/* Global getters. */
 	PxScene* GetScene();
@@ -42,7 +43,7 @@ namespace Physics {
 	PxShape* CreateBoxShape(float width, float height, float depth, Vec3 offset, PxMaterial* material = nullptr);
 	Vec3 QuatToEuler(const PxQuat& quat);
 	PxQuat EulerToQuat(const Vec3& euler);
-	PxShape* CreateMeshShape(const std::vector<Vec3>& vertices, Vec3 offset, PxMaterial* material = nullptr);
+	PxShape* CreateMeshShape(const std::vector<Vertex>& vertices, Vec3 offset, PxMaterial* material = nullptr);
 };
 
 class ContactReportCallback : public PxSimulationEventCallback {

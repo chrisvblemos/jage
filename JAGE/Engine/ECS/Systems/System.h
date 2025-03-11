@@ -10,8 +10,29 @@ public:
 	std::string name;
 	bool entitiesChanged = false;
 
+	virtual void PreStart() {};
 	virtual void Start() {};
-	virtual void Update(float dt) = 0;
+	virtual void PostStart() {};
+
+	void Step(float dt) {
+		static float accumulator;
+		const float fixedDeltaTime = 1 / 60.0f;
+
+		accumulator += dt;
+		while (accumulator >= fixedDeltaTime) {
+			FixedUpdate(fixedDeltaTime);
+			accumulator -= fixedDeltaTime;
+		}
+
+		Update(dt);
+		PostUpdate();
+	}
+
+	virtual void Update(float dt) {};
+
+	/* Physics time fixed step. i.e. dt is of fixed value, not frame dependent. */
+	virtual void FixedUpdate(float dt) {};
+
 	virtual void PostUpdate() {};
 	virtual void End() {};
 

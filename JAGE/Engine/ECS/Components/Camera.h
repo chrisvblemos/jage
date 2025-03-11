@@ -2,7 +2,6 @@
 
 #include <Core/Core.h>
 
-
 struct Camera {
 	bool isOrthogonal = false;
 	float fov = 60.0f;

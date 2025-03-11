@@ -27,9 +27,9 @@ void Engine::Init() {
 
 		windowManager.BeginFrame();
 
+		world.Update(dt);
 		input.PollKeys();
 		input.PollMouse();
-		world.Update(dt);
 
 		windowManager.EndFrame();
 

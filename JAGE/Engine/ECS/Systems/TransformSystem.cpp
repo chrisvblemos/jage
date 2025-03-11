@@ -2,7 +2,7 @@
 #include <World/World.h>
 #include "TransformSystem.h"
 
-void TransformSystem::Update(float dt)
+void TransformSystem::FixedUpdate(float dt)
 {
 	World& world = World::Get();
 	for (const Entity& entity : entities) {

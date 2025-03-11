@@ -11,4 +11,5 @@ struct Character {
 	float gravity = -9.81f;
 	float maxMovementSpeed = 5.0f;
 	bool isGrounded = false;
+	bool wantsToJump = false;
 };

@@ -5,6 +5,7 @@
 #include "Types/FrameBuffer.h"
 #include "Types/Texture.h"
 #include "Types/VertexArray.h"
+#include <ECS/Components/Transform.h>
 #include <Core/Core.h>
 #include <Core/Config.h>
 
@@ -32,6 +33,42 @@ struct Camera;
 struct DirectionalLight;
 struct PointLight;
 struct StaticMeshRenderer;
+
+struct Plane {
+	Vec3 normal = { 0.f, 1.f, 0.f };
+	float distance = 0.f;
+
+	Plane() = default;
+
+	Plane(const Vec3& p1, const Vec3& norm)
+		: normal(glm::normalize(norm)),
+		  distance(glm::dot(normal, p1)) {};
+
+	float getSignedDistanceToPlane(const glm::vec3& point) const
+	{
+		return glm::dot(normal, point) - distance;
+	}
+};
+
+struct Frustum {
+	Plane topFace;
+	Plane bottomFace;
+
+	Plane rightFace;
+	Plane leftFace;
+
+	Plane farFace;
+	Plane nearFace;
+};
+
+struct BoundingSphere {
+	Vec3 center{ 0.f };
+	float radius{ 1.f };
+
+	bool isOnOrForwardPlane(const Plane& plane) const {
+		return plane.getSignedDistanceToPlane(center) > -radius;
+	}
+};
 
 struct SSAOSettingsData {
 	GLuint  kernelSize;
@@ -66,6 +103,8 @@ struct MeshDrawCmdData {
 struct MeshInstanceData {
 	Mat4 model;
 	Mat4 inverseModel;
+	GLboolean shouldDraw = false;
+	float padding[3];
 };
 
 struct MeshMetaData {
@@ -223,6 +262,7 @@ private:
 	// CPU data
 	DirectionalLight* directionalLight;
 	Camera* currentActiveCamera;
+	Frustum cameraFrustum;
 	
 	std::unordered_map<Asset, std::unordered_map<Entity, uint32_t>> assToEntMeshInstIndexes;
 	std::unordered_map<Asset, MeshMetaData> assToMesh;
@@ -260,6 +300,21 @@ private:
     Mat4 GetLightViewMatrix(const Vec3 &lightDir, const std::vector<Vec4> &frustumCorners);
     Mat4 CalculateModelMatrix(const Vec3& position, const glm::quat& rotation, const Vec3& scale);
 
+	void UpdateCameraFrustum(const Transform* transform);
+
+	bool IsOnFrustum(const Transform* transform) const
+	{
+		const float maxScale = std::max(std::max(transform->scale.x, transform->scale.y), transform->scale.z);
+		BoundingSphere boundingSphere(transform->position, maxScale * 0.5f);
+
+		return (boundingSphere.isOnOrForwardPlane(cameraFrustum.leftFace) &&
+			boundingSphere.isOnOrForwardPlane(cameraFrustum.rightFace) &&
+			boundingSphere.isOnOrForwardPlane(cameraFrustum.farFace) &&
+			boundingSphere.isOnOrForwardPlane(cameraFrustum.nearFace) &&
+			boundingSphere.isOnOrForwardPlane(cameraFrustum.topFace) &&
+			boundingSphere.isOnOrForwardPlane(cameraFrustum.bottomFace));
+	}
+
 public:
 	OpenGlApi(const OpenGlApi&) = delete;
 	OpenGlApi& operator=(const OpenGlApi&) = delete;
@@ -287,7 +342,7 @@ public:
 	// Buffering
 	void RegisterTexture2D(Texture* texture);
 	void RegisterMesh(const Mesh* mesh);
-	void UpsertMeshEntity(const Entity entity, const StaticMeshRenderer* smRenderer);
+	void UpsertMeshEntity(const Entity entity, const StaticMeshRenderer* smRenderer, const Transform* transform);
 	
 	// Passes
 	void GeometryPass();

@@ -1,5 +1,4 @@
 #include <ECS/EntityManager.h>
-#include <ECS/Components/Transform.h>
 #include <ECS/Components/Camera.h>
 #include <ECS/Components/DirectionalLight.h>
 #include <ECS/Components/PointLight.h>
@@ -9,7 +8,10 @@
 #include <Core/Config.h>
 #include "ShaderPreProcessor.h"
 #include "Core/Utils.h"
+#include <physx/PxPhysicsAPI.h>
 #include "OpenGlApi.h"
+
+using namespace physx;
 
 void EnableOpenGLDebugOutput();
 
@@ -217,6 +219,29 @@ Mat4 OpenGlApi::GetLightViewMatrix(const Vec3& lightDir, const std::vector<Vec4>
 	Mat4 rotYaw = glm::rotate(view, -yaw, { 0.0f, 1.0f, 0.0f });
 	Mat4 rotPitch = glm::rotate(view, -pitch, { 1.0f, 0.0f, 0.0f });
 	return rotPitch * rotYaw * translate;
+}
+
+void OpenGlApi::UpdateCameraFrustum(const Transform* transform)
+{
+	float aspect = currentActiveCamera->aspectRatio;
+	float zNear = currentActiveCamera->nearPlane;
+	float zFar = currentActiveCamera->farPlane;
+
+	const float halfVSide = zFar * tanf(currentActiveCamera->fov * .5f);
+	const float halfHSide = halfVSide * currentActiveCamera->aspectRatio;
+	const Vec3 frontMultNear = zNear * transform->forward;
+	const Vec3 frontMultFar = zFar * transform->forward;
+
+	cameraFrustum.nearFace = { transform->position + frontMultNear, transform->forward };
+	cameraFrustum.farFace = { transform->position + frontMultFar, -transform->forward };
+	cameraFrustum.rightFace = { transform->position,
+							glm::cross(transform->up, frontMultFar - transform->right * halfHSide) };
+	cameraFrustum.leftFace = { transform->position,
+							glm::cross(frontMultFar + transform->right * halfHSide, transform->up) };
+	cameraFrustum.topFace = { transform->position,
+							glm::cross(frontMultFar - transform->up * halfVSide, transform->right) };
+	cameraFrustum.bottomFace = { transform->position,
+							glm::cross(transform->right, frontMultFar + transform->up * halfVSide) };
 }
 
 /* Returns the light proj matrix when using CSM. To get the view-proj matrix,
@@ -649,6 +674,7 @@ void OpenGlApi::UploadCameraData(const Camera* camera, const Transform* transfor
 	cameraData.mView = currentActiveCamera->viewMatrix;
 
 	cameraDataUBO.UpdateData(0, sizeof(CameraData), &cameraData);
+	UpdateCameraFrustum(transform);
 }
 
 void OpenGlApi::PointLightShadowMapPass() {
@@ -821,7 +847,7 @@ void OpenGlApi::PostFxPass()
 	DrawScreenQuad(postFXTex2D);
 }
 
-void OpenGlApi::UpsertMeshEntity(const Entity entity, const StaticMeshRenderer* smRenderer) {
+void OpenGlApi::UpsertMeshEntity(const Entity entity, const StaticMeshRenderer* smRenderer, const Transform* transform) {
 	Mat4 model = smRenderer->modelMatrix;
 	Mat4 inverseModel = smRenderer->inverseModelMatrix;
 
@@ -838,12 +864,14 @@ void OpenGlApi::UpsertMeshEntity(const Entity entity, const StaticMeshRenderer* 
 
 		if (inserted) {
 			meshInstances.emplace_back();
-			meshDrawCmdDataArray[meshDataIt->second.drawCmdIndex].instanceCount++;
 		}
 
 		auto& instance = meshInstances[entInstIt->second];
 		instance.model = model;
 		instance.inverseModel = inverseModel;
+
+		bool _isOnFrustum = IsOnFrustum(transform);
+		instance.shouldDraw = _isOnFrustum;
 	}
 }
 
@@ -904,14 +932,24 @@ void OpenGlApi::RegisterMesh(const Mesh* mesh) {
 
 void OpenGlApi::UploadMeshRenderData() {
 	std::vector<MeshInstanceData> meshInstDataArray;
+	uint32_t vertices = 0;
 	for (const auto& it : assToMeshInsts) {
 		MeshMetaData& metaData = assToMesh[it.first];
 		MeshDrawCmdData& cmdData = meshDrawCmdDataArray[metaData.drawCmdIndex];
 		cmdData.baseInstance = static_cast<GLuint>(meshInstDataArray.size());
 
 		const std::vector<MeshInstanceData>& meshInsts = it.second;
-		meshInstDataArray.insert(meshInstDataArray.end(), meshInsts.begin(), meshInsts.end());
+
+		// frustum culling
+		for (auto& instanceData : it.second) {
+			if (instanceData.shouldDraw) {
+				meshInstDataArray.push_back(instanceData);
+				vertices += cmdData.count / 3;
+			}
+		}
+		cmdData.instanceCount = meshInstDataArray.size() - cmdData.baseInstance;
 	}
+	std::cout << "Vertices: " << vertices << std::endl;
 
 	meshDIB.UpdateData(0, meshDrawCmdDataArray.size() * sizeof(MeshDrawCmdData), meshDrawCmdDataArray.data());
 	meshSSBO.UpdateData(0, meshInstDataArray.size() * sizeof(MeshInstanceData), meshInstDataArray.data());

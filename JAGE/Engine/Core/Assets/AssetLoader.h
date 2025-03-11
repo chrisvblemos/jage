@@ -27,6 +27,6 @@ public:
 		return instance;
 	}
 
-	MeshModel& LoadMeshModelFromFile(const std::string& path);
+	MeshModel& LoadMeshModelFromFile(const std::string& path, bool flipUV = false);
 	Texture& LoadTextureFromFile(const std::string& path, const uint8_t texType);
 };

@@ -19,9 +19,14 @@ struct Collider {
 	float height = 1.0f;
 	float depth = 1.0f;
 	std::vector<Vec3> vertices;
+	std::vector<Asset> meshes;
 
 	Collider() = default;
 	Collider(ColliderType type) : type(type) {};
+
+	void SetMeshes(const std::vector<Asset>& meshes) {
+		this->meshes = meshes;
+	}
 
 	void SetVertices(const std::vector<Asset>& meshes) {
 		vertices.clear();

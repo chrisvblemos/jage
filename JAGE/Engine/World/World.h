@@ -4,10 +4,19 @@
 #include <ECS/EntityManager.h>
 #include <ECS/ComponentManager.h>
 #include <ECS/SystemManager.h>
+#include <ECS/Systems/CharacterSystem.h>
+#include <ECS/Systems/TransformSystem.h>
+#include <ECS/Systems/RenderSystem.h>
+#include <ECS/Systems/PhysicsSystem.h>
 
 class World {
 private:
 	World() = default;
+	PhysicsSystem* physicsSys;
+	CharacterSystem* characterSys;
+	TransformSystem* transformSys;
+	RenderSystem* renderSys;
+
 public:
 	// prevents copying
 	World(const World&) = delete;

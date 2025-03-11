@@ -635,6 +635,7 @@ xcopy /E /I /Y "$(ProjectDir)Config\*" "$(TargetDir)Config\"</Command>
     <ClInclude Include="ThirdParty\stb\stb_image.h" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="..\README.md" />
     <None Include="Assets\Meshes\AbandonedCottage\cottage.mtl">
       <FileType>Document</FileType>
     </None>

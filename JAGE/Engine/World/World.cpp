@@ -6,10 +6,7 @@
 #include <ECS/Components/PointLight.h>
 #include <ECS/Components/Collider.h>
 #include <ECS/Components/DirectionalLight.h>
-#include <ECS/Systems/CharacterSystem.h>
-#include <ECS/Systems/TransformSystem.h>
-#include <ECS/Systems/RenderSystem.h>
-#include <ECS/Systems/PhysicsSystem.h>
+#include <chrono>
 #include "World.h"
 
 bool World::Initialize()
@@ -30,27 +27,27 @@ bool World::Initialize()
 	Signature any;
 	any.set();
 
-	CharacterSystem* characterSys = RegisterSystem<CharacterSystem>();
+	physicsSys = RegisterSystem<PhysicsSystem>();
+	Signature physicsSysReqSign = MakeSignature<Transform, RigidBody>();
+	SetSystemRequiredSignature<PhysicsSystem>(physicsSysReqSign);
+	SetSystemOptionalSignature<PhysicsSystem>(any);
+
+	characterSys = RegisterSystem<CharacterSystem>();
 	Signature charSysReqSign = MakeSignature<Transform, Character>();
 	SetSystemRequiredSignature<CharacterSystem>(charSysReqSign);
 	SetSystemOptionalSignature<CharacterSystem>(any);
 
-	RenderSystem* renderSys = RegisterSystem<RenderSystem>();
+	transformSys = RegisterSystem<TransformSystem>();
+	Signature transformSysReqSign = MakeSignature<Transform>();
+	SetSystemRequiredSignature<TransformSystem>(transformSysReqSign);
+	SetSystemOptionalSignature<TransformSystem>(any);
+
+	renderSys = RegisterSystem<RenderSystem>();
 	Signature renderSysReqSign = MakeSignature<Transform>();
 	Signature renderSysOptSign = MakeSignature<StaticMeshRenderer, DirectionalLight, PointLight, Camera>();
 	SetSystemRequiredSignature<RenderSystem>(renderSysReqSign);
 	SetSystemOptionalSignature<RenderSystem>(renderSysOptSign);
 	renderSys->SetRenderApi(&OpenGlApi::Get());
-
-	TransformSystem* transformSys = RegisterSystem<TransformSystem>();
-	Signature transformSysReqSign = MakeSignature<Transform>();
-	SetSystemRequiredSignature<TransformSystem>(transformSysReqSign);
-	SetSystemOptionalSignature<TransformSystem>(any);
-
-	PhysicsSystem* physicsSys = RegisterSystem<PhysicsSystem>();
-	Signature physicsSysReqSign = MakeSignature<Transform, RigidBody>();
-	SetSystemRequiredSignature<PhysicsSystem>(physicsSysReqSign);
-	SetSystemOptionalSignature<PhysicsSystem>(any);
 
 	MeshModel& DefaultPlane = AssetLoader::Get().LoadMeshModelFromFile(
 		"Assets/Meshes/default_plane.obj");
@@ -58,6 +55,8 @@ bool World::Initialize()
 		"Assets/Meshes/default_cube.obj");
 	MeshModel& backpackModel = AssetLoader::Get().LoadMeshModelFromFile(
 		"Assets/Meshes/SurvivalGuitarBackpack/backpack.obj");
+	MeshModel& akModel = AssetLoader::Get().LoadMeshModelFromFile(
+		"Assets/Meshes/ak47/ak47.obj", true);
 
 	Window::Get().SetMouseCursorVisibility(false);
 
@@ -86,8 +85,20 @@ bool World::Initialize()
 		AddComponent(backpack, StaticMeshRenderer{ backpackModel.meshes });
 		AddComponent(backpack, RigidBody());
 		AddComponent(backpack, Collider{ ColliderType::Mesh });
-		World::Get().GetComponent<Collider>(backpack).SetVertices(backpackModel.meshes);
+		World::Get().GetComponent<Collider>(backpack).SetMeshes(backpackModel.meshes);
 		bkpTransforms.push_back(&GetComponent<Transform>(backpack));
+	}
+
+	uint32_t nAks = 50;
+	std::vector<Transform*> akTransforms;
+	for (uint32_t i = 0; i < nAks; i++) {
+		Entity ak = CreateEntity();
+		AddComponent(ak, Transform{ Utils::RandomPointInSphere(15.f, Vec3(0.0f, 12.0f, 0.0f)), Utils::RandomEulerRotation(), Vec3(1) });
+		AddComponent(ak, StaticMeshRenderer{ akModel.meshes });
+		AddComponent(ak, RigidBody());
+		AddComponent(ak, Collider{ ColliderType::Mesh });
+		World::Get().GetComponent<Collider>(ak).SetMeshes(akModel.meshes);
+		akTransforms.push_back(&GetComponent<Transform>(ak));
 	}
 
 	uint32_t nCubes = 10;
@@ -99,7 +110,7 @@ bool World::Initialize()
 		AddComponent(cube, StaticMeshRenderer{ DefaultCube.meshes });
 		AddComponent(cube, RigidBody());
 		AddComponent(cube, Collider{ ColliderType::Mesh });
-		World::Get().GetComponent<Collider>(cube).SetVertices(DefaultCube.meshes);
+		World::Get().GetComponent<Collider>(cube).SetMeshes(DefaultCube.meshes);
 		cubeTransforms.push_back(&GetComponent<Transform>(cube));
 	}
 
@@ -116,12 +127,12 @@ bool World::Initialize()
 	AddComponent(pointLight1, Transform{ pos, Vec3(0) });
 	AddComponent(pointLight1, PointLight{ color, intensity });
 
-	Entity sun = CreateEntity();
-	AddComponent(sun, Transform{});
-	AddComponent(sun, DirectionalLight{});
-	DirectionalLight& sunDirLight = GetComponent<DirectionalLight>(sun);
-	sunDirLight.intensity = 0.0f;
-	sunDirLight.orthoProjSizes = Vec4(5);
+	//Entity sun = CreateEntity();
+	//AddComponent(sun, Transform{});
+	//AddComponent(sun, DirectionalLight{});
+	//DirectionalLight& sunDirLight = GetComponent<DirectionalLight>(sun);
+	//sunDirLight.intensity = 1.3f;
+	//sunDirLight.orthoProjSizes = Vec4(5);
 
 	return true;
 }
@@ -147,10 +158,25 @@ void World::Update(float dt)
 	using WeakSystemPtr = std::weak_ptr<System>;
 	std::vector<WeakSystemPtr> systems = mSystemManager->GetSystems();
 
+	static float accumulator;
+	const float fixedDeltaTime = 1 / 60.0f;
+	accumulator += dt;
+
+	// update
 	for (auto& sys : systems) {
 		auto ptr = sys.lock();
-		if (ptr) 
+		if (ptr)
 			ptr->Update(dt);
+	}
+
+	// fixed update
+	while (accumulator >= fixedDeltaTime) {
+		for (auto& sys : systems) {
+			auto ptr = sys.lock();
+			if (ptr)
+				ptr->FixedUpdate(fixedDeltaTime);
+		}
+		accumulator -= fixedDeltaTime;
 	}
 }
 
